@@ -1,0 +1,186 @@
+# 规则模板定义
+# 用于从POB数据中自动提取规则
+# 使用英文pattern匹配POB原始数据
+
+metadata:
+  version: "0.1.0"
+  description: "规则提取模板，用于从POB数据识别规则关系"
+  last_updated: "2024-03-04"
+
+templates:
+  # ========== 限制型规则 ==========
+
+  - id: "template_cannot"
+    name: "限制规则"
+    patterns:
+      - en: "(.+) cannot (.+)"
+      - en: "unable to (.+)"
+      - en: "(.+) is unable to (.+)"
+      - en: "(.+) unable to (.+)"
+    edge_type: "blocks"
+    examples:
+      - input: "triggered skills cannot generate energy"
+        output:
+          subject: "triggered skills"
+          action: "generate energy"
+      - input: "unable to gain energy from triggered skills"
+        output:
+          subject: "triggered skills"
+          action: "gain energy"
+    notes: "识别'无法'类型的限制规则"
+
+  # ========== 条件触发规则 ==========
+
+  - id: "template_when"
+    name: "条件触发规则"
+    patterns:
+      - en: "when (.+), (.+)"
+      - en: "on (.+), (.+)"
+      - en: "triggers (.+) when (.+)"
+      - en: "when you (.+), (.+)"
+    edge_type: "triggers"
+    examples:
+      - input: "when you critically hit, triggers socketed spell"
+        output:
+          condition: "critically hit"
+          action: "triggers socketed spell"
+      - input: "on block, gains energy"
+        output:
+          condition: "block"
+          action: "gains energy"
+    notes: "识别'当...时'类型的条件触发规则"
+
+  # ========== 增益规则 ==========
+
+  - id: "template_increase"
+    name: "增益规则"
+    patterns:
+      - en: "(.+) increases (.+)"
+      - en: "(.+) increased (.+)"
+      - en: "(.+) grants (.+)"
+      - en: "(.+) adds (.+)"
+    edge_type: "enhances"
+    examples:
+      - input: "skill level increases energy generation"
+        output:
+          source: "skill level"
+          target: "energy generation"
+      - input: "grants +35% energy generated"
+        output:
+          source: "this"
+          target: "+35% energy generated"
+    notes: "识别'增加'类型的增益规则"
+
+  # ========== 减少规则 ==========
+
+  - id: "template_reduce"
+    name: "减少规则"
+    patterns:
+      - en: "(.+) reduces (.+)"
+      - en: "(.+) reduced (.+)"
+      - en: "(.+) decreases (.+)"
+    edge_type: "reduces"
+    examples:
+      - input: "armor reduces physical damage taken"
+        output:
+          source: "armor"
+          target: "physical damage taken"
+    notes: "识别'减少'类型的规则"
+
+  # ========== 消耗规则 ==========
+
+  - id: "template_consume"
+    name: "消耗规则"
+    patterns:
+      - en: "consumes (.+)"
+      - en: "uses (.+) to (.+)"
+      - en: "costs (.+)"
+      - en: "reserves (.+)"
+    edge_type: "consumes"
+    examples:
+      - input: "consumes 100 Spirit"
+        output:
+          resource: "Spirit"
+          amount: 100
+      - input: "reserves 100 Spirit"
+        output:
+          resource: "Spirit"
+          amount: 100
+          type: "reservation"
+    notes: "识别'消耗/预留'类型的规则"
+
+  # ========== 需求规则 ==========
+
+  - id: "template_require"
+    name: "需求规则"
+    patterns:
+      - en: "(.+) requires (.+)"
+      - en: "(.+) requires level (.+)"
+      - en: "requires (.+) to (.+)"
+    edge_type: "requires"
+    examples:
+      - input: "skill requires level 28"
+        output:
+          requirement: "level"
+          value: 28
+      - input: "requires sword to use"
+        output:
+          requirement: "weapon type"
+          value: "sword"
+    notes: "识别'需要'类型的规则"
+
+  # ========== 转化规则 ==========
+
+  - id: "template_convert"
+    name: "转化规则"
+    patterns:
+      - en: "(.+) converts to (.+)"
+      - en: "(.+) converted to (.+)"
+      - en: "(.+) as (.+)"
+    edge_type: "converts"
+    examples:
+      - input: "physical damage converts to fire damage"
+        output:
+          from: "physical damage"
+          to: "fire damage"
+      - input: "life as energy shield"
+        output:
+          from: "life"
+          to: "energy shield"
+    notes: "识别'转化'类型的规则"
+
+  # ========== 例外规则 ==========
+
+  - id: "template_except"
+    name: "例外规则"
+    patterns:
+      - en: "except (.+), (.+)"
+      - en: "(.+) except (.+)"
+      - en: "unless (.+), (.+)"
+    edge_type: "excepts"
+    examples:
+      - input: "except Hazard damage, triggered skills cannot generate energy"
+        output:
+          exception: "Hazard damage"
+          rule: "triggered skills cannot generate energy"
+    notes: "识别'例外'类型的规则"
+
+  # ========== 赋予规则 ==========
+
+  - id: "template_grant"
+    name: "赋予规则"
+    patterns:
+      - en: "grants (.+)"
+      - en: "gives (.+)"
+      - en: "provides (.+)"
+    edge_type: "grants"
+    examples:
+      - input: "grants skill: Raise Shield"
+        output:
+          granted: "skill"
+          value: "Raise Shield"
+      - input: "grants +35% energy generated"
+        output:
+          granted: "stat"
+          value: "+35% energy generated"
+    notes: "识别'赋予'类型的规则"

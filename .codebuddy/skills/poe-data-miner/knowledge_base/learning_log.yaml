@@ -1,0 +1,38 @@
+# 学习日志
+# 记录所有学习事件
+
+metadata:
+  version: "0.1.0"
+  created_at: null
+  total_events: 0
+
+events: []
+# 事件格式示例：
+# - id: "le_001"
+#   timestamp: "2024-03-04T12:00:00"
+#   type: "discovery"  # discovery | confirmation | rejection | update
+#   
+#   # 事件详情
+#   details:
+#     question: "如何绕过Triggered限制？"
+#     discovery: "Doedre's Undoing可以通过Hazard机制绕过"
+#     entities_involved:
+#       - "Cast on Critical"
+#       - "Doedre's Undoing"
+#   
+#   # 用户反馈
+#   user_feedback:
+#     action: "confirmed"  # confirmed | rejected | skipped
+#     timestamp: "2024-03-04T12:05:00"
+#   
+#   # 知识库更新
+#   knowledge_updates:
+#     - type: "heuristic_record"
+#       id: "hr_001"
+#       action: "created"
+#     - type: "graph_edge"
+#       action: "inserted"
+#       data:
+#         source: "hazard_zone_explosion"
+#         target: "triggered_energy_limit"
+#         edge_type: "bypasses"

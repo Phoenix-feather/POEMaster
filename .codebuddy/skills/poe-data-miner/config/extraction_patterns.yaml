@@ -1,0 +1,235 @@
+# 提取模式定义
+# 用于从Lua文件中识别和提取数据
+
+metadata:
+  version: "0.1.0"
+  description: "Lua数据提取模式配置"
+  last_updated: "2024-03-04"
+
+# ========== 文件类型识别模式 ==========
+
+file_type_patterns:
+  # 技能定义文件
+  skill_definition:
+    patterns:
+      - 'skills\s*\[\s*"[^"]+"\s*\]\s*=\s*\{'
+      - 'skills\s*\[\s*[\''][^\'']+[\'']\s*\]\s*=\s*\{'
+    data_type: "skill_definition"
+    priority: 1
+
+  # 宝石定义文件
+  gem_definition:
+    patterns:
+      - '\[\s*"Metadata/Items/Gems/[^"]+"\s*\]'
+      - 'gem_data\s*='
+    data_type: "gem_definition"
+    priority: 2
+
+  # 暗金物品文件
+  unique_item:
+    patterns:
+      - '\[\[.*\]\]'
+      - 'return\s*\{'
+      - 'addItemMod'
+    data_type: "unique_item"
+    priority: 3
+
+  # 属性映射文件 (SkillStatMap)
+  stat_mapping:
+    patterns:
+      - '\[\s*"[a-z_]+_.*"\s*\]\s*=\s*\{'
+      - 'skill\s*\('
+      - 'mod\s*\('
+    data_type: "stat_mapping"
+    priority: 1
+
+  # 计算模块文件
+  calculation_module:
+    patterns:
+      - 'function\s+calc\w+\s*\('
+      - 'function\s+compute\w+\s*\('
+      - 'function\s+get\w+Mod'
+    data_type: "calculation_module"
+    priority: 2
+
+  # 数据表文件
+  data_table:
+    patterns:
+      - 'local\s+\w+\s*=\s*\{'
+      - '\w+Data\s*='
+    data_type: "data_table"
+    priority: 3
+
+  # 配置/设置文件
+  config_settings:
+    patterns:
+      - 'Settings\s*='
+      - 'Config\s*='
+    data_type: "config_settings"
+    priority: 4
+
+# ========== 数据提取模式 ==========
+
+extraction_patterns:
+  # 技能ID和名称
+  skill_id_name:
+    pattern: 'skills\s*\[\s*"([^"]+)"\s*\]'
+    captures:
+      - skill_id
+    name_extraction:
+      from_field: "name"
+      default_from_id: true
+    example:
+      input: 'skills["MetaCastOnCritPlayer"] = { name = "Cast on Critical", ... }'
+      output:
+        skill_id: "MetaCastOnCritPlayer"
+        name: "Cast on Critical"
+
+  # 技能类型 (skillTypes)
+  skill_types:
+    pattern: 'skillTypes\s*=\s*\{([^}]+)\}'
+    captures:
+      - types_list
+    parse_as: "array"
+    example:
+      input: 'skillTypes = { [SkillType.Meta] = true, [SkillType.GeneratesEnergy] = true }'
+      output:
+        skill_types: ["Meta", "GeneratesEnergy"]
+
+  # 常量属性 (constantStats)
+  constant_stats:
+    pattern: 'constantStats\s*=\s*\{([^}]+)\}'
+    captures:
+      - stats_list
+    parse_as: "array_of_arrays"
+    example:
+      input: 'constantStats = { { "cast_on_crit_gain_X_centienergy_per_power", 100 } }'
+      output:
+        constant_stats: [["cast_on_crit_gain_X_centienergy_per_power", 100]]
+
+  # 可变属性 (stats)
+  variable_stats:
+    pattern: 'stats\s*=\s*\{([^}]+)\}'
+    captures:
+      - stats_list
+    parse_as: "array"
+    example:
+      input: 'stats = { "energy_generated_+%" }'
+      output:
+        stats: ["energy_generated_+%"]
+
+  # 属性映射 (SkillStatMap)
+  stat_map_entry:
+    pattern: '\[\s*"([^"]+)"\s*\]\s*=\s*\{([^}]+)\}'
+    captures:
+      - stat_name
+      - mapping_body
+    example:
+      input: '["energy_generated_+%"] = { skill("energyMod", nil) }'
+      output:
+        stat_name: "energy_generated_+%"
+        mapping: { target: "energyMod", type: "skill" }
+
+  # 函数定义
+  function_definition:
+    pattern: 'function\s+(\w+)\s*\(([^)]*)\)'
+    captures:
+      - function_name
+      - parameters
+    example:
+      input: 'function calcEnergyGeneration(skill, env)'
+      output:
+        function_name: "calcEnergyGeneration"
+        parameters: ["skill", "env"]
+
+  # 条件判断
+  condition_check:
+    pattern: 'if\s+(.+)\s+then\s+(.+)'
+    captures:
+      - condition
+      - action
+    example:
+      input: 'if skill.skillTypes[SkillType.Triggered] then return 0 end'
+      output:
+        condition: "skill.skillTypes[SkillType.Triggered]"
+        action: "return 0"
+
+# ========== 计算代码分析模式 ==========
+
+calculation_patterns:
+  # 能量计算相关
+  energy_calculation:
+    function_names:
+      - "calcEnergyGeneration"
+      - "calcEnergy"
+      - "getEnergyGen"
+    key_patterns:
+      - "Triggered"
+      - "energy"
+      - "baseEnergy"
+    output_type: "energy_formula"
+
+  # 伤害计算相关
+  damage_calculation:
+    function_names:
+      - "calcDamage"
+      - "calcHitDamage"
+      - "getDamageMod"
+    key_patterns:
+      - "increased"
+      - "more"
+      - "multiplier"
+    output_type: "damage_formula"
+
+  # 防御计算相关
+  defense_calculation:
+    function_names:
+      - "calcDefense"
+      - "calcArmor"
+      - "getMitigation"
+    key_patterns:
+      - "armor"
+      - "resistance"
+      - "reduction"
+    output_type: "defense_formula"
+
+# ========== 版本信息提取 ==========
+
+version_patterns:
+  # GameVersions.lua
+  game_version:
+    file: "GameVersions.lua"
+    patterns:
+      - 'game_version\s*=\s*"([^"]+)"'
+      - 'GAME_VERSION\s*=\s*"([^"]+)"'
+    captures:
+      - version
+
+  # manifest.xml
+  manifest_version:
+    file: "manifest.xml"
+    patterns:
+      - '<version>([^<]+)</version>'
+    captures:
+      - version
+
+# ========== 特殊处理规则 ==========
+
+special_handling:
+  # Meta技能特殊处理
+  meta_skills:
+    identify_by: "SkillType.Meta"
+    extract_energy_formula: true
+    extract_trigger_conditions: true
+
+  # 触发技能特殊处理
+  trigger_skills:
+    identify_by: "SkillType.Triggers"
+    extract_triggered_effects: true
+    extract_cooldowns: true
+
+  # 能量生成技能特殊处理
+  energy_skills:
+    identify_by: "SkillType.GeneratesEnergy"
+    extract_energy_sources: true
+    extract_energy_modifiers: true

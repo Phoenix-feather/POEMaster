@@ -1,0 +1,40 @@
+# 未确认列表
+# 版本更新后需要重新验证的知识
+
+metadata:
+  version: "0.1.0"
+  created_at: null
+  last_updated: null
+  total_items: 0
+  resolved_items: 0
+
+items: []
+# 项目格式示例：
+# - id: "uv_001"
+#   status: "pending"  # pending | in_progress | resolved
+#   priority: "high"   # high | medium | low
+#   created_at: "2024-03-04"
+#   
+#   # 触发原因
+#   trigger:
+#     type: "version_update"  # version_update | mechanism_change | user_request
+#     version: "0.4.0 → 0.5.0"
+#     change_description: "Cast on Critical的base_energy变化"
+#   
+#   # 受影响的知识
+#   affected_knowledge:
+#     heuristic_id: "hr_001"
+#     question: "如何绕过暴击释放的能量限制？"
+#     key_entities:
+#       - "Cast on Critical"
+#       - "Doedre's Undoing"
+#   
+#   # 解决进度
+#   resolution:
+#     attempts: 0
+#     last_attempt: null
+#     notes: null
+#     result: null  # confirmed_valid | confirmed_invalid | needs_update
+
+resolved_history: []
+# 已解决的历史记录

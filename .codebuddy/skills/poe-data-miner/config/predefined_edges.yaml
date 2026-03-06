@@ -1,0 +1,107 @@
+# 预置边定义
+# 这些是无法从POB数据自动提取的关键隐含知识
+# 作为"种子"在初始化时加载
+
+metadata:
+  version: "0.1.0"
+  description: "POE2关键机制绕过关系预置边"
+  last_updated: "2024-03-04"
+
+edges:
+  # ========== 能量生成相关 ==========
+
+  # Hazard区域伤害绕过Triggered标签限制
+  - id: "pre_hazard_bypass_triggered"
+    source: "hazard_zone_explosion"
+    target: "triggered_energy_limit"
+    edge_type: "bypasses"
+    description: "Hazard区域爆炸伤害不带有Triggered标签，归因为玩家主动行为"
+    discovered_by: "game_knowledge"
+    confidence: 1.0
+    applicable_skills:
+      - "Doedre's Undoing"
+      - "Cast on Critical"
+      - "Cast on Elemental Ailment"
+    notes: |
+      原理：诅咒创建Hazard区域 → 敌人进入触发爆炸 → 爆炸伤害归因于玩家主动行为
+      这个绕过只适用于元触发技能（Cast on X），不适用于响应式触发（Mana Flare等）
+
+  # ========== 能量计算公式相关 ==========
+
+  # 元技能能量公式
+  - id: "pre_energy_formula"
+    source: "energy_generation"
+    target: "energy_calculation"
+    edge_type: "uses_formula"
+    description: "能量获取公式：base × (1 + Σinc) × Πmore"
+    formula: "final = base × (1 + sum(increased)) × product(more)"
+    discovered_by: "game_knowledge"
+    confidence: 1.0
+    factors:
+      - name: "技能等级"
+        effect: "每级+3% energy_generated_+%"
+      - name: "Boundless Energy I"
+        effect: "+35% energy generated"
+      - name: "Boundless Energy II"
+        effect: "+45% energy generated"
+      - name: "天赋节点"
+        effect: "+8%~+35% energy_generated_+%"
+    notes: |
+      inc修饰符使用加法叠加（sum）
+      more修饰符使用乘法叠加（product）
+
+  # ========== 触发相关 ==========
+
+  # 元触发技能施加Triggered标签
+  - id: "pre_meta_triggers_apply_triggered"
+    source: "meta_trigger_skill"
+    target: "triggered_tag"
+    edge_type: "applies"
+    description: "元触发技能触发插槽法术时，给被触发的法术施加Triggered标签"
+    discovered_by: "game_knowledge"
+    confidence: 1.0
+    affected_by:
+      - "Cast on Critical"
+      - "Cast on Block"
+      - "Cast on Elemental Ailment"
+      - "Cast on Dodge"
+    notes: |
+      这是Triggered标签的主要来源之一
+      被触发的法术因此无法为元技能提供能量
+
+  # ========== 限制规则 ==========
+
+  # Triggered标签阻止能量生成
+  - id: "pre_triggered_blocks_energy"
+    source: "triggered_tag"
+    target: "energy_generation"
+    edge_type: "blocks"
+    description: "带有Triggered标签的技能无法为元技能提供能量"
+    discovered_by: "game_knowledge"
+    confidence: 1.0
+    exceptions:
+      - condition: "damage from Hazard zone"
+        skill: "Doedre's Undoing"
+        reason: "Hazard伤害归因为玩家主动行为"
+    notes: |
+      这是能量生成的主要限制
+      绕过方法：让伤害不带有Triggered标签
+
+  # ========== Spirit预留相关 ==========
+
+  # 元技能Spirit预留
+  - id: "pre_meta_spirit_reservation"
+    source: "meta_skill"
+    target: "spirit_pool"
+    edge_type: "reserves"
+    description: "元技能预留固定Spirit值"
+    discovered_by: "game_knowledge"
+    confidence: 1.0
+    examples:
+      - skill: "Cast on Critical"
+        reservation: 100
+      - skill: "Cast on Block"
+        reservation: 100
+    notes: |
+      Spirit是POE2的新资源系统
+      预留后不可用于其他技能

@@ -1,0 +1,40 @@
+# 待确认项
+# 探索中发现但未确认的知识
+
+metadata:
+  version: "0.1.0"
+  created_at: null
+  last_updated: null
+  total_items: 0
+
+items: []
+# 项目格式示例：
+# - id: "pc_001"
+#   status: "pending"  # pending | confirmed | rejected
+#   created_at: "2024-03-04"
+#   
+#   # 发现内容
+#   discovery:
+#     type: "bypass"  # bypass | mechanism | relation
+#     question: "如何绕过Triggered限制？"
+#     answer: "Doedre's Undoing通过Hazard机制绕过"
+#     key_entities:
+#       - "Doedre's Undoing"
+#       - "Cast on Critical"
+#     key_mechanisms:
+#       - "Hazard区域爆炸"
+#       - "Triggered标签"
+#   
+#   # 推荐计数
+#   recommendation:
+#     asked_count: 0
+#     last_asked_at: null
+#   
+#   # 数据更新（确认后执行）
+#   data_updates:
+#     - target: "graph_edges"
+#       operation: "insert"
+#       data:
+#         source: "hazard_zone_explosion"
+#         target: "triggered_energy_limit"
+#         edge_type: "bypasses"

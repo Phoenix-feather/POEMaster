@@ -1,0 +1,29 @@
+# Schema 索引文件
+# 注意：现在优先使用 JSON 格式的 schema 文件 (*.schema.json)
+# 因为 JSON 可以保持字段顺序，便于哈希计算
+
+schemas:
+  entities:
+    file: entities.schema.json
+    description: 实体索引表结构
+  rules:
+    file: rules.schema.json
+    description: 规则库表结构 (待创建)
+  graph_nodes:
+    file: graph_nodes.schema.json
+    description: 关联图节点表结构 (待创建)
+  graph_edges:
+    file: graph_edges.schema.json
+    description: 关联图边表结构 (待创建)
+
+# 变化检测配置
+detection:
+  triggers:
+    - init_knowledge_base.py 执行前
+    - 版本更新时
+  
+  levels:
+    field_added: info
+    field_removed: error
+    field_type_changed: error
+    consumer_mismatch: warn
