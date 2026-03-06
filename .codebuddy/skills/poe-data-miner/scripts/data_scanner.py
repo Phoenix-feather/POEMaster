@@ -260,17 +260,18 @@ class POBDataScanner:
     
     def _extract_stat_sets(self, table_content: str) -> Dict[str, Any]:
         """
-        从statSets表中提取属性
+        从statSets表中提取属性（完整版）
         
         Args:
             table_content: 完整的技能表内容
             
         Returns:
-            包含constantStats和stats的字典
+            包含所有statSets数据的字典
         """
         result = {
             'constant_stats': [],
-            'stats': []
+            'stats': [],
+            'stat_sets': {}  # 新增：完整statSets数据
         }
         
         # 找到statSets部分
@@ -298,6 +299,116 @@ class POBDataScanner:
         set_content = self.extract_lua_table(statsets_content, set_start)
         if not set_content:
             return result
+        
+        # 提取完整的statSets数据
+        stat_sets_data = {}
+        
+        # 提取 label
+        label_match = re.search(r'label\s*=\s*"([^"]+)"', set_content)
+        if label_match:
+            stat_sets_data['label'] = label_match.group(1)
+        
+        # 提取 baseEffectiveness
+        base_eff_match = re.search(r'baseEffectiveness\s*=\s*([\d.]+)', set_content)
+        if base_eff_match:
+            stat_sets_data['baseEffectiveness'] = float(base_eff_match.group(1))
+        
+        # 提取 incrementalEffectiveness
+        inc_eff_match = re.search(r'incrementalEffectiveness\s*=\s*([\d.]+)', set_content)
+        if inc_eff_match:
+            stat_sets_data['incrementalEffectiveness'] = float(inc_eff_match.group(1))
+        
+        # 提取 damageIncrementalEffectiveness
+        dmg_inc_eff_match = re.search(r'damageIncrementalEffectiveness\s*=\s*([\d.]+)', set_content)
+        if dmg_inc_eff_match:
+            stat_sets_data['damageIncrementalEffectiveness'] = float(dmg_inc_eff_match.group(1))
+        
+        # 提取 statDescriptionScope
+        scope_match = re.search(r'statDescriptionScope\s*=\s*"([^"]+)"', set_content)
+        if scope_match:
+            stat_sets_data['statDescriptionScope'] = scope_match.group(1)
+        
+        # 提取 baseFlags
+        base_flags = []
+        flags_match = re.search(r'baseFlags\s*=\s*\{([^}]+)\}', set_content)
+        if flags_match:
+            flags_content = flags_match.group(1)
+            # 匹配 flag_name = true
+            flag_pattern = r'(\w+)\s*=\s*true'
+            base_flags = re.findall(flag_pattern, flags_content)
+        if base_flags:
+            stat_sets_data['baseFlags'] = base_flags
+        
+        # 提取 notMinionStat
+        not_minion_stats = []
+        not_minion_match = re.search(r'notMinionStat\s*=\s*\{([^}]+)\}', set_content)
+        if not_minion_match:
+            stats_content = not_minion_match.group(1)
+            not_minion_stats = re.findall(r'"([^"]+)"', stats_content)
+        if not_minion_stats:
+            stat_sets_data['notMinionStat'] = not_minion_stats
+        
+        # 提取 statMap（简化版，只提取stat名称）
+        stat_map = {}
+        statmap_match = re.search(r'statMap\s*=\s*\{', set_content)
+        if statmap_match:
+            statmap_start = statmap_match.end() - 1
+            statmap_table = self.extract_lua_table(set_content, statmap_start)
+            if statmap_table:
+                # 提取所有stat名称
+                stat_pattern = r'\["([^"]+)"\]\s*='
+                stat_names = re.findall(stat_pattern, statmap_table)
+                for stat_name in stat_names:
+                    stat_map[stat_name] = {}  # 简化处理
+        if stat_map:
+            stat_sets_data['statMap'] = stat_map
+        
+        # 提取 statSets.levels（每级stat值）
+        levels_data = {}
+        levels_match = re.search(r'levels\s*=\s*\{', set_content)
+        if levels_match:
+            levels_start = levels_match.end() - 1
+            levels_table = self.extract_lua_table(set_content, levels_start)
+            if levels_table:
+                # 匹配每个等级 [n] = { ... }
+                level_pattern = r'\[\s*(\d+)\s*\]\s*=\s*\{([^}]+)\}'
+                level_matches = re.finditer(level_pattern, levels_table)
+                
+                for level_match in level_matches:
+                    level_num = level_match.group(1)
+                    level_content = level_match.group(2)
+                    
+                    level_data = {}
+                    
+                    # 提取stat值（数字列表）
+                    values = []
+                    value_pattern = r'([\d.]+)'
+                    value_matches = re.findall(value_pattern, level_content.split('statInterpolation')[0])
+                    values = [float(v) if '.' in v else int(v) for v in value_matches]
+                    if values:
+                        level_data['values'] = values
+                    
+                    # 提取 statInterpolation
+                    interp_match = re.search(r'statInterpolation\s*=\s*\{([^}]+)\}', level_content)
+                    if interp_match:
+                        interp_content = interp_match.group(1)
+                        interp_values = re.findall(r'(\d+)', interp_content)
+                        level_data['statInterpolation'] = [int(v) for v in interp_values]
+                    
+                    # 提取 actorLevel
+                    actor_match = re.search(r'actorLevel\s*=\s*([\d.]+)', level_content)
+                    if actor_match:
+                        level_data['actorLevel'] = float(actor_match.group(1))
+                    
+                    if level_data:
+                        levels_data[level_num] = level_data
+        
+        if levels_data:
+            stat_sets_data['levels'] = levels_data
+        
+        # 保存完整的statSets数据
+        if stat_sets_data:
+            result['stat_sets'] = stat_sets_data
         
         # 从set_content中提取constantStats
         const_match = re.search(r'constantStats\s*=\s*\{', set_content)
@@ -798,17 +909,33 @@ class POBDataScanner:
             skill = {
                 'id': skill_id,
                 'name': self._extract_field(table_content, 'name'),
+                'base_type_name': self._extract_field(table_content, 'baseTypeName'),
+                'cast_time': self._extract_cast_time(table_content),
+                'quality_stats': self._extract_quality_stats(table_content),
                 'skill_types': self._extract_skill_types_from_table(table_content),
                 'constant_stats': [],
                 'stats': [],
                 'description': self._extract_field(table_content, 'description'),
-                'reservation': self._extract_reservation(table_content)
+                'reservation': self._extract_reservation(table_content),
+                'levels': self._extract_levels(table_content),
+                'stat_sets': {},
+                'support': self._extract_support_flag(table_content),
+                'require_skill_types': self._extract_require_skill_types(table_content),
+                'add_skill_types': self._extract_add_skill_types(table_content),
+                'exclude_skill_types': self._extract_exclude_skill_types(table_content),
+                'is_trigger': self._extract_is_trigger(table_content),
+                'hidden': self._extract_hidden(table_content)
             }
             
             # 从statSets提取属性
             stat_sets = self._extract_stat_sets(table_content)
             skill['constant_stats'] = stat_sets['constant_stats']
             skill['stats'] = stat_sets['stats']
+            skill['stat_sets'] = stat_sets.get('stat_sets', {})
+            
+            # 检查hidden字段，跳过隐藏的技能/辅助宝石
+            if skill.get('hidden'):
+                continue
             
             # 验证必要字段
             if not skill['id']:
@@ -1064,15 +1191,17 @@ class POBDataScanner:
             
             # 提取字段
             gem = {
-                'id': gem_id,
+                'id': f"Metadata/Items/Gems/{gem_id}",
                 'name': self._extract_field(table_content, 'name') or gem_id,
                 'type': 'gem_definition',
+                'game_id': f"Metadata/Items/Gems/{gem_id}",
+                'variant_id': gem_id,
             }
             
             # 基础类型名称
             base_type = self._extract_field(table_content, 'baseTypeName')
             if base_type:
-                gem['base_type'] = base_type
+                gem['base_type_name'] = base_type
             
             # 关联的技能ID
             granted_effect = self._extract_field(table_content, 'grantedEffectId')
@@ -1089,42 +1218,47 @@ class POBDataScanner:
             tag_string = self._extract_field(table_content, 'tagString')
             if tag_string:
                 gem['tag_string'] = tag_string
-                # 解析标签
-                tags = [t.strip() for t in tag_string.split(',') if t.strip()]
-                gem['tags'] = tags
             
             # 从 tags = {...} 字典提取标签
             tags_dict = self._extract_tags_dict(table_content)
             if tags_dict:
-                gem['tag_dict'] = tags_dict
-                # 如果没有 tagString，从字典提取
-                if 'tags' not in gem:
-                    gem['tags'] = list(tags_dict.keys())
+                gem['tags'] = tags_dict  # 存储为字典格式
             
-            # 需求属性
+            # 需求属性（修改字段名）
             req_str = self._extract_number(table_content, 'reqStr')
             req_dex = self._extract_number(table_content, 'reqDex')
             req_int = self._extract_number(table_content, 'reqInt')
-            if any([req_str, req_dex, req_int]):
-                gem['requirements'] = {
-                    'str': req_str,
-                    'dex': req_dex,
-                    'int': req_int
-                }
+            gem['req_str'] = req_str or 0
+            gem['req_dex'] = req_dex or 0
+            gem['req_int'] = req_int or 0
             
-            # Tier 和最大等级
+            # Tier 和最大等级（修改字段名）
             tier = self._extract_number(table_content, 'Tier')
             if tier is not None:
                 gem['tier'] = tier
             
             max_level = self._extract_number(table_content, 'naturalMaxLevel')
             if max_level is not None:
-                gem['max_level'] = max_level
+                gem['natural_max_level'] = max_level
             
             # 武器需求
             weapon_req = self._extract_field(table_content, 'weaponRequirements')
             if weapon_req:
                 gem['weapon_requirements'] = weapon_req
+            
+            # 宝石家族
+            gem_family = self._extract_field(table_content, 'gemFamily')
+            if gem_family:
+                gem['gem_family'] = gem_family
+            
+            # 额外stat集合
+            additional_set1 = self._extract_field(table_content, 'additionalStatSet1')
+            if additional_set1:
+                gem['additional_stat_set1'] = additional_set1
+            
+            additional_set2 = self._extract_field(table_content, 'additionalStatSet2')
+            if additional_set2:
+                gem['additional_stat_set2'] = additional_set2
             
             gems.append(gem)
         
@@ -1430,6 +1564,172 @@ class POBDataScanner:
             reservation['mana'] = int(mana_match.group(1))
         
         return reservation if reservation else None
+    
+    def _extract_cast_time(self, table_content: str) -> Optional[float]:
+        """提取施法时间"""
+        match = re.search(r'castTime\s*=\s*([\d.]+)', table_content)
+        return float(match.group(1)) if match else None
+    
+    def _extract_quality_stats(self, table_content: str) -> List[List[Any]]:
+        """提取品质加成"""
+        result = []
+        
+        # 查找 qualityStats = { ... }
+        quality_match = re.search(r'qualityStats\s*=\s*\{', table_content)
+        if not quality_match:
+            return result
+        
+        # 提取qualityStats表
+        quality_start = quality_match.end() - 1
+        quality_table = self.extract_lua_table(table_content, quality_start)
+        if not quality_table:
+            return result
+        
+        # 匹配 { "stat_name", value } 格式
+        pattern = r'\{\s*"([^"]+)"\s*,\s*([\d.]+)\s*\}'
+        matches = re.findall(pattern, quality_table)
+        
+        for name, value in matches:
+            result.append([name, float(value) if '.' in value else int(value)])
+        
+        return result
+    
+    def _extract_levels(self, table_content: str) -> Dict[str, Any]:
+        """提取技能等级数据（完整）"""
+        levels = {}
+        
+        # 查找 levels = { ... }
+        levels_match = re.search(r'levels\s*=\s*\{', table_content)
+        if not levels_match:
+            return levels
+        
+        # 提取levels表
+        levels_start = levels_match.end() - 1
+        levels_table = self.extract_lua_table(table_content, levels_start)
+        if not levels_table:
+            return levels
+        
+        # 匹配每个等级 [n] = { ... }
+        level_pattern = r'\[\s*(\d+)\s*\]\s*=\s*\{([^}]+)\}'
+        level_matches = re.finditer(level_pattern, levels_table)
+        
+        for level_match in level_matches:
+            level_num = level_match.group(1)
+            level_content = level_match.group(2)
+            
+            level_data = {}
+            
+            # 提取 levelRequirement
+            req_match = re.search(r'levelRequirement\s*=\s*(\d+)', level_content)
+            if req_match:
+                level_data['levelRequirement'] = int(req_match.group(1))
+            
+            # 提取 cost = { Mana = X, Spirit = Y }
+            cost = {}
+            mana_match = re.search(r'cost\s*=\s*\{\s*Mana\s*=\s*(\d+)', level_content)
+            if mana_match:
+                cost['Mana'] = int(mana_match.group(1))
+            
+            spirit_match = re.search(r'spiritReservationFlat\s*=\s*(\d+)', level_content)
+            if spirit_match:
+                cost['Spirit'] = int(spirit_match.group(1))
+            
+            if cost:
+                level_data['cost'] = cost
+            
+            # 提取 cooldown
+            cooldown_match = re.search(r'cooldown\s*=\s*([\d.]+)', level_content)
+            if cooldown_match:
+                level_data['cooldown'] = float(cooldown_match.group(1))
+            
+            # 提取 critChance
+            crit_match = re.search(r'critChance\s*=\s*(\d+)', level_content)
+            if crit_match:
+                level_data['critChance'] = int(crit_match.group(1))
+            
+            # 提取 damageEffectiveness
+            dmg_eff_match = re.search(r'damageEffectiveness\s*=\s*([\d.]+)', level_content)
+            if dmg_eff_match:
+                level_data['damageEffectiveness'] = float(dmg_eff_match.group(1))
+            
+            # 提取 spiritReservationFlat
+            spirit_match = re.search(r'spiritReservationFlat\s*=\s*(\d+)', level_content)
+            if spirit_match:
+                level_data['spiritReservationFlat'] = int(spirit_match.group(1))
+            
+            if level_data:
+                levels[level_num] = level_data
+        
+        return levels
+    
+    def _extract_support_flag(self, table_content: str) -> bool:
+        """提取是否辅助宝石标志"""
+        match = re.search(r'support\s*=\s*true', table_content)
+        return bool(match)
+    
+    def _extract_require_skill_types(self, table_content: str) -> List[str]:
+        """提取需求技能类型"""
+        types = []
+        
+        # 查找 requireSkillTypes = { ... }
+        match = re.search(r'requireSkillTypes\s*=\s*\{([^}]+)\}', table_content)
+        if match:
+            content = match.group(1)
+            # 匹配 SkillType.XXX 或 "XXX"
+            type_pattern = r'SkillType\.(\w+)|"(\w+)"'
+            type_matches = re.findall(type_pattern, content)
+            
+            for type_tuple in type_matches:
+                # type_tuple可能是 (xxx, '') 或 ('', xxx)
+                type_name = type_tuple[0] if type_tuple[0] else type_tuple[1]
+                if type_name:
+                    types.append(type_name)
+        
+        return types
+    
+    def _extract_add_skill_types(self, table_content: str) -> List[str]:
+        """提取添加技能类型"""
+        types = []
+        
+        match = re.search(r'addSkillTypes\s*=\s*\{([^}]+)\}', table_content)
+        if match:
+            content = match.group(1)
+            type_pattern = r'SkillType\.(\w+)|"(\w+)"'
+            type_matches = re.findall(type_pattern, content)
+            
+            for type_tuple in type_matches:
+                type_name = type_tuple[0] if type_tuple[0] else type_tuple[1]
+                if type_name:
+                    types.append(type_name)
+        
+        return types
+    
+    def _extract_exclude_skill_types(self, table_content: str) -> List[str]:
+        """提取排除技能类型"""
+        types = []
+        
+        match = re.search(r'excludeSkillTypes\s*=\s*\{([^}]+)\}', table_content)
+        if match:
+            content = match.group(1)
+            type_pattern = r'SkillType\.(\w+)|"(\w+)"'
+            type_matches = re.findall(type_pattern, content)
+            
+            for type_tuple in type_matches:
+                type_name = type_tuple[0] if type_tuple[0] else type_tuple[1]
+                if type_name:
+                    types.append(type_name)
+        
+        return types
+    
+    def _extract_is_trigger(self, table_content: str) -> bool:
+        """提取是否触发器标志"""
+        match = re.search(r'isTrigger\s*=\s*true', table_content)
+        return bool(match)
+    
+    def _extract_hidden(self, table_content: str) -> bool:
+        """提取是否隐藏标志"""
+        match = re.search(r'hidden\s*=\s*true', table_content)
+        return bool(match)
     
     def _extract_item_bases(self, content: str) -> List[Dict[str, Any]]:
         """

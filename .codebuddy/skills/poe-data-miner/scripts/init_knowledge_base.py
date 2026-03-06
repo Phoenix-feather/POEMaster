@@ -451,8 +451,9 @@ def main():
     
     args = parser.parse_args()
     
-    pob_path = Path(args.pob_path)
-    kb_path = Path(args.kb_path) if args.kb_path else pob_path.parent / 'knowledge_base'
+    # 转换为绝对路径
+    pob_path = Path(args.pob_path).resolve()
+    kb_path = Path(args.kb_path).resolve() if args.kb_path else pob_path.parent / 'knowledge_base'
     
     # 创建目录
     kb_path.mkdir(parents=True, exist_ok=True)

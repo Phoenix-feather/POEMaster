@@ -67,7 +67,51 @@ class EntityIndex:
                 data_json TEXT,
                 source_file TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                -- 技能定义字段
+                base_type_name TEXT,
+                cast_time REAL,
+                quality_stats TEXT,
+                levels TEXT,
+                stat_sets TEXT,
+                support INTEGER DEFAULT 0,
+                require_skill_types TEXT,
+                add_skill_types TEXT,
+                exclude_skill_types TEXT,
+                is_trigger INTEGER DEFAULT 0,
+                hidden INTEGER DEFAULT 0,
+                
+                -- 宝石定义字段
+                game_id TEXT,
+                variant_id TEXT,
+                granted_effect_id TEXT,
+                tags TEXT,
+                gem_type TEXT,
+                tag_string TEXT,
+                req_str INTEGER DEFAULT 0,
+                req_dex INTEGER DEFAULT 0,
+                req_int INTEGER DEFAULT 0,
+                tier INTEGER,
+                natural_max_level INTEGER,
+                additional_stat_set1 TEXT,
+                additional_stat_set2 TEXT,
+                weapon_requirements TEXT,
+                gem_family TEXT,
+                
+                -- 唯一物品字段
+                requires_level INTEGER,
+                granted_skill TEXT,
+                implicits INTEGER,
+                variant TEXT,
+                source TEXT,
+                
+                -- 天赋节点字段
+                ascendancy_name TEXT,
+                is_notable INTEGER DEFAULT 0,
+                is_keystone INTEGER DEFAULT 0,
+                stats_node TEXT,
+                reminder_text TEXT
             )
         ''')
         
@@ -120,7 +164,7 @@ class EntityIndex:
         # 确定类型
         entity_type = entity.get('type', 'unknown')
         
-        # 序列化复杂数据
+        # 序列化复杂数据 - 原有字段
         skill_types = json.dumps(entity.get('skill_types', []), ensure_ascii=False)
         constant_stats = json.dumps(entity.get('constant_stats', []), ensure_ascii=False)
         stats = json.dumps(entity.get('stats', []), ensure_ascii=False)
@@ -131,10 +175,62 @@ class EntityIndex:
         mod_data = json.dumps(entity.get('mod_data', []), ensure_ascii=False)
         data_json = json.dumps(entity, ensure_ascii=False)
         
+        # 序列化新字段 - 技能定义
+        base_type_name = entity.get('base_type_name')
+        cast_time = entity.get('cast_time')
+        quality_stats = json.dumps(entity.get('quality_stats', []), ensure_ascii=False)
+        levels = json.dumps(entity.get('levels', {}), ensure_ascii=False)
+        stat_sets = json.dumps(entity.get('stat_sets', {}), ensure_ascii=False)
+        support = 1 if entity.get('support') else 0
+        require_skill_types = json.dumps(entity.get('require_skill_types', []), ensure_ascii=False)
+        add_skill_types = json.dumps(entity.get('add_skill_types', []), ensure_ascii=False)
+        exclude_skill_types = json.dumps(entity.get('exclude_skill_types', []), ensure_ascii=False)
+        is_trigger = 1 if entity.get('is_trigger') else 0
+        hidden = 1 if entity.get('hidden') else 0
+        
+        # 序列化新字段 - 宝石定义
+        game_id = entity.get('game_id')
+        variant_id = entity.get('variant_id')
+        granted_effect_id = entity.get('granted_effect_id')
+        tags = json.dumps(entity.get('tags', {}), ensure_ascii=False)
+        gem_type = entity.get('gem_type')
+        tag_string = entity.get('tag_string')
+        req_str = entity.get('req_str', 0)
+        req_dex = entity.get('req_dex', 0)
+        req_int = entity.get('req_int', 0)
+        tier = entity.get('tier')
+        natural_max_level = entity.get('natural_max_level')
+        additional_stat_set1 = entity.get('additional_stat_set1')
+        additional_stat_set2 = entity.get('additional_stat_set2')
+        weapon_requirements = entity.get('weapon_requirements')
+        gem_family = entity.get('gem_family')
+        
+        # 序列化新字段 - 唯一物品
+        requires_level = entity.get('requires_level')
+        granted_skill = entity.get('granted_skill')
+        implicits = entity.get('implicits')
+        variant = json.dumps(entity.get('variant', []), ensure_ascii=False)
+        source = entity.get('source')
+        
+        # 序列化新字段 - 天赋节点
+        ascendancy_name = entity.get('ascendancy_name')
+        is_notable = 1 if entity.get('is_notable') else 0
+        is_keystone = 1 if entity.get('is_keystone') else 0
+        stats_node = json.dumps(entity.get('stats_node', []), ensure_ascii=False)
+        reminder_text = json.dumps(entity.get('reminder_text', []), ensure_ascii=False)
+        
         cursor.execute('''
             INSERT OR REPLACE INTO entities 
-            (id, name, type, skill_types, constant_stats, stats, description, reservation, mod_tags, weight_keys, affix_type, mod_data, data_json, source_file, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            (id, name, type, skill_types, constant_stats, stats, description, reservation, mod_tags, weight_keys, affix_type, mod_data, data_json, source_file, updated_at,
+             base_type_name, cast_time, quality_stats, levels, stat_sets, support, require_skill_types, add_skill_types, exclude_skill_types, is_trigger, hidden,
+             game_id, variant_id, granted_effect_id, tags, gem_type, tag_string, req_str, req_dex, req_int, tier, natural_max_level, additional_stat_set1, additional_stat_set2, weapon_requirements, gem_family,
+             requires_level, granted_skill, implicits, variant, source,
+             ascendancy_name, is_notable, is_keystone, stats_node, reminder_text)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?)
         ''', (
             entity_id,
             name,
@@ -149,7 +245,47 @@ class EntityIndex:
             affix_type,
             mod_data,
             data_json,
-            source_file
+            source_file,
+            # 技能定义字段
+            base_type_name,
+            cast_time,
+            quality_stats,
+            levels,
+            stat_sets,
+            support,
+            require_skill_types,
+            add_skill_types,
+            exclude_skill_types,
+            is_trigger,
+            hidden,
+            # 宝石定义字段
+            game_id,
+            variant_id,
+            granted_effect_id,
+            tags,
+            gem_type,
+            tag_string,
+            req_str,
+            req_dex,
+            req_int,
+            tier,
+            natural_max_level,
+            additional_stat_set1,
+            additional_stat_set2,
+            weapon_requirements,
+            gem_family,
+            # 唯一物品字段
+            requires_level,
+            granted_skill,
+            implicits,
+            variant,
+            source,
+            # 天赋节点字段
+            ascendancy_name,
+            is_notable,
+            is_keystone,
+            stats_node,
+            reminder_text
         ))
         
         self.conn.commit()
