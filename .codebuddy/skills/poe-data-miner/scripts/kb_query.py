@@ -37,13 +37,24 @@ class KnowledgeBaseQuery:
         if row:
             cols = [d[0] for d in cursor.description]
             result = dict(zip(cols, row))
+            
+            # 需要解析的JSON字段列表
+            json_fields = [
+                'skill_types', 'constant_stats', 'stats', 'reservation',
+                'mod_tags', 'weight_keys', 'mod_data', 'data_json',
+                'quality_stats', 'levels', 'stat_sets',
+                'require_skill_types', 'add_skill_types', 'exclude_skill_types',
+                'tags', 'stats_node', 'reminder_text', 'variant'
+            ]
+            
             # 解析JSON字段
-            for key in ['skill_types', 'constant_stats', 'stats', 'reservation']:
+            for key in json_fields:
                 if result.get(key):
                     try:
                         result[key] = json.loads(result[key])
                     except:
                         pass
+            
             conn.close()
             return result
         

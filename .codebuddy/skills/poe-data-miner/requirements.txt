@@ -1,0 +1,13 @@
+# POE Data Miner - Dependencies
+
+# Core dependencies
+sqlite3  # Built-in Python library
+json     # Built-in Python library
+pathlib  # Built-in Python library
+
+# Lua parsing
+lupa>=2.0  # Lua parser for parsing POB Lua files
+
+# Optional but recommended
+# networkx  # For advanced graph algorithms
+# matplotlib  # For visualization

@@ -28,6 +28,13 @@ try:
 except ImportError:
     HAS_SCHEMA_VALIDATOR = False
 
+# 检查 lupa 依赖
+try:
+    import lupa
+    HAS_LUPA = True
+except ImportError:
+    HAS_LUPA = False
+
 
 def init_entity_index(pob_path: str, db_path: str) -> dict:
     """初始化实体索引"""
@@ -421,24 +428,37 @@ def extract_mechanisms(modcache_path: str, db_path: str, entities_db_path: str =
     print("5. 提取机制 (基于 stat ID)")
     print("=" * 60)
     
-    extractor = MechanismExtractor(modcache_path, entities_db_path)
-    extractor.parse_modcache()
-    if entities_db_path:
-        extractor.build_entity_mapping()
-    extractor.identify_mechanisms()
-    extractor.export_to_db(db_path)
+    # 检查 lupa 依赖
+    if not HAS_LUPA:
+        print("[警告] 缺少 lupa 库，无法提取机制")
+        print("[提示] 请运行: pip install lupa")
+        print("[提示] 机制提取将被跳过，知识库仍可正常使用\n")
+        return {'mechanisms': 0, 'sources': 0}
     
-    # 统计
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM mechanisms')
-    mech_count = cursor.fetchone()[0]
-    cursor.execute('SELECT COUNT(*) FROM mechanism_sources')
-    source_count = cursor.fetchone()[0]
-    conn.close()
+    try:
+        extractor = MechanismExtractor(modcache_path, entities_db_path)
+        extractor.parse_modcache()
+        if entities_db_path:
+            extractor.build_entity_mapping()
+        extractor.identify_mechanisms()
+        extractor.export_to_db(db_path)
+        
+        # 统计
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM mechanisms')
+        mech_count = cursor.fetchone()[0]
+        cursor.execute('SELECT COUNT(*) FROM mechanism_sources')
+        source_count = cursor.fetchone()[0]
+        conn.close()
+        
+        print(f"[OK] 提取了 {mech_count} 个机制, {source_count} 个来源")
+        return {'mechanisms': mech_count, 'sources': source_count}
     
-    print(f"[OK] 提取了 {mech_count} 个机制, {source_count} 个来源")
-    return {'mechanisms': mech_count, 'sources': source_count}
+    except Exception as e:
+        print(f"[错误] 机制提取失败: {e}")
+        print("[提示] 知识库仍可正常使用，但缺少机制数据\n")
+        return {'mechanisms': 0, 'sources': 0}
 
 
 def main():

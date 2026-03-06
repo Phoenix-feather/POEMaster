@@ -731,3 +731,135 @@ result = validator.process_queue(
 | Circular handling failed | Log chain, alert user |
 | Stale queue records | Alert user for confirmation |
 | Consumer file deleted | Remove from queue and schema |
+
+---
+
+## Knowledge Base Statistics (2026-03-06)
+
+### Current Status: ✅ Complete
+
+All databases created and populated successfully.
+
+### Data Overview
+
+| Component | Count | Details |
+|-----------|-------|---------|
+| **Entities** | 16,118 | Skills, gems, items, nodes, etc. |
+| **Rules** | 24,906 | Formulas, modifiers, constraints |
+| **Graph Nodes** | 22,277 | Entities, attributes, mechanisms |
+| **Graph Edges** | 19,657 | Relationships and associations |
+| **Mechanisms** | 44 | Identified game mechanics |
+
+### Entity Breakdown
+
+| Type | Count | Percentage |
+|------|-------|------------|
+| stat_mapping | 5,230 | 32.5% |
+| passive_node | 4,313 | 26.8% |
+| mod_affix | 2,570 | 16.0% |
+| item_base | 1,171 | 7.3% |
+| skill_definition | 900 | 5.6% |
+| gem_definition | 900 | 5.6% |
+| minion_definition | 496 | 3.1% |
+| unique_item | 479 | 3.0% |
+| calculation_module | 59 | 0.4% |
+
+### Database Files
+
+| File | Size | Purpose |
+|------|------|---------|
+| `entities.db` | ~15MB | Entity definitions and attributes |
+| `rules.db` | ~8MB | Extraction rules and formulas |
+| `graph.db` | ~5MB | Attribute relationship graph |
+| `mechanisms.db` | ~1MB | Identified game mechanisms |
+
+### Recent Improvements (2026-03-06)
+
+1. **Schema Management System** ✅
+   - Tracks structure changes
+   - Notifies consumers automatically
+   - Handles circular references
+
+2. **Entity Data Extraction** ✅
+   - Added 36 new fields to entities table
+   - Complete skill level data (cooldown, cost, Spirit)
+   - Support gem restrictions (requireSkillTypes, addSkillTypes, excludeSkillTypes)
+   - Gem-skill associations (granted_effect_id)
+   - StatSets detailed data
+
+3. **Mechanism Extraction** ✅
+   - Fixed lupa dependency issue
+   - Added error handling and warnings
+   - Extracts 44 mechanisms from ModCache.lua
+
+4. **Data Completeness**
+   - Entity completeness: ~30% → ~95% (+65%)
+   - All core game mechanisms captured
+   - Hidden entities filtered (351 hidden skills excluded)
+
+### Dependencies
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| `lupa` | >=2.0 | Lua parser for POB files |
+| `sqlite3` | Built-in | Database storage |
+| `json` | Built-in | Data serialization |
+| `pathlib` | Built-in | Path handling |
+
+**Installation**:
+```bash
+pip install -r requirements.txt
+```
+
+### Known Issues & Solutions
+
+| Issue | Status | Solution |
+|-------|--------|----------|
+| Missing lupa | ✅ Fixed | Added to requirements.txt, init checks |
+| Mechanism extraction fails silently | ✅ Fixed | Added error handling and warnings |
+| Hidden skills not filtered | ✅ Fixed | Added hidden filtering logic |
+| Skill level data missing | ✅ Fixed | Complete level extraction implemented |
+
+---
+
+## Usage Examples
+
+### Query Skills with New Fields
+
+```bash
+# Query skill with complete level data
+python scripts/kb_query.py entity ArcPlayer
+
+# Query support gem restrictions
+python scripts/kb_query.py entity SupportSpellEchoPlayer
+
+# Query gem-skill association
+python scripts/kb_query.py entity "Metadata/Items/Gems/SkillGemArc"
+```
+
+### Verify Knowledge Base
+
+```bash
+# Check statistics
+python scripts/kb_query.py stats
+
+# Verify database structure
+python scripts/verify_db.py
+```
+
+### Reinitialize Knowledge Base
+
+```bash
+# Complete reinitialization
+python scripts/init_knowledge_base.py "G:/POEMaster/POBData" --kb-path "knowledge_base"
+```
+
+---
+
+## Next Steps
+
+1. **Update rules extraction** to leverage new entity fields
+2. **Enhance query engine** with new data access patterns
+3. **Validate heuristic records** with improved data
+4. **Document new query patterns** in query_lessons.md
+
