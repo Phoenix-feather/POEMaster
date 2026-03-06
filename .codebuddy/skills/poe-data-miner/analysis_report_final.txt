@@ -1,0 +1,1442 @@
+﻿
+████████████████████████████████████████████████████████████████████████████████████████████████████
+                                         POE知识库完整数据库结构分析报告                                          
+████████████████████████████████████████████████████████████████████████████████████████████████████
+
+知识库路径: G:\POEMaster\.codebuddy\skills\poe-data-miner\knowledge_base
+分析时间: 2026-03-06 19:09:47
+
+====================================================================================================
+                                        entities.db (实体数据库)                                         
+====================================================================================================
+
+文件大小: 16.99 MB
+表数量: 2
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 1. 表: entities
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 16,113
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             TEXT         NULL     PK     -
+1      name                           TEXT         NOT NULL        -
+2      type                           TEXT         NOT NULL        -
+3      skill_types                    TEXT         NULL            -
+4      constant_stats                 TEXT         NULL            -
+5      stats                          TEXT         NULL            -
+6      description                    TEXT         NULL            -
+7      reservation                    TEXT         NULL            -
+8      mod_tags                       TEXT         NULL            -
+9      weight_keys                    TEXT         NULL            -
+10     affix_type                     TEXT         NULL            -
+11     mod_data                       TEXT         NULL            -
+12     data_json                      TEXT         NULL            -
+13     source_file                    TEXT         NULL            -
+14     created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+15     updated_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+16     base_type_name                 TEXT         NULL            -
+17     cast_time                      REAL         NULL            -
+18     quality_stats                  TEXT         NULL            -
+19     levels                         TEXT         NULL            -
+20     stat_sets                      TEXT         NULL            -
+21     support                        INTEGER      NULL            0
+22     require_skill_types            TEXT         NULL            -
+23     add_skill_types                TEXT         NULL            -
+24     exclude_skill_types            TEXT         NULL            -
+25     is_trigger                     INTEGER      NULL            0
+26     hidden                         INTEGER      NULL            0
+27     game_id                        TEXT         NULL            -
+28     variant_id                     TEXT         NULL            -
+29     granted_effect_id              TEXT         NULL            -
+30     tags                           TEXT         NULL            -
+31     gem_type                       TEXT         NULL            -
+32     tag_string                     TEXT         NULL            -
+33     req_str                        INTEGER      NULL            0
+34     req_dex                        INTEGER      NULL            0
+35     req_int                        INTEGER      NULL            0
+36     tier                           INTEGER      NULL            -
+37     natural_max_level              INTEGER      NULL            -
+38     additional_stat_set1           TEXT         NULL            -
+39     additional_stat_set2           TEXT         NULL            -
+40     weapon_requirements            TEXT         NULL            -
+41     gem_family                     TEXT         NULL            -
+42     requires_level                 INTEGER      NULL            -
+43     granted_skill                  TEXT         NULL            -
+44     implicits                      INTEGER      NULL            -
+45     variant                        TEXT         NULL            -
+46     source                         TEXT         NULL            -
+47     ascendancy_name                TEXT         NULL            -
+48     is_notable                     INTEGER      NULL            0
+49     is_keystone                    INTEGER      NULL            0
+50     stats_node                     TEXT         NULL            -
+51     reminder_text                  TEXT         NULL            -
+
+数据分布详情:
+
+  【id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 16,113
+    示例值:
+      [1] ")
+      [2] % of monster Armour
+      [3] % of monster Damage of each type
+      [4] % of monster Damage total
+      [5] % of monster ^x33FF77Evasion
+
+  【name】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 11,312
+    示例值:
+      [1] ")
+      [2] % of monster Armour
+      [3] % of monster Damage of each type
+      [4] % of monster Damage total
+      [5] % of monster ^x33FF77Evasion
+
+  【type】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 9
+    值分布 (Top 20):
+      stat_mapping                    5,230 (32.46%) ████████████████
+      passive_node                    4,313 (26.77%) █████████████
+      mod_affix                       2,570 (15.95%) ███████
+      item_base                       1,171 ( 7.27%) ███
+      gem_definition                    900 ( 5.59%) ██
+      skill_definition                  900 ( 5.59%) ██
+      minion_definition                 496 ( 3.08%) █
+      unique_item                       474 ( 2.94%) █
+      calculation_module                 59 ( 0.37%) 
+
+  【skill_types】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 322
+    示例值:
+      [1] ["Area", "Attack", "Physical", "Lightning", "Fire", "Damage", "Spear"]
+      [2] ["Area", "Buff", "HasReservation", "Aura", "AreaSpell", "OngoingSkill", "Pers...
+      [3] ["Area", "Duration", "Chaos", "DetonatesAfterTime", "Buff", "Cooldown", "Atta...
+      [4] ["Attack", "Area", "Channel", "Melee", "Slam", "NoDualWield", "GainsStages"]
+      [5] ["Attack", "Area", "Chaos", "Physical", "Triggered", "InbuiltTrigger", "Trigg...
+
+  【constant_stats】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 745
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【stats】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 887
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【description】
+    类型: TEXT
+    NULL: 9,985 (61.97%)
+    空字符串: 0 (0.00%)
+    有值: 6,128 (38.03%)
+    不同值数量: 6,045
+    示例值:
+      [1] (2-4)% chance to deal Double Damage
+      [2] (2-4)% chance to deal Double Damage (25-35)% increased Physical Damage
+      [3] +0 to Maximum Power Charges
+      [4] +0% to Cold Resistance
+      [5] +0% to Fire Resistance
+
+  【reservation】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 40
+    示例值:
+      [1] {}
+      [2] {}
+      [3] {}
+      [4] {}
+      [5] {}
+
+  【mod_tags】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 267
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【weight_keys】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 292
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【affix_type】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 13,543 (84.05%)
+    有值: 2,570 (15.95%)
+    不同值数量: 5
+    值分布 (Top 20):
+                                     13,543 (84.05%) ██████████████████████████████████████████
+      Prefix                          1,324 ( 8.22%) ████
+      Suffix                          1,119 ( 6.94%) ███
+      Corrupted                         119 ( 0.74%) 
+      SpecialCorrupted                    8 ( 0.05%) 
+
+  【mod_data】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 2,878
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【data_json】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 16,113
+    示例值:
+      [1] {"id": "Metadata/Items/Gems/SkillGemIceNova", "name": "Ice Nova", "type": "ge...
+      [2] {"id": "Metadata/Items/Gems/SkillGemLeapSlam", "name": "Leap Slam", "type": "...
+      [3] {"id": "Metadata/Items/Gems/SkillGemMoltenCrash", "name": "Molten Crash", "ty...
+      [4] {"id": "Metadata/Items/Gems/SkillGemShieldCharge", "name": "Shield Charge", "...
+      [5] {"id": "Metadata/Items/Gems/SkillGemDetonateDead", "name": "Detonate Dead", "...
+
+  【source_file】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 83
+    示例值:
+      [1] Data\Gems.lua
+      [2] Data\Gems.lua
+      [3] Data\Gems.lua
+      [4] Data\Gems.lua
+      [5] Data\Gems.lua
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 82
+    示例值:
+      [1] 2026-03-06 11:04:48
+      [2] 2026-03-06 11:04:48
+      [3] 2026-03-06 11:04:48
+      [4] 2026-03-06 11:04:48
+      [5] 2026-03-06 11:04:48
+
+  【updated_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 82
+    示例值:
+      [1] 2026-03-06 11:04:48
+      [2] 2026-03-06 11:04:48
+      [3] 2026-03-06 11:04:48
+      [4] 2026-03-06 11:04:48
+      [5] 2026-03-06 11:04:48
+
+  【base_type_name】
+    类型: TEXT
+    NULL: 15,425 (95.73%)
+    空字符串: 0 (0.00%)
+    有值: 688 (4.27%)
+    不同值数量: 340
+    示例值:
+      [1] Ice Nova
+      [2] Leap Slam
+      [3] Molten Crash
+      [4] Shield Charge
+      [5] Detonate Dead
+
+  【cast_time】
+    类型: REAL
+    NULL: 15,769 (97.87%)
+    空字符串: 0 (0.00%)
+    有值: 344 (2.13%)
+    不同值数量: 23
+    示例值:
+      [1] 1.0
+      [2] 0.7
+      [3] 1.0
+      [4] 0.5
+      [5] 1.0
+
+  【quality_stats】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 194
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【levels】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 205
+    示例值:
+      [1] {}
+      [2] {}
+      [3] {}
+      [4] {}
+      [5] {}
+
+  【stat_sets】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 868
+    示例值:
+      [1] {}
+      [2] {}
+      [3] {}
+      [4] {}
+      [5] {}
+
+  【support】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【require_skill_types】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 120
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【add_skill_types】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 48
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【exclude_skill_types】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 102
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【is_trigger】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【hidden】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【game_id】
+    类型: TEXT
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 900
+    示例值:
+      [1] Metadata/Items/Gems/SkillGemIceNova
+      [2] Metadata/Items/Gems/SkillGemLeapSlam
+      [3] Metadata/Items/Gems/SkillGemMoltenCrash
+      [4] Metadata/Items/Gems/SkillGemShieldCharge
+      [5] Metadata/Items/Gems/SkillGemDetonateDead
+
+  【variant_id】
+    类型: TEXT
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 900
+    示例值:
+      [1] SkillGemIceNova
+      [2] SkillGemLeapSlam
+      [3] SkillGemMoltenCrash
+      [4] SkillGemShieldCharge
+      [5] SkillGemDetonateDead
+
+  【granted_effect_id】
+    类型: TEXT
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 900
+    示例值:
+      [1] IceNovaPlayer
+      [2] LeapSlamPlayer
+      [3] MoltenCrashPlayer
+      [4] ShieldChargePlayer
+      [5] DetonateDeadPlayer
+
+  【tags】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 462
+    示例值:
+      [1] {"intelligence": true, "grants_active_skill": true, "spell": true, "area": tr...
+      [2] {"strength": true, "grants_active_skill": true, "attack": true, "area": true,...
+      [3] {"strength": true, "intelligence": true, "grants_active_skill": true, "attack...
+      [4] {"strength": true, "grants_active_skill": true, "attack": true, "area": true,...
+      [5] {"intelligence": true, "grants_active_skill": true, "spell": true, "area": tr...
+
+  【gem_type】
+    类型: TEXT
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 10
+    示例值:
+      [1] Spell
+      [2] Attack
+      [3] Attack
+      [4] Attack
+      [5] Spell
+
+  【tag_string】
+    类型: TEXT
+    NULL: 15,323 (95.10%)
+    空字符串: 0 (0.00%)
+    有值: 790 (4.90%)
+    不同值数量: 403
+    示例值:
+      [1] AoE, Cold, Duration, Nova
+      [2] AoE, Melee, Slam, Travel, Payoff
+      [3] Shapeshift, Bear, AoE, Melee, Slam, Travel
+      [4] AoE, Melee, Physical, Channelling, Travel
+      [5] AoE, Physical, Fire, Detonator
+
+  【req_str】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 5
+    示例值:
+      [1] 0
+      [2] 100
+      [3] 50
+      [4] 100
+      [5] 0
+
+  【req_dex】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 4
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【req_int】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 5
+    示例值:
+      [1] 100
+      [2] 0
+      [3] 50
+      [4] 0
+      [5] 100
+
+  【tier】
+    类型: INTEGER
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 12
+    示例值:
+      [1] 1
+      [2] 7
+      [3] 0
+      [4] 3
+      [5] 7
+
+  【natural_max_level】
+    类型: INTEGER
+    NULL: 15,213 (94.41%)
+    空字符串: 0 (0.00%)
+    有值: 900 (5.59%)
+    不同值数量: 2
+    示例值:
+      [1] 20
+      [2] 20
+      [3] 20
+      [4] 20
+      [5] 20
+
+  【additional_stat_set1】
+    类型: TEXT
+    NULL: 16,016 (99.40%)
+    空字符串: 0 (0.00%)
+    有值: 97 (0.60%)
+    不同值数量: 97
+    示例值:
+      [1] IceNovaPlayerOnFrostbolt
+      [2] MoltenCrashFissurePlayer
+      [3] ShieldChargeFinalConePlayer
+      [4] VolatileDeadIgniteAuraPlayer
+      [5] SparkColdInfusedPlayer
+
+  【additional_stat_set2】
+    类型: TEXT
+    NULL: 16,084 (99.82%)
+    空字符串: 0 (0.00%)
+    有值: 29 (0.18%)
+    不同值数量: 29
+    示例值:
+      [1] IceNovaColdInfusedPlayer
+      [2] FirestormLightningInfusionPlayer
+      [3] BallLightningIgnitedGround
+      [4] FlameWallLingeringIgnitePlayer
+      [5] RapidAssaultDetonation
+
+  【weapon_requirements】
+    类型: TEXT
+    NULL: 15,957 (99.03%)
+    空字符串: 0 (0.00%)
+    有值: 156 (0.97%)
+    不同值数量: 16
+    示例值:
+      [1] One Hand Mace, Two Hand Mace
+      [2] Talisman
+      [3] Armoured Shield
+      [4] Quarterstaff
+      [5] One Hand Mace, Two Hand Mace
+
+  【gem_family】
+    类型: TEXT
+    NULL: 15,557 (96.55%)
+    空字符串: 0 (0.00%)
+    有值: 556 (3.45%)
+    不同值数量: 356
+    示例值:
+      [1] Fire Attunement
+      [2] Rapid Attacks
+      [3] Rapid Attacks
+      [4] Rapid Attacks
+      [5] Additional Projectiles
+
+  【requires_level】
+    类型: INTEGER
+    NULL: 16,113 (100.00%)
+    空字符串: 0 (0.00%)
+    有值: 0 (0.00%)
+    不同值数量: 0
+
+  【granted_skill】
+    类型: TEXT
+    NULL: 16,113 (100.00%)
+    空字符串: 0 (0.00%)
+    有值: 0 (0.00%)
+    不同值数量: 0
+
+  【implicits】
+    类型: INTEGER
+    NULL: 16,113 (100.00%)
+    空字符串: 0 (0.00%)
+    有值: 0 (0.00%)
+    不同值数量: 0
+
+  【variant】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【source】
+    类型: TEXT
+    NULL: 16,113 (100.00%)
+    空字符串: 0 (0.00%)
+    有值: 0 (0.00%)
+    不同值数量: 0
+
+  【ascendancy_name】
+    类型: TEXT
+    NULL: 15,746 (97.72%)
+    空字符串: 0 (0.00%)
+    有值: 367 (2.28%)
+    不同值数量: 20
+    示例值:
+      [1] Pathfinder
+      [2] Deadeye
+      [3] Pathfinder
+      [4] Lich
+      [5] Smith of Kitava
+
+  【is_notable】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【is_keystone】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【stats_node】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 1,963
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+  【reminder_text】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 16,113 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] []
+      [2] []
+      [3] []
+      [4] []
+      [5] []
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 2. 表: known_paths
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 0
+  (表为空)
+
+====================================================================================================
+                                          rules.db (规则数据库)                                          
+====================================================================================================
+
+文件大小: 5.47 MB
+表数量: 1
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 1. 表: rules
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 19,128
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             TEXT         NULL     PK     -
+1      name                           TEXT         NOT NULL        -
+2      category                       TEXT         NOT NULL        -
+3      condition                      TEXT         NULL            -
+4      effect                         TEXT         NULL            -
+5      formula                        TEXT         NULL            -
+6      description                    TEXT         NULL            -
+7      related_entities               TEXT         NULL            -
+8      source_file                    TEXT         NULL            -
+9      source_layer                   INTEGER      NULL            -
+10     created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+
+数据分布详情:
+
+  【id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 19,128
+    示例值:
+      [1] hr_0001
+      [2] rule_0001
+      [3] rule_0002
+      [4] rule_0003
+      [5] rule_0004
+
+  【name】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 18,294
+    示例值:
+      [1] 触发技能能量限制
+      [2] Hazard区域绕过
+      [3] 能量获取公式
+      [4] INC加成叠加
+      [5] MORE加成叠加
+
+  【category】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 5
+    值分布 (Top 20):
+      modifier                       18,724 (97.89%) ████████████████████████████████████████████████
+      formula                           400 ( 2.09%) █
+      bypass                              2 ( 0.01%) 
+      constraint                          1 ( 0.01%) 
+      condition                           1 ( 0.01%) 
+
+  【condition】
+    类型: TEXT
+    NULL: 400 (2.09%)
+    空字符串: 0 (0.00%)
+    有值: 18,728 (97.91%)
+    不同值数量: 6,993
+    示例值:
+      [1] skill has SkillType.Triggered
+      [2] damage source = Hazard zone explosion
+      [3] entity = 'Metadata/Items/Gems/SkillGemIceNova'
+      [4] entity = 'Metadata/Items/Gems/SkillGemLeapSlam'
+      [5] entity = 'Metadata/Items/Gems/SkillGemMoltenCrash'
+
+  【effect】
+    类型: TEXT
+    NULL: 400 (2.09%)
+    空字符串: 0 (0.00%)
+    有值: 18,728 (97.91%)
+    不同值数量: 6,741
+    示例值:
+      [1] energy generation = 0
+      [2] bypasses Triggered energy limit
+      [3] has_type: Spell
+      [4] has_type: Attack
+      [5] has_type: Attack
+
+  【formula】
+    类型: TEXT
+    NULL: 18,728 (97.91%)
+    空字符串: 0 (0.00%)
+    有值: 400 (2.09%)
+    不同值数量: 372
+    示例值:
+      [1] energy = base × (1 + Σinc) × Πmore
+      [2] total_inc = Σ(all_inc_modifiers)
+      [3] total_more = Π(all_more_modifiers)
+      [4] local activeSkill = {
+      [5] activeEffect = activeEffect,
+
+  【description】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 18,638
+    示例值:
+      [1] 被触发的技能无法为元技能提供能量
+      [2] Doedre's Undoing通过Hazard区域爆炸绕过触发限制
+      [3] 能量获取公式: 基础值 × (1 + 加法叠加) × 乘法叠加
+      [4] 所有increased修饰符线性叠加
+      [5] 所有more修饰符乘法叠加
+
+  【related_entities】
+    类型: TEXT
+    NULL: 6 (0.03%)
+    空字符串: 0 (0.00%)
+    有值: 19,122 (99.97%)
+    不同值数量: 2,747
+    示例值:
+      [1] ["Metadata/Items/Gems/SkillGemIceNova"]
+      [2] ["Metadata/Items/Gems/SkillGemLeapSlam"]
+      [3] ["Metadata/Items/Gems/SkillGemMoltenCrash"]
+      [4] ["Metadata/Items/Gems/SkillGemShieldCharge"]
+      [5] ["Metadata/Items/Gems/SkillGemDetonateDead"]
+
+  【source_file】
+    类型: TEXT
+    NULL: 19,128 (100.00%)
+    空字符串: 0 (0.00%)
+    有值: 0 (0.00%)
+    不同值数量: 0
+
+  【source_layer】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 4
+    示例值:
+      [1] 3
+      [2] 3
+      [3] 3
+      [4] 3
+      [5] 3
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,128 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] 2026-03-06 11:06:09
+      [2] 2026-03-06 11:06:09
+      [3] 2026-03-06 11:06:09
+      [4] 2026-03-06 11:06:09
+      [5] 2026-03-06 11:06:09
+
+====================================================================================================
+                                         graph.db (关联图数据库)                                          
+====================================================================================================
+
+文件大小: 6.99 MB
+表数量: 3
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 1. 表: graph_edges
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 13,878
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             INTEGER      NULL     PK     -
+1      source_node                    TEXT         NOT NULL        -
+2      target_node                    TEXT         NOT NULL        -
+3      edge_type                      TEXT         NOT NULL        -
+4      weight                         REAL         NULL            1.0
+5      attributes                     TEXT         NULL            -
+6      confirmed                      BOOLEAN      NULL            0
+7      source_type                    TEXT         NULL            'auto'
+8      created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+
+数据分布详情:
+
+  【id】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 13,878
+    示例值:
+      [1] 6
+      [2] 7
+      [3] 8
+      [4] 9
+      [5] 10
+
+  【source_node】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 2,752
+    示例值:
+      [1] ")
+      [2] % of monster ^x33FF77Evasion
+      [3] ')
+      [4] ')
+      [5] '..code)
+
+  【target_node】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 3,657
+    示例值:
+      [1] attr_(-10-10)% reduced charm charges used
+      [2] attr_(-13-13)% reduced skill effect duration
+      [3] attr_(-20-20)% reduced charm charges gained
+      [4] attr_(-25-25)% reduced flask life recovery rate
+      [5] attr_(-25-25)% reduced flask mana recovery rate
+
+  【edge_type】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 8
+    值分布 (Top 20):
+      has_stat                        9,562 (68.90%) ██████████████████████████████████
+      has_type                        4,310 (31.06%) ███████████████
+      applies                             1 ( 0.01%) 
+      blocks                              1 ( 0.01%) 
+      bypasses                            1 ( 0.01%) 
+      causes                              1 ( 0.01%) 
+      reserves                            1 ( 0.01%) 
+      uses_formula                        1 ( 0.01%) 
+
+  【weight】
+    类型: REAL
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 1.0
+      [2] 1.0
+      [3] 1.0
+      [4] 1.0
+      [5] 1.0
+
+  【attributes】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 6
+    示例值:
+      [1] {"description": "Hazard区域爆炸伤害不带有Triggered标签，归因为玩家主动行为", "applicable_skills": ...
+      [2] {"description": "能量获取公式：base × (1 + Σinc) × Πmore", "applicable_skills": []}
+      [3] {"description": "元触发技能触发插槽法术时，给被触发的法术施加Triggered标签", "applicable_skills": []}
+      [4] {"description": "带有Triggered标签的技能无法为元技能提供能量", "applicable_skills": []}
+      [5] {"description": "元技能预留固定Spirit值", "applicable_skills": []}
+
+  【confirmed】
+    类型: BOOLEAN
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] 0
+      [2] 0
+      [3] 0
+      [4] 0
+      [5] 0
+
+  【source_type】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 2
+    示例值:
+      [1] predefined
+      [2] predefined
+      [3] predefined
+      [4] predefined
+      [5] predefined
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 13,878 (100.00%)
+    不同值数量: 108
+    示例值:
+      [1] 2026-03-06 11:06:09
+      [2] 2026-03-06 11:06:10
+      [3] 2026-03-06 11:06:10
+      [4] 2026-03-06 11:06:10
+      [5] 2026-03-06 11:06:10
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 2. 表: graph_nodes
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 19,774
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             TEXT         NULL     PK     -
+1      type                           TEXT         NOT NULL        -
+2      name                           TEXT         NOT NULL        -
+3      attributes                     TEXT         NULL            -
+4      created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+
+数据分布详情:
+
+  【id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,774 (100.00%)
+    不同值数量: 19,774
+    示例值:
+      [1] ")
+      [2] % of monster Armour
+      [3] % of monster Damage of each type
+      [4] % of monster Damage total
+      [5] % of monster ^x33FF77Evasion
+
+  【type】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,774 (100.00%)
+    不同值数量: 5
+    值分布 (Top 20):
+      entity                         16,113 (81.49%) ████████████████████████████████████████
+      attribute                       3,478 (17.59%) ████████
+      mechanism                         181 ( 0.92%) 
+      constraint                          1 ( 0.01%) 
+      heuristic                           1 ( 0.01%) 
+
+  【name】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,774 (100.00%)
+    不同值数量: 14,470
+    示例值:
+      [1] ")
+      [2] % of monster Armour
+      [3] % of monster Damage of each type
+      [4] % of monster Damage total
+      [5] % of monster ^x33FF77Evasion
+
+  【attributes】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,774 (100.00%)
+    不同值数量: 17
+    示例值:
+      [1] {"description": "Hazard区域爆炸伤害不带有Triggered标签，归因为玩家主动行为"}
+      [2] {"description": ""}
+      [3] {"description": "能量获取公式：base × (1 + Σinc) × Πmore"}
+      [4] {"description": ""}
+      [5] {"description": "元触发技能触发插槽法术时，给被触发的法术施加Triggered标签"}
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 19,774 (100.00%)
+    不同值数量: 168
+    示例值:
+      [1] 2026-03-06 11:06:09
+      [2] 2026-03-06 11:06:09
+      [3] 2026-03-06 11:06:10
+      [4] 2026-03-06 11:06:10
+      [5] 2026-03-06 11:06:10
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 3. 表: sqlite_sequence
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 1
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      name                                        NULL            -
+1      seq                                         NULL            -
+
+数据分布详情:
+
+  【name】
+    类型: 
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 1 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] graph_edges
+
+  【seq】
+    类型: 
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 1 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 13878
+
+====================================================================================================
+                                       mechanisms.db (机制数据库)                                        
+====================================================================================================
+
+文件大小: 0.04 MB
+表数量: 2
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 1. 表: mechanism_sources
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 71
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             TEXT         NULL     PK     -
+1      mechanism_id                   TEXT         NOT NULL        -
+2      entity_id                      TEXT         NULL            -
+3      entity_name                    TEXT         NULL            -
+4      description                    TEXT         NULL            -
+5      stat_value                     TEXT         NULL            -
+6      condition                      TEXT         NULL            -
+7      created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+
+数据分布详情:
+
+  【id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 71 (100.00%)
+    不同值数量: 71
+    示例值:
+      [1] CanLeechLifeOnFullLife_source_0
+      [2] CannotBeEvaded_source_0
+      [3] CannotBeEvaded_source_1_0
+      [4] CannotBeEvaded_source_2
+      [5] ColdDamageConvertToLightning_source_0_0
+
+  【mechanism_id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 71 (100.00%)
+    不同值数量: 44
+    示例值:
+      [1] ElementalDamageTakenAsChaos
+      [2] GhostReaver
+      [3] DamageConvertToFire
+      [4] LightningDamageConvertToCold
+      [5] FireDamageConvertToLightning
+
+  【entity_id】
+    类型: TEXT
+    NULL: 47 (66.20%)
+    空字符串: 0 (0.00%)
+    有值: 24 (33.80%)
+    不同值数量: 17
+    示例值:
+      [1] Essentia Sanguis
+      [2] Call of the Brotherhood
+      [3] Valako's Vice
+      [4] Atziri's Acuity
+      [5] Painter's Servant
+
+  【entity_name】
+    类型: TEXT
+    NULL: 47 (66.20%)
+    空字符串: 0 (0.00%)
+    有值: 24 (33.80%)
+    不同值数量: 17
+    示例值:
+      [1] Essentia Sanguis
+      [2] Call of the Brotherhood
+      [3] Valako's Vice
+      [4] Atziri's Acuity
+      [5] Painter's Servant
+
+  【description】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 71 (100.00%)
+    不同值数量: 60
+    示例值:
+      [1] 50% of Elemental Damage taken as Chaos Damage
+      [2] Life Leech is Converted to Energy Shield Leech
+      [3] 75% of Damage Converted to Fire Damage
+      [4] 100% of Lightning Damage Converted to Cold Damage
+      [5] 100% of Fire damage Converted to Lightning damage
+
+  【stat_value】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 71 (100.00%)
+    不同值数量: 15
+    示例值:
+      [1] 50
+      [2] True
+      [3] 75
+      [4] 100
+      [5] 100
+
+  【condition】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 71 (100.00%)
+    有值: 0 (0.00%)
+    不同值数量: 1
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 71 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 2026-03-06 11:08:56
+      [2] 2026-03-06 11:08:56
+      [3] 2026-03-06 11:08:56
+      [4] 2026-03-06 11:08:56
+      [5] 2026-03-06 11:08:56
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ 2. 表: mechanisms
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+总行数: 44
+
+表结构:
+序号     字段名                            类型           非空       主键     默认值
+------ ------------------------------ ------------ -------- ------ --------------------
+0      id                             TEXT         NULL     PK     -
+1      name                           TEXT         NOT NULL        -
+2      stat_names                     TEXT         NULL            -
+3      description                    TEXT         NULL            -
+4      source_count                   INTEGER      NULL            0
+5      created_at                     TIMESTAMP    NULL            CURRENT_TIMESTAMP
+
+数据分布详情:
+
+  【id】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 44
+    示例值:
+      [1] CanLeechLifeOnFullLife
+      [2] CannotBeEvaded
+      [3] ColdDamageConvertToLightning
+      [4] ColdDamageTakenAsFire
+      [5] DamageConvertToFire
+
+  【name】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 44
+    示例值:
+      [1] ElementalDamageTakenAsChaos
+      [2] GhostReaver
+      [3] DamageConvertToFire
+      [4] LightningDamageConvertToCold
+      [5] FireDamageConvertToLightning
+
+  【stat_names】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 44
+    示例值:
+      [1] ["ElementalDamageTakenAsChaos"]
+      [2] ["GhostReaver"]
+      [3] ["DamageConvertToFire"]
+      [4] ["LightningDamageConvertToCold"]
+      [5] ["FireDamageConvertToLightning"]
+
+  【description】
+    类型: TEXT
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 44
+    示例值:
+      [1] 机制: ElementalDamageTakenAsChaos
+      [2] 机制: GhostReaver
+      [3] 机制: DamageConvertToFire
+      [4] 机制: LightningDamageConvertToCold
+      [5] 机制: FireDamageConvertToLightning
+
+  【source_count】
+    类型: INTEGER
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 5
+    示例值:
+      [1] 1
+      [2] 1
+      [3] 1
+      [4] 1
+      [5] 1
+
+  【created_at】
+    类型: TIMESTAMP
+    NULL: 0 (0.00%)
+    空字符串: 0 (0.00%)
+    有值: 44 (100.00%)
+    不同值数量: 1
+    示例值:
+      [1] 2026-03-06 11:08:56
+      [2] 2026-03-06 11:08:56
+      [3] 2026-03-06 11:08:56
+      [4] 2026-03-06 11:08:56
+      [5] 2026-03-06 11:08:56
+
+====================================================================================================
+                                                最终统计                                                
+====================================================================================================
+
+实体总数: 16,113
+  按类型:
+    stat_mapping               5,230
+    passive_node               4,313
+    mod_affix                  2,570
+    item_base                  1,171
+    gem_definition               900
+    skill_definition             900
+    minion_definition            496
+    unique_item                  474
+    calculation_module            59
+
+规则总数: 19,128
+  按类别:
+    modifier                  18,724
+    formula                      400
+    bypass                         2
+    constraint                     1
+    condition                      1
+
+图节点总数: 19,774
+  按类型:
+    entity                    16,113
+    attribute                  3,478
+    mechanism                    181
+    constraint                     1
+    heuristic                      1
+
+图边总数: 13,878
+  按类型:
+    has_stat                   9,562
+    has_type                   4,310
+    applies                        1
+    blocks                         1
+    bypasses                       1
+    causes                         1
+    reserves                       1
+    uses_formula                   1
+
+机制总数: 44
+机制来源总数: 71
+
+████████████████████████████████████████████████████████████████████████████████████████████████████
+                                                分析完成                                                
+████████████████████████████████████████████████████████████████████████████████████████████████████
+

@@ -1,0 +1,1054 @@
+﻿========================================================================================================================
+实体类型字段详情
+========================================================================================================================
+
+========================================================================================================================
+实体类型: calculation_module
+========================================================================================================================
+总数: 59
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                                59/59    (100.0%)  示例: calcs.mergeSkillInstanceMods
+  [Y] name                              59/59    (100.0%)  示例: calcs.mergeSkillInstanceMods
+  [Y] type                              59/59    (100.0%)  示例: calculation_module
+  [N] skill_types                        0/59    (  0.0%)  示例: []
+  [N] constant_stats                     0/59    (  0.0%)  示例: []
+  [N] stats                              0/59    (  0.0%)  示例: []
+  [N] description                        0/59    (  0.0%)  示例: NULL
+  [N] reservation                        0/59    (  0.0%)  示例: {}
+  [N] mod_tags                           0/59    (  0.0%)  示例: []
+  [N] weight_keys                        0/59    (  0.0%)  示例: []
+  [N] affix_type                         0/59    (  0.0%)  示例: 
+  [N] mod_data                           0/59    (  0.0%)  示例: []
+  [Y] data_json                         59/59    (100.0%)  示例: {"id": "calcs.mergeSkillInstanceMods", "name": "calcs.mergeSkillInstanceMods", "type": "calculation_...
+  [Y] source_file                       59/59    (100.0%)  示例: Modules\CalcActiveSkill.lua
+  [Y] created_at                        59/59    (100.0%)  示例: 2026-03-06 10:35:11
+  [Y] updated_at                        59/59    (100.0%)  示例: 2026-03-06 10:35:11
+  [N] base_type_name                     0/59    (  0.0%)  示例: NULL
+  [N] cast_time                          0/59    (  0.0%)  示例: NULL
+  [N] quality_stats                      0/59    (  0.0%)  示例: []
+  [N] levels                             0/59    (  0.0%)  示例: {}
+  [N] stat_sets                          0/59    (  0.0%)  示例: {}
+  [Y] support                           59/59    (100.0%)  示例: 0
+  [N] require_skill_types                0/59    (  0.0%)  示例: []
+  [N] add_skill_types                    0/59    (  0.0%)  示例: []
+  [N] exclude_skill_types                0/59    (  0.0%)  示例: []
+  [Y] is_trigger                        59/59    (100.0%)  示例: 0
+  [Y] hidden                            59/59    (100.0%)  示例: 0
+  [N] game_id                            0/59    (  0.0%)  示例: NULL
+  [N] variant_id                         0/59    (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/59    (  0.0%)  示例: NULL
+  [N] tags                               0/59    (  0.0%)  示例: {}
+  [N] gem_type                           0/59    (  0.0%)  示例: NULL
+  [N] tag_string                         0/59    (  0.0%)  示例: NULL
+  [Y] req_str                           59/59    (100.0%)  示例: 0
+  [Y] req_dex                           59/59    (100.0%)  示例: 0
+  [Y] req_int                           59/59    (100.0%)  示例: 0
+  [N] tier                               0/59    (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/59    (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/59    (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/59    (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/59    (  0.0%)  示例: NULL
+  [N] gem_family                         0/59    (  0.0%)  示例: NULL
+  [N] requires_level                     0/59    (  0.0%)  示例: NULL
+  [N] granted_skill                      0/59    (  0.0%)  示例: NULL
+  [N] implicits                          0/59    (  0.0%)  示例: NULL
+  [N] variant                            0/59    (  0.0%)  示例: []
+  [N] source                             0/59    (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/59    (  0.0%)  示例: NULL
+  [Y] is_notable                        59/59    (100.0%)  示例: 0
+  [Y] is_keystone                       59/59    (100.0%)  示例: 0
+  [N] stats_node                         0/59    (  0.0%)  示例: []
+  [N] reminder_text                      0/59    (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: calcs.mergeSkillInstanceMods
+Name: calcs.mergeSkillInstanceMods
+
+完整数据（格式化）:
+{
+  "id": "calcs.mergeSkillInstanceMods",
+  "name": "calcs.mergeSkillInstanceMods",
+  "type": "calculation_module",
+  "namespace": "calcs",
+  "function_name": "mergeSkillInstanceMods",
+  "parameters": [
+    "env",
+    "modList",
+    "skillEffect",
+    "statSet",
+    "extraStats"
+  ],
+  "conditions": [],
+  "formulas": [],
+  "body": "calcLib.validateGemLevel(skillEffect)\n\t-- Verify that statSet provided is from skillEffect\n\tif statSet and not isValueInArray(skillEffect.grantedEffect.statSets, 
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: gem_definition
+========================================================================================================================
+总数: 900
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                               900/900   (100.0%)  示例: Metadata/Items/Gems/SkillGemIceNova
+  [Y] name                             900/900   (100.0%)  示例: Ice Nova
+  [Y] type                             900/900   (100.0%)  示例: gem_definition
+  [Y] skill_types                      900/900   (100.0%)  示例: ["Spell"]
+  [N] constant_stats                     0/900   (  0.0%)  示例: []
+  [N] stats                              0/900   (  0.0%)  示例: []
+  [N] description                        0/900   (  0.0%)  示例: NULL
+  [N] reservation                        0/900   (  0.0%)  示例: {}
+  [N] mod_tags                           0/900   (  0.0%)  示例: []
+  [N] weight_keys                        0/900   (  0.0%)  示例: []
+  [N] affix_type                         0/900   (  0.0%)  示例: 
+  [N] mod_data                           0/900   (  0.0%)  示例: []
+  [Y] data_json                        900/900   (100.0%)  示例: {"id": "Metadata/Items/Gems/SkillGemIceNova", "name": "Ice Nova", "type": "gem_definition", "game_id...
+  [Y] source_file                      900/900   (100.0%)  示例: Data\Gems.lua
+  [Y] created_at                       900/900   (100.0%)  示例: 2026-03-06 10:34:29
+  [Y] updated_at                       900/900   (100.0%)  示例: 2026-03-06 10:34:29
+  [P] base_type_name                   344/900   ( 38.2%)  示例: Ice Nova
+  [N] cast_time                          0/900   (  0.0%)  示例: NULL
+  [N] quality_stats                      0/900   (  0.0%)  示例: []
+  [N] levels                             0/900   (  0.0%)  示例: {}
+  [N] stat_sets                          0/900   (  0.0%)  示例: {}
+  [Y] support                          900/900   (100.0%)  示例: 0
+  [N] require_skill_types                0/900   (  0.0%)  示例: []
+  [N] add_skill_types                    0/900   (  0.0%)  示例: []
+  [N] exclude_skill_types                0/900   (  0.0%)  示例: []
+  [Y] is_trigger                       900/900   (100.0%)  示例: 0
+  [Y] hidden                           900/900   (100.0%)  示例: 0
+  [Y] game_id                          900/900   (100.0%)  示例: Metadata/Items/Gems/SkillGemIceNova
+  [Y] variant_id                       900/900   (100.0%)  示例: SkillGemIceNova
+  [Y] granted_effect_id                900/900   (100.0%)  示例: IceNovaPlayer
+  [Y] tags                             900/900   (100.0%)  示例: {"intelligence": true, "grants_active_skill": true, "spell": true, "area": true, "cold": true, "dura...
+  [Y] gem_type                         900/900   (100.0%)  示例: Spell
+  [P] tag_string                       790/900   ( 87.8%)  示例: AoE, Cold, Duration, Nova
+  [Y] req_str                          900/900   (100.0%)  示例: 0
+  [Y] req_dex                          900/900   (100.0%)  示例: 0
+  [Y] req_int                          900/900   (100.0%)  示例: 100
+  [Y] tier                             900/900   (100.0%)  示例: 1
+  [Y] natural_max_level                900/900   (100.0%)  示例: 20
+  [P] additional_stat_set1              97/900   ( 10.8%)  示例: IceNovaPlayerOnFrostbolt
+  [P] additional_stat_set2              29/900   (  3.2%)  示例: IceNovaColdInfusedPlayer
+  [P] weapon_requirements              156/900   ( 17.3%)  示例: NULL
+  [P] gem_family                       556/900   ( 61.8%)  示例: NULL
+  [N] requires_level                     0/900   (  0.0%)  示例: NULL
+  [N] granted_skill                      0/900   (  0.0%)  示例: NULL
+  [N] implicits                          0/900   (  0.0%)  示例: NULL
+  [N] variant                            0/900   (  0.0%)  示例: []
+  [N] source                             0/900   (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/900   (  0.0%)  示例: NULL
+  [Y] is_notable                       900/900   (100.0%)  示例: 0
+  [Y] is_keystone                      900/900   (100.0%)  示例: 0
+  [N] stats_node                         0/900   (  0.0%)  示例: []
+  [N] reminder_text                      0/900   (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: Metadata/Items/Gems/SkillGemIceNova
+Name: Ice Nova
+
+完整数据（格式化）:
+{
+  "id": "Metadata/Items/Gems/SkillGemIceNova",
+  "name": "Ice Nova",
+  "type": "gem_definition",
+  "game_id": "Metadata/Items/Gems/SkillGemIceNova",
+  "variant_id": "SkillGemIceNova",
+  "base_type_name": "Ice Nova",
+  "granted_effect_id": "IceNovaPlayer",
+  "gem_type": "Spell",
+  "skill_types": [
+    "Spell"
+  ],
+  "tag_string": "AoE, Cold, Duration, Nova",
+  "tags": {
+    "intelligence": true,
+    "grants_active_skill": true,
+    "spell": true,
+    "area": true,
+    "cold": true,
+    "duratio
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - skill_types: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - game_id: 100.0%
+  - variant_id: 100.0%
+  - granted_effect_id: 100.0%
+  - tags: 100.0%
+  - gem_type: 100.0%
+  - tag_string: 87.8%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - tier: 100.0%
+  - natural_max_level: 100.0%
+  - gem_family: 61.8%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: item_base
+========================================================================================================================
+总数: 1,171
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                              1171/1171  (100.0%)  示例: Crimson Amulet
+  [Y] name                            1171/1171  (100.0%)  示例: Crimson Amulet
+  [Y] type                            1171/1171  (100.0%)  示例: item_base
+  [N] skill_types                        0/1171  (  0.0%)  示例: []
+  [N] constant_stats                     0/1171  (  0.0%)  示例: []
+  [N] stats                              0/1171  (  0.0%)  示例: []
+  [N] description                        0/1171  (  0.0%)  示例: NULL
+  [N] reservation                        0/1171  (  0.0%)  示例: {}
+  [N] mod_tags                           0/1171  (  0.0%)  示例: []
+  [N] weight_keys                        0/1171  (  0.0%)  示例: []
+  [N] affix_type                         0/1171  (  0.0%)  示例: 
+  [N] mod_data                           0/1171  (  0.0%)  示例: []
+  [Y] data_json                       1171/1171  (100.0%)  示例: {"id": "Crimson Amulet", "name": "Crimson Amulet", "type": "item_base", "item_type": "Amulet", "tags...
+  [Y] source_file                     1171/1171  (100.0%)  示例: Data\Bases\amulet.lua
+  [Y] created_at                      1171/1171  (100.0%)  示例: 2026-03-06 10:35:12
+  [Y] updated_at                      1171/1171  (100.0%)  示例: 2026-03-06 10:35:12
+  [N] base_type_name                     0/1171  (  0.0%)  示例: NULL
+  [N] cast_time                          0/1171  (  0.0%)  示例: NULL
+  [N] quality_stats                      0/1171  (  0.0%)  示例: []
+  [N] levels                             0/1171  (  0.0%)  示例: {}
+  [N] stat_sets                          0/1171  (  0.0%)  示例: {}
+  [Y] support                         1171/1171  (100.0%)  示例: 0
+  [N] require_skill_types                0/1171  (  0.0%)  示例: []
+  [N] add_skill_types                    0/1171  (  0.0%)  示例: []
+  [N] exclude_skill_types                0/1171  (  0.0%)  示例: []
+  [Y] is_trigger                      1171/1171  (100.0%)  示例: 0
+  [Y] hidden                          1171/1171  (100.0%)  示例: 0
+  [N] game_id                            0/1171  (  0.0%)  示例: NULL
+  [N] variant_id                         0/1171  (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/1171  (  0.0%)  示例: NULL
+  [N] tags                               0/1171  (  0.0%)  示例: []
+  [N] gem_type                           0/1171  (  0.0%)  示例: NULL
+  [N] tag_string                         0/1171  (  0.0%)  示例: NULL
+  [Y] req_str                         1171/1171  (100.0%)  示例: 0
+  [Y] req_dex                         1171/1171  (100.0%)  示例: 0
+  [Y] req_int                         1171/1171  (100.0%)  示例: 0
+  [N] tier                               0/1171  (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/1171  (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/1171  (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/1171  (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/1171  (  0.0%)  示例: NULL
+  [N] gem_family                         0/1171  (  0.0%)  示例: NULL
+  [N] requires_level                     0/1171  (  0.0%)  示例: NULL
+  [N] granted_skill                      0/1171  (  0.0%)  示例: NULL
+  [N] implicits                          0/1171  (  0.0%)  示例: NULL
+  [N] variant                            0/1171  (  0.0%)  示例: []
+  [N] source                             0/1171  (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/1171  (  0.0%)  示例: NULL
+  [Y] is_notable                      1171/1171  (100.0%)  示例: 0
+  [Y] is_keystone                     1171/1171  (100.0%)  示例: 0
+  [N] stats_node                         0/1171  (  0.0%)  示例: []
+  [N] reminder_text                      0/1171  (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: Crimson Amulet
+Name: Crimson Amulet
+
+完整数据（格式化）:
+{
+  "id": "Crimson Amulet",
+  "name": "Crimson Amulet",
+  "type": "item_base",
+  "item_type": "Amulet",
+  "tags": []
+}
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: minion_definition
+========================================================================================================================
+总数: 496
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                               496/496   (100.0%)  示例: RaisedZombie
+  [Y] name                             496/496   (100.0%)  示例: Raised Zombie
+  [Y] type                             496/496   (100.0%)  示例: minion_definition
+  [N] skill_types                        0/496   (  0.0%)  示例: []
+  [N] constant_stats                     0/496   (  0.0%)  示例: []
+  [Y] stats                            496/496   (100.0%)  示例: {"fireResist": 0, "coldResist": 0, "lightningResist": 0, "chaosResist": 0, "damageSpread": 0.3}
+  [N] description                        0/496   (  0.0%)  示例: NULL
+  [Y] reservation                      496/496   (100.0%)  示例: {"spectre": 50, "companion": 30}
+  [N] mod_tags                           0/496   (  0.0%)  示例: []
+  [N] weight_keys                        0/496   (  0.0%)  示例: []
+  [N] affix_type                         0/496   (  0.0%)  示例: 
+  [N] mod_data                           0/496   (  0.0%)  示例: []
+  [Y] data_json                        496/496   (100.0%)  示例: {"id": "RaisedZombie", "name": "Raised Zombie", "type": "minion_definition", "life": 0.7, "damage": ...
+  [Y] source_file                      496/496   (100.0%)  示例: Data\Minions.lua
+  [Y] created_at                       496/496   (100.0%)  示例: 2026-03-06 10:34:32
+  [Y] updated_at                       496/496   (100.0%)  示例: 2026-03-06 10:34:32
+  [N] base_type_name                     0/496   (  0.0%)  示例: NULL
+  [N] cast_time                          0/496   (  0.0%)  示例: NULL
+  [N] quality_stats                      0/496   (  0.0%)  示例: []
+  [N] levels                             0/496   (  0.0%)  示例: {}
+  [N] stat_sets                          0/496   (  0.0%)  示例: {}
+  [Y] support                          496/496   (100.0%)  示例: 0
+  [N] require_skill_types                0/496   (  0.0%)  示例: []
+  [N] add_skill_types                    0/496   (  0.0%)  示例: []
+  [N] exclude_skill_types                0/496   (  0.0%)  示例: []
+  [Y] is_trigger                       496/496   (100.0%)  示例: 0
+  [Y] hidden                           496/496   (100.0%)  示例: 0
+  [N] game_id                            0/496   (  0.0%)  示例: NULL
+  [N] variant_id                         0/496   (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/496   (  0.0%)  示例: NULL
+  [N] tags                               0/496   (  0.0%)  示例: {}
+  [N] gem_type                           0/496   (  0.0%)  示例: NULL
+  [N] tag_string                         0/496   (  0.0%)  示例: NULL
+  [Y] req_str                          496/496   (100.0%)  示例: 0
+  [Y] req_dex                          496/496   (100.0%)  示例: 0
+  [Y] req_int                          496/496   (100.0%)  示例: 0
+  [N] tier                               0/496   (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/496   (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/496   (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/496   (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/496   (  0.0%)  示例: NULL
+  [N] gem_family                         0/496   (  0.0%)  示例: NULL
+  [N] requires_level                     0/496   (  0.0%)  示例: NULL
+  [N] granted_skill                      0/496   (  0.0%)  示例: NULL
+  [N] implicits                          0/496   (  0.0%)  示例: NULL
+  [N] variant                            0/496   (  0.0%)  示例: []
+  [N] source                             0/496   (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/496   (  0.0%)  示例: NULL
+  [Y] is_notable                       496/496   (100.0%)  示例: 0
+  [Y] is_keystone                      496/496   (100.0%)  示例: 0
+  [N] stats_node                         0/496   (  0.0%)  示例: []
+  [N] reminder_text                      0/496   (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: RaisedZombie
+Name: Raised Zombie
+
+完整数据（格式化）:
+{
+  "id": "RaisedZombie",
+  "name": "Raised Zombie",
+  "type": "minion_definition",
+  "life": 0.7,
+  "damage": 0.75,
+  "attack_time": 1.25,
+  "attack_range": 9.0,
+  "accuracy": 1.0,
+  "stats": {
+    "fireResist": 0,
+    "coldResist": 0,
+    "lightningResist": 0,
+    "chaosResist": 0,
+    "damageSpread": 0.3
+  },
+  "movement_speed": 16.0,
+  "reservation": {
+    "spectre": 50,
+    "companion": 30
+  },
+  "monster_category": "Undead",
+  "skill_list": [
+    "MinionMeleeStep"
+  ],
+  "skills": [
+    "M
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - stats: 100.0%
+  - reservation: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: mod_affix
+========================================================================================================================
+总数: 2,570
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                              2570/2570  (100.0%)  示例: CharmIncreasedDuration1
+  [Y] name                            2570/2570  (100.0%)  示例: Investigator's
+  [Y] type                            2570/2570  (100.0%)  示例: mod_affix
+  [N] skill_types                        0/2570  (  0.0%)  示例: []
+  [N] constant_stats                     0/2570  (  0.0%)  示例: []
+  [N] stats                              0/2570  (  0.0%)  示例: []
+  [N] description                        0/2570  (  0.0%)  示例: NULL
+  [N] reservation                        0/2570  (  0.0%)  示例: {}
+  [P] mod_tags                        2226/2570  ( 86.6%)  示例: []
+  [Y] weight_keys                     2570/2570  (100.0%)  示例: ["utility_flask", "default"]
+  [Y] affix_type                      2570/2570  (100.0%)  示例: Prefix
+  [N] mod_data                           0/2570  (  0.0%)  示例: []
+  [Y] data_json                       2570/2570  (100.0%)  示例: {"id": "CharmIncreasedDuration1", "name": "Investigator's", "type": "mod_affix", "affix_type": "Pref...
+  [Y] source_file                     2570/2570  (100.0%)  示例: Data\ModCharm.lua
+  [Y] created_at                      2570/2570  (100.0%)  示例: 2026-03-06 10:34:56
+  [Y] updated_at                      2570/2570  (100.0%)  示例: 2026-03-06 10:34:56
+  [N] base_type_name                     0/2570  (  0.0%)  示例: NULL
+  [N] cast_time                          0/2570  (  0.0%)  示例: NULL
+  [N] quality_stats                      0/2570  (  0.0%)  示例: []
+  [N] levels                             0/2570  (  0.0%)  示例: {}
+  [N] stat_sets                          0/2570  (  0.0%)  示例: {}
+  [Y] support                         2570/2570  (100.0%)  示例: 0
+  [N] require_skill_types                0/2570  (  0.0%)  示例: []
+  [N] add_skill_types                    0/2570  (  0.0%)  示例: []
+  [N] exclude_skill_types                0/2570  (  0.0%)  示例: []
+  [Y] is_trigger                      2570/2570  (100.0%)  示例: 0
+  [Y] hidden                          2570/2570  (100.0%)  示例: 0
+  [N] game_id                            0/2570  (  0.0%)  示例: NULL
+  [N] variant_id                         0/2570  (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/2570  (  0.0%)  示例: NULL
+  [N] tags                               0/2570  (  0.0%)  示例: {}
+  [N] gem_type                           0/2570  (  0.0%)  示例: NULL
+  [N] tag_string                         0/2570  (  0.0%)  示例: NULL
+  [Y] req_str                         2570/2570  (100.0%)  示例: 0
+  [Y] req_dex                         2570/2570  (100.0%)  示例: 0
+  [Y] req_int                         2570/2570  (100.0%)  示例: 0
+  [N] tier                               0/2570  (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/2570  (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/2570  (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/2570  (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/2570  (  0.0%)  示例: NULL
+  [N] gem_family                         0/2570  (  0.0%)  示例: NULL
+  [N] requires_level                     0/2570  (  0.0%)  示例: NULL
+  [N] granted_skill                      0/2570  (  0.0%)  示例: NULL
+  [N] implicits                          0/2570  (  0.0%)  示例: NULL
+  [N] variant                            0/2570  (  0.0%)  示例: []
+  [N] source                             0/2570  (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/2570  (  0.0%)  示例: NULL
+  [Y] is_notable                      2570/2570  (100.0%)  示例: 0
+  [Y] is_keystone                     2570/2570  (100.0%)  示例: 0
+  [N] stats_node                         0/2570  (  0.0%)  示例: []
+  [N] reminder_text                      0/2570  (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: CharmIncreasedDuration1
+Name: Investigator's
+
+完整数据（格式化）:
+{
+  "id": "CharmIncreasedDuration1",
+  "name": "Investigator's",
+  "type": "mod_affix",
+  "affix_type": "Prefix",
+  "descriptions": [
+    "(16-20)% increased Duration"
+  ],
+  "stat_order": [
+    903
+  ],
+  "level": 1,
+  "group": "CharmIncreasedDuration",
+  "mod_tags": [],
+  "weight_keys": [
+    "utility_flask",
+    "default"
+  ],
+  "trade_hash": 2541588185
+}
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - mod_tags: 86.6%
+  - weight_keys: 100.0%
+  - affix_type: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: passive_node
+========================================================================================================================
+总数: 4,313
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                              4313/4313  (100.0%)  示例: passive_4
+  [Y] name                            4313/4313  (100.0%)  示例: Shock Chance
+  [Y] type                            4313/4313  (100.0%)  示例: passive_node
+  [N] skill_types                        0/4313  (  0.0%)  示例: []
+  [N] constant_stats                     0/4313  (  0.0%)  示例: []
+  [N] stats                              0/4313  (  0.0%)  示例: []
+  [N] description                        0/4313  (  0.0%)  示例: NULL
+  [N] reservation                        0/4313  (  0.0%)  示例: {}
+  [N] mod_tags                           0/4313  (  0.0%)  示例: []
+  [N] weight_keys                        0/4313  (  0.0%)  示例: []
+  [N] affix_type                         0/4313  (  0.0%)  示例: 
+  [N] mod_data                           0/4313  (  0.0%)  示例: []
+  [Y] data_json                       4313/4313  (100.0%)  示例: {"id": "passive_4", "skill_id": 4, "name": "Shock Chance", "type": "passive_node", "ascendancy_name"...
+  [Y] source_file                     4313/4313  (100.0%)  示例: TreeData\0_4\tree.lua
+  [Y] created_at                      4313/4313  (100.0%)  示例: 2026-03-06 10:35:23
+  [Y] updated_at                      4313/4313  (100.0%)  示例: 2026-03-06 10:35:23
+  [N] base_type_name                     0/4313  (  0.0%)  示例: NULL
+  [N] cast_time                          0/4313  (  0.0%)  示例: NULL
+  [N] quality_stats                      0/4313  (  0.0%)  示例: []
+  [N] levels                             0/4313  (  0.0%)  示例: {}
+  [N] stat_sets                          0/4313  (  0.0%)  示例: {}
+  [Y] support                         4313/4313  (100.0%)  示例: 0
+  [N] require_skill_types                0/4313  (  0.0%)  示例: []
+  [N] add_skill_types                    0/4313  (  0.0%)  示例: []
+  [N] exclude_skill_types                0/4313  (  0.0%)  示例: []
+  [Y] is_trigger                      4313/4313  (100.0%)  示例: 0
+  [Y] hidden                          4313/4313  (100.0%)  示例: 0
+  [N] game_id                            0/4313  (  0.0%)  示例: NULL
+  [N] variant_id                         0/4313  (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/4313  (  0.0%)  示例: NULL
+  [N] tags                               0/4313  (  0.0%)  示例: {}
+  [N] gem_type                           0/4313  (  0.0%)  示例: NULL
+  [N] tag_string                         0/4313  (  0.0%)  示例: NULL
+  [Y] req_str                         4313/4313  (100.0%)  示例: 0
+  [Y] req_dex                         4313/4313  (100.0%)  示例: 0
+  [Y] req_int                         4313/4313  (100.0%)  示例: 0
+  [N] tier                               0/4313  (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/4313  (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/4313  (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/4313  (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/4313  (  0.0%)  示例: NULL
+  [N] gem_family                         0/4313  (  0.0%)  示例: NULL
+  [N] requires_level                     0/4313  (  0.0%)  示例: NULL
+  [N] granted_skill                      0/4313  (  0.0%)  示例: NULL
+  [N] implicits                          0/4313  (  0.0%)  示例: NULL
+  [N] variant                            0/4313  (  0.0%)  示例: []
+  [N] source                             0/4313  (  0.0%)  示例: NULL
+  [P] ascendancy_name                  367/4313  (  8.5%)  示例: NULL
+  [Y] is_notable                      4313/4313  (100.0%)  示例: 0
+  [Y] is_keystone                     4313/4313  (100.0%)  示例: 0
+  [Y] stats_node                      4313/4313  (100.0%)  示例: ["15% increased chance to Shock"]
+  [N] reminder_text                      0/4313  (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: passive_4
+Name: Shock Chance
+
+完整数据（格式化）:
+{
+  "id": "passive_4",
+  "skill_id": 4,
+  "name": "Shock Chance",
+  "type": "passive_node",
+  "ascendancy_name": null,
+  "is_notable": false,
+  "is_keystone": false,
+  "stats_node": [
+    "15% increased chance to Shock"
+  ]
+}
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+  - stats_node: 100.0%
+
+========================================================================================================================
+实体类型: skill_definition
+========================================================================================================================
+总数: 900
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                               900/900   (100.0%)  示例: AlchemistsBoonPlayer
+  [Y] name                             900/900   (100.0%)  示例: Alchemist's Boon
+  [Y] type                             900/900   (100.0%)  示例: skill_definition
+  [P] skill_types                      344/900   ( 38.2%)  示例: ["OngoingSkill", "HasReservation", "Buff", "Persistent", "Aura", "AttackInPlace"]
+  [P] constant_stats                   802/900   ( 89.1%)  示例: []
+  [P] stats                            490/900   ( 54.4%)  示例: ["skill_alchemists_boon_generate_x_charges_for_any_flask_per_minute", "recovery_from_flasks_applies_...
+  [P] description                      898/900   ( 99.8%)  示例: While active, grants you Flask charges passively and causes Life and Mana recovery from your Flasks ...
+  [Y] reservation                      900/900   (100.0%)  示例: null
+  [N] mod_tags                           0/900   (  0.0%)  示例: []
+  [N] weight_keys                        0/900   (  0.0%)  示例: []
+  [N] affix_type                         0/900   (  0.0%)  示例: 
+  [N] mod_data                           0/900   (  0.0%)  示例: []
+  [Y] data_json                        900/900   (100.0%)  示例: {"id": "AlchemistsBoonPlayer", "name": "Alchemist's Boon", "base_type_name": "Alchemist's Boon", "ca...
+  [Y] source_file                      900/900   (100.0%)  示例: Data\Skills\act_dex.lua
+  [Y] created_at                       900/900   (100.0%)  示例: 2026-03-06 10:35:17
+  [Y] updated_at                       900/900   (100.0%)  示例: 2026-03-06 10:35:17
+  [P] base_type_name                   344/900   ( 38.2%)  示例: Alchemist's Boon
+  [P] cast_time                        344/900   ( 38.2%)  示例: 1.0
+  [P] quality_stats                    288/900   ( 32.0%)  示例: [["skill_alchemists_boon_generate_x_charges_for_any_flask_per_minute", 0.1]]
+  [Y] levels                           900/900   (100.0%)  示例: {"1": {"levelRequirement": 0, "cost": {"Spirit": 30}, "spiritReservationFlat": 30}, "2": {"levelRequ...
+  [Y] stat_sets                        900/900   (100.0%)  示例: {"label": "Alchemist's Boon", "incrementalEffectiveness": 0.054999999701977, "statDescriptionScope":...
+  [Y] support                          900/900   (100.0%)  示例: 0
+  [P] require_skill_types              537/900   ( 59.7%)  示例: []
+  [P] add_skill_types                   76/900   (  8.4%)  示例: []
+  [P] exclude_skill_types              204/900   ( 22.7%)  示例: []
+  [Y] is_trigger                       900/900   (100.0%)  示例: 0
+  [Y] hidden                           900/900   (100.0%)  示例: 0
+  [N] game_id                            0/900   (  0.0%)  示例: NULL
+  [N] variant_id                         0/900   (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/900   (  0.0%)  示例: NULL
+  [N] tags                               0/900   (  0.0%)  示例: {}
+  [N] gem_type                           0/900   (  0.0%)  示例: NULL
+  [N] tag_string                         0/900   (  0.0%)  示例: NULL
+  [Y] req_str                          900/900   (100.0%)  示例: 0
+  [Y] req_dex                          900/900   (100.0%)  示例: 0
+  [Y] req_int                          900/900   (100.0%)  示例: 0
+  [N] tier                               0/900   (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/900   (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/900   (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/900   (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/900   (  0.0%)  示例: NULL
+  [N] gem_family                         0/900   (  0.0%)  示例: NULL
+  [N] requires_level                     0/900   (  0.0%)  示例: NULL
+  [N] granted_skill                      0/900   (  0.0%)  示例: NULL
+  [N] implicits                          0/900   (  0.0%)  示例: NULL
+  [N] variant                            0/900   (  0.0%)  示例: []
+  [N] source                             0/900   (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/900   (  0.0%)  示例: NULL
+  [Y] is_notable                       900/900   (100.0%)  示例: 0
+  [Y] is_keystone                      900/900   (100.0%)  示例: 0
+  [N] stats_node                         0/900   (  0.0%)  示例: []
+  [N] reminder_text                      0/900   (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: AlchemistsBoonPlayer
+Name: Alchemist's Boon
+
+完整数据（格式化）:
+{
+  "id": "AlchemistsBoonPlayer",
+  "name": "Alchemist's Boon",
+  "base_type_name": "Alchemist's Boon",
+  "cast_time": 1.0,
+  "quality_stats": [
+    [
+      "skill_alchemists_boon_generate_x_charges_for_any_flask_per_minute",
+      0.1
+    ]
+  ],
+  "skill_types": [
+    "OngoingSkill",
+    "HasReservation",
+    "Buff",
+    "Persistent",
+    "Aura",
+    "AttackInPlace"
+  ],
+  "constant_stats": [],
+  "stats": [
+    "skill_alchemists_boon_generate_x_charges_for_any_flask_per_minute",
+    "recovery_f
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - constant_stats: 89.1%
+  - stats: 54.4%
+  - description: 99.8%
+  - reservation: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - levels: 100.0%
+  - stat_sets: 100.0%
+  - support: 100.0%
+  - require_skill_types: 59.7%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: stat_mapping
+========================================================================================================================
+总数: 5,230
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                              5230/5230  (100.0%)  示例: (2-4)% chance to deal Double Damage
+  [Y] name                            5230/5230  (100.0%)  示例: (2-4)% chance to deal Double Damage
+  [Y] type                            5230/5230  (100.0%)  示例: stat_mapping
+  [N] skill_types                        0/5230  (  0.0%)  示例: []
+  [N] constant_stats                     0/5230  (  0.0%)  示例: []
+  [N] stats                              0/5230  (  0.0%)  示例: []
+  [Y] description                     5230/5230  (100.0%)  示例: (2-4)% chance to deal Double Damage
+  [N] reservation                        0/5230  (  0.0%)  示例: {}
+  [N] mod_tags                           0/5230  (  0.0%)  示例: []
+  [N] weight_keys                        0/5230  (  0.0%)  示例: []
+  [N] affix_type                         0/5230  (  0.0%)  示例: 
+  [Y] mod_data                        5230/5230  (100.0%)  示例: [{"type": "Multiplier", "globalLimit": 100.0, "globalLimitKey": "DamageDoubledLimit"}, {"type": "Mul...
+  [Y] data_json                       5230/5230  (100.0%)  示例: {"id": "(2-4)% chance to deal Double Damage", "name": "(2-4)% chance to deal Double Damage", "type":...
+  [Y] source_file                     5230/5230  (100.0%)  示例: Data\ModCache.lua
+  [Y] created_at                      5230/5230  (100.0%)  示例: 2026-03-06 10:34:32
+  [Y] updated_at                      5230/5230  (100.0%)  示例: 2026-03-06 10:34:32
+  [N] base_type_name                     0/5230  (  0.0%)  示例: NULL
+  [N] cast_time                          0/5230  (  0.0%)  示例: NULL
+  [N] quality_stats                      0/5230  (  0.0%)  示例: []
+  [N] levels                             0/5230  (  0.0%)  示例: {}
+  [N] stat_sets                          0/5230  (  0.0%)  示例: {}
+  [Y] support                         5230/5230  (100.0%)  示例: 0
+  [N] require_skill_types                0/5230  (  0.0%)  示例: []
+  [N] add_skill_types                    0/5230  (  0.0%)  示例: []
+  [N] exclude_skill_types                0/5230  (  0.0%)  示例: []
+  [Y] is_trigger                      5230/5230  (100.0%)  示例: 0
+  [Y] hidden                          5230/5230  (100.0%)  示例: 0
+  [N] game_id                            0/5230  (  0.0%)  示例: NULL
+  [N] variant_id                         0/5230  (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/5230  (  0.0%)  示例: NULL
+  [N] tags                               0/5230  (  0.0%)  示例: {}
+  [N] gem_type                           0/5230  (  0.0%)  示例: NULL
+  [N] tag_string                         0/5230  (  0.0%)  示例: NULL
+  [Y] req_str                         5230/5230  (100.0%)  示例: 0
+  [Y] req_dex                         5230/5230  (100.0%)  示例: 0
+  [Y] req_int                         5230/5230  (100.0%)  示例: 0
+  [N] tier                               0/5230  (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/5230  (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/5230  (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/5230  (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/5230  (  0.0%)  示例: NULL
+  [N] gem_family                         0/5230  (  0.0%)  示例: NULL
+  [N] requires_level                     0/5230  (  0.0%)  示例: NULL
+  [N] granted_skill                      0/5230  (  0.0%)  示例: NULL
+  [N] implicits                          0/5230  (  0.0%)  示例: NULL
+  [N] variant                            0/5230  (  0.0%)  示例: []
+  [N] source                             0/5230  (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/5230  (  0.0%)  示例: NULL
+  [Y] is_notable                      5230/5230  (100.0%)  示例: 0
+  [Y] is_keystone                     5230/5230  (100.0%)  示例: 0
+  [N] stats_node                         0/5230  (  0.0%)  示例: []
+  [N] reminder_text                      0/5230  (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: (2-4)% chance to deal Double Damage
+Name: (2-4)% chance to deal Double Damage
+
+完整数据（格式化）:
+{
+  "id": "(2-4)% chance to deal Double Damage",
+  "name": "(2-4)% chance to deal Double Damage",
+  "type": "stat_mapping",
+  "description": "(2-4)% chance to deal Double Damage",
+  "mod_data": [
+    {
+      "type": "Multiplier",
+      "globalLimit": 100.0,
+      "globalLimitKey": "DamageDoubledLimit"
+    },
+    {
+      "type": "Multiplier",
+      "globalLimit": 100.0,
+      "globalLimitKey": "DamageDoubledLimit"
+    },
+    {
+      "type": "OVERRIDE",
+      "name": "Multiplier:DamageDoubled",
+  
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - description: 100.0%
+  - mod_data: 100.0%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+========================================================================================================================
+实体类型: unique_item
+========================================================================================================================
+总数: 479
+
+字段详情:
+------------------------------------------------------------------------------------------------------------------------
+  [Y] id                               479/479   (100.0%)  示例: HTTP/1.1 200 OK
+  [Y] name                             479/479   (100.0%)  示例: HTTP/1.1 200 OK
+  [Y] type                             479/479   (100.0%)  示例: unique_item
+  [N] skill_types                        0/479   (  0.0%)  示例: []
+  [N] constant_stats                     0/479   (  0.0%)  示例: []
+  [P] stats                            473/479   ( 98.7%)  示例: ["<!DOCTYPE html>", "<html lang=\"en\">", "<head>", "<meta charset=\"UTF-8\">", "<meta name=\"viewpo...
+  [N] description                        0/479   (  0.0%)  示例: NULL
+  [N] reservation                        0/479   (  0.0%)  示例: {}
+  [N] mod_tags                           0/479   (  0.0%)  示例: []
+  [N] weight_keys                        0/479   (  0.0%)  示例: []
+  [N] affix_type                         0/479   (  0.0%)  示例: 
+  [N] mod_data                           0/479   (  0.0%)  示例: []
+  [Y] data_json                        479/479   (100.0%)  示例: {"id": "HTTP/1.1 200 OK", "name": "HTTP/1.1 200 OK", "type": "unique_item", "stats": ["<!DOCTYPE htm...
+  [Y] source_file                      479/479   (100.0%)  示例: LaunchServer.lua
+  [Y] created_at                       479/479   (100.0%)  示例: 2026-03-06 10:34:29
+  [Y] updated_at                       479/479   (100.0%)  示例: 2026-03-06 10:34:29
+  [N] base_type_name                     0/479   (  0.0%)  示例: NULL
+  [N] cast_time                          0/479   (  0.0%)  示例: NULL
+  [N] quality_stats                      0/479   (  0.0%)  示例: []
+  [N] levels                             0/479   (  0.0%)  示例: {}
+  [N] stat_sets                          0/479   (  0.0%)  示例: {}
+  [Y] support                          479/479   (100.0%)  示例: 0
+  [N] require_skill_types                0/479   (  0.0%)  示例: []
+  [N] add_skill_types                    0/479   (  0.0%)  示例: []
+  [N] exclude_skill_types                0/479   (  0.0%)  示例: []
+  [Y] is_trigger                       479/479   (100.0%)  示例: 0
+  [Y] hidden                           479/479   (100.0%)  示例: 0
+  [N] game_id                            0/479   (  0.0%)  示例: NULL
+  [N] variant_id                         0/479   (  0.0%)  示例: NULL
+  [N] granted_effect_id                  0/479   (  0.0%)  示例: NULL
+  [N] tags                               0/479   (  0.0%)  示例: {}
+  [N] gem_type                           0/479   (  0.0%)  示例: NULL
+  [N] tag_string                         0/479   (  0.0%)  示例: NULL
+  [Y] req_str                          479/479   (100.0%)  示例: 0
+  [Y] req_dex                          479/479   (100.0%)  示例: 0
+  [Y] req_int                          479/479   (100.0%)  示例: 0
+  [N] tier                               0/479   (  0.0%)  示例: NULL
+  [N] natural_max_level                  0/479   (  0.0%)  示例: NULL
+  [N] additional_stat_set1               0/479   (  0.0%)  示例: NULL
+  [N] additional_stat_set2               0/479   (  0.0%)  示例: NULL
+  [N] weapon_requirements                0/479   (  0.0%)  示例: NULL
+  [N] gem_family                         0/479   (  0.0%)  示例: NULL
+  [N] requires_level                     0/479   (  0.0%)  示例: NULL
+  [N] granted_skill                      0/479   (  0.0%)  示例: NULL
+  [N] implicits                          0/479   (  0.0%)  示例: NULL
+  [N] variant                            0/479   (  0.0%)  示例: []
+  [N] source                             0/479   (  0.0%)  示例: NULL
+  [N] ascendancy_name                    0/479   (  0.0%)  示例: NULL
+  [Y] is_notable                       479/479   (100.0%)  示例: 0
+  [Y] is_keystone                      479/479   (100.0%)  示例: 0
+  [N] stats_node                         0/479   (  0.0%)  示例: []
+  [N] reminder_text                      0/479   (  0.0%)  示例: []
+
+完整示例实体:
+------------------------------------------------------------------------------------------------------------------------
+ID: HTTP/1.1 200 OK
+Name: HTTP/1.1 200 OK
+
+完整数据（格式化）:
+{
+  "id": "HTTP/1.1 200 OK",
+  "name": "HTTP/1.1 200 OK",
+  "type": "unique_item",
+  "stats": [
+    "<!DOCTYPE html>",
+    "<html lang=\"en\">",
+    "<head>",
+    "<meta charset=\"UTF-8\">",
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+    "<title>PoB 2 - Authentication Complete</title>",
+    "<style>",
+    "body {",
+    "font-family: Arial, sans-serif;",
+    "background: #121212;",
+    "color: #fff;",
+    "display: flex;",
+    "justify-content: center;",
+   
+... (数据过长，已截断)
+
+关键字段（填充率>50%）:
+  - id: 100.0%
+  - name: 100.0%
+  - type: 100.0%
+  - stats: 98.7%
+  - data_json: 100.0%
+  - source_file: 100.0%
+  - created_at: 100.0%
+  - updated_at: 100.0%
+  - support: 100.0%
+  - is_trigger: 100.0%
+  - hidden: 100.0%
+  - req_str: 100.0%
+  - req_dex: 100.0%
+  - req_int: 100.0%
+  - is_notable: 100.0%
+  - is_keystone: 100.0%
+
+
+
+========================================================================================================================
+关键字段值分布
+========================================================================================================================
+
+【skill_definition 关键字段】
+------------------------------------------------------------------------------------------------------------------------
+
+cast_time分布 (Top 10):
+     1.0秒:  176个
+     0.0秒:   71个
+     0.8秒:   21个
+     0.7秒:   15个
+     0.6秒:   12个
+     0.5秒:   11个
+     1.2秒:    5个
+    0.75秒:    5个
+     1.4秒:    4个
+    0.85秒:    4个
+
+【gem_definition 关键字段】
+------------------------------------------------------------------------------------------------------------------------
+
+gem_type分布:
+  Support             :  556个
+  Attack              :  140个
+  Spell               :   86个
+  Buff                :   76个
+  Minion              :   26个
+  Warcry              :    7个
+  Mark                :    4个
+  Banner              :    3个
+  Totem               :    1个
+  Shapeshift          :    1个
+
+tier分布:
+  Tier  0:  220个
+  Tier  1:  113个
+  Tier  2:  106个
+  Tier  3:  136个
+  Tier  4:  100个
+  Tier  5:  100个
+  Tier  7:   27个
+  Tier  8:   17个
+  Tier  9:   23个
+  Tier 11:   21个
+  Tier 13:   22个
+  Tier 14:   15个
+
+【passive_node 关键字段】
+------------------------------------------------------------------------------------------------------------------------
+
+is_notable分布:
+  Normal    : 3196个
+  Notable   : 1117个
+
+ascendancy_name分布:
+  Smith of Kitava     :   23个
+  Infernalist         :   22个
+  Disciple of Varashta:   22个
+  Pathfinder          :   21个
+  Tactician           :   20个
+  Stormweaver         :   20个
+  Acolyte of Chayula  :   20个
+  Invoker             :   19个
+  Lich                :   18个
+  Gemling Legionnaire :   18个
+  Amazon              :   18个
+  Deadeye             :   17个
+  Blood Mage          :   17个
+  Witchhunter         :   16个
+  Warbringer          :   16个
+  Titan               :   16个
+  Shaman              :   16个
+  Ritualist           :   16个
+  Oracle              :   16个
+  Chronomancer        :   16个
+
+【stat_mapping 关键字段】
+------------------------------------------------------------------------------------------------------------------------
+
+示例:
+
+  ID: (2-4)% chance to deal Double Damage
+  Name: (2-4)% chance to deal Double Damage
+  Description: (2-4)% chance to deal Double Damage
+  Mod数据: [{"type": "Multiplier", "globalLimit": 100.0, "globalLimitKey": "DamageDoubledLimit"}, {"type": "Multiplier", "globalLimit": 100.0, "globalLimitKey": "DamageDoubledLimit"}, {"type": "OVERRIDE", "name"...
+
+  ID: (2-4)% chance to deal Double Damage (25-35)% increased Physical Damage
+  Name: (2-4)% chance to deal Double Damage (25-35)% increased Physical Damage
+  Description: (2-4)% chance to deal Double Damage (25-35)% increased Physical Damage
+  Mod数据: [{"type": "Multiplier", "globalLimit": 100.0, "globalLimitKey": "DamageDoubledLimit"}, {"type": "Multiplier", "globalLimit": 100.0, "globalLimitKey": "DamageDoubledLimit"}, {"type": "OVERRIDE", "name"...
+
+  ID: +0 to Maximum Power Charges
+  Name: +0 to Maximum Power Charges
+  Description: +0 to Maximum Power Charges
+  Mod数据: [{"type": "BASE", "name": "PowerChargesMax", "value": 0.0, "flags": 0, "keywordFlags": 0}]...
