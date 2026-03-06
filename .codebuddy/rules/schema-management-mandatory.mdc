@@ -1,0 +1,184 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-06T08:27:50.884Z
+provider: 
+---
+
+# Schema管理系统强制调用规则
+
+## 触发条件
+当修改以下类型的文件时，**必须**调用Schema管理系统：
+
+1. **数据结构定义文件**
+   - 定义SQLite表结构的文件
+   - 定义@dataclass的文件
+   - 定义Enum的文件
+
+2. **技能脚本文件**
+   - `scripts/data_scanner.py`
+   - `scripts/entity_index.py`
+   - `scripts/rules_extractor.py`
+   - `scripts/attribute_graph.py`
+   - `scripts/query_engine.py`
+   - `scripts/knowledge_manager.py`
+   - `scripts/schema_manager.py`
+
+3. **知识库相关文件**
+   - `knowledge_base/` 目录下的任何文件
+   - `config/` 目录下的配置文件
+
+## 执行流程
+
+### 修改前（Before Modification）
+
+```python
+# Step 1: 查询文件角色
+from schema_manager import SchemaManager
+manager = SchemaManager('schemas/schemas.json')
+role = manager.get_file_role('target_file.py')
+
+# Step 2: 检查待处理通知
+if role and role.get('consumptions'):
+    pending_schemas = []
+    for schema_id in role['consumptions']:
+        schema_info = manager.schemas.get(schema_id)
+        if schema_info:
+            # 检查是否需要适配
+            consumer_record = find_consumer_record(schema_info, 'target_file.py')
+            if consumer_record and schema_info.last_modified > consumer_record.get('last_adapted', ''):
+                pending_schemas.append(schema_id)
+    
+    if pending_schemas:
+        # 警告用户：需要先适配这些结构变更
+        warn_user(f"需要先适配以下结构变更: {pending_schemas}")
+
+# Step 3: 确认可以继续修改
+```
+
+### 修改后（After Modification）
+
+```python
+# Step 1: 检查是否改变了定义
+is_definition_changed = check_if_definition_changed('target_file.py')
+
+# Step 2: 如果是消费者，从队列中移除
+if role and role.get('consumptions'):
+    manager.remove_from_queue('target_file.py')
+
+# Step 3: 如果定义改变，更新schema并通知消费者
+if is_definition_changed:
+    for schema_id in role.get('definitions', []):
+        manager.update_schema(schema_id)
+        # 这会自动将消费者加入通知队列
+
+# Step 4: 更新适配时间戳
+if role and role.get('consumptions'):
+    for schema_id in role['consumptions']:
+        manager.update_consumer_adapted(schema_id, 'target_file.py')
+
+# Step 5: 保存变更
+manager.save()
+```
+
+### 队列处理（Queue Processing）
+
+在完成所有用户请求后：
+
+```python
+# Step 1: 检查队列是否为空
+if not manager.is_queue_empty():
+    # Step 2: 处理队列
+    max_iter = manager.calculate_max_iterations(planned_files=estimate_files())
+    
+    result = validator.process_queue(
+        modify_callback=modify_consumer_file,
+        planned_files=estimate_files()
+    )
+    
+    if result['status'] == 'max_iterations_reached':
+        alert_user("达到最大迭代次数，需要手动检查")
+```
+
+## 循环引用处理
+
+当检测到循环引用时（File A定义Structure A并引用Structure B，File B定义Structure B并引用Structure A）：
+
+```
+1. 检测循环: manager.detect_circular()
+2. 预更新阶段: 批量收集所有结构变更
+3. 执行阶段: 顺序修改循环文件
+4. 清理队列: 清除相关队列记录
+```
+
+## 迭代次数限制
+
+```
+max_iterations = planned_files × max_depth × safety_factor
+
+其中:
+- planned_files: 计划修改的文件数
+- max_depth: 单文件最大迭代深度（默认3）
+- safety_factor: 安全系数（默认1.5）
+
+限制:
+- 最小: 5
+- 最大: 100
+```
+
+## 禁止事项
+
+1. **禁止跳过Schema检查直接修改文件**
+   - 必须先查询文件角色
+   - 必须检查待处理通知
+
+2. **禁止在修改后不更新Schema**
+   - 如果定义改变，必须更新schema
+   - 必须通知消费者
+
+3. **禁止忽略队列**
+   - 必须在完成所有请求后检查队列
+   - 必须处理所有待处理项
+
+## 示例场景
+
+### 场景1：修改entity_index.py（定义entities表）
+
+```python
+# Before: 查询角色
+role = manager.get_file_role('entity_index.py')
+# {'definitions': ['entities'], 'consumptions': []}
+
+# After modification: 更新schema
+manager.update_schema('entities')
+# 自动通知所有消费者（rules_extractor.py等）
+
+manager.save()
+```
+
+### 场景2：修改rules_extractor.py（消费者）
+
+```python
+# Before: 检查是否有待适配的结构变更
+role = manager.get_file_role('rules_extractor.py')
+# {'definitions': ['rules'], 'consumptions': ['entities']}
+
+# 检查entities是否有变更
+pending = check_pending_schemas(role['consumptions'])
+if pending:
+    warn("需要先适配entities结构变更")
+
+# After: 从队列移除并更新时间戳
+manager.remove_from_queue('rules_extractor.py')
+manager.update_consumer_adapted('entities', 'rules_extractor.py')
+manager.save()
+```
+
+## 验证
+
+每次修改后，验证：
+1. ✅ schemas.json已更新
+2. ✅ 消费者已通知
+3. ✅ 队列已处理
+4. ✅ 无循环引用或已正确处理

@@ -1,0 +1,334 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-06T08:28:48.579Z
+provider: 
+---
+
+# POB数据提取范围规则
+
+## 强制提取范围
+
+### 1. POBData/Data/ 目录（所有文件）
+
+**必须扫描的所有子目录和文件**：
+
+```
+POBData/Data/
+├── Bases/              # 物品基础（29个文件）
+│   └── *.lua           # 所有基础物品定义
+├── Skills/             # 技能定义（9个文件）
+│   ├── act_dex.lua     # 敏捷技能
+│   ├── act_int.lua     # 智力技能
+│   ├── act_str.lua     # 力量技能
+│   ├── minion.lua      # 召唤物技能
+│   ├── other.lua       # 其他技能
+│   ├── spectre.lua     # 幽魂技能
+│   ├── sup_dex.lua     # 敏捷辅助
+│   ├── sup_int.lua     # 智力辅助
+│   └── sup_str.lua     # 力量辅助
+├── StatDescriptions/   # 属性描述（674个文件）
+│   └── *.lua           # 所有stat描述文件
+├── Uniques/            # 唯一物品（33个文件）
+│   └── *.lua           # 所有唯一物品定义
+├── Bosses.lua          # Boss数据
+├── BossSkills.lua      # Boss技能
+├── ClusterJewels.lua   # 星团珠宝
+├── Costs.lua           # 成本数据
+├── Essence.lua         # 精华数据
+├── FlavourText.lua     # 风味文本
+├── Gems.lua            # 宝石定义
+├── Global.lua          # 全局数据
+├── Minions.lua         # 召唤物数据
+├── Misc.lua            # 杂项数据
+├── ModCache.lua        # Mod缓存
+├── ModCharm.lua        # Charm Mod
+├── ModCorrupted.lua    # 腐化Mod
+├── ModFlask.lua        # 药剂Mod
+├── ModIncursionLimb.lua # Incursion Mod
+├── ModItem.lua         # 物品Mod
+├── ModItemExclusive.lua # 独占Mod
+├── ModJewel.lua        # 珠宝Mod
+├── ModMap.lua          # 地图Mod
+├── ModRunes.lua        # 符文Mod
+├── ModScalability.lua  # 可扩展Mod
+├── ModVeiled.lua       # 隐匿Mod
+├── QueryMods.lua       # 查询Mod
+├── QuestRewards.lua    # 任务奖励
+├── Rares.lua           # 稀有物品
+├── SkillStatMap.lua    # ★ 关键：技能stat映射
+├── Spectres.lua        # 幽幽落数据
+└── WorldAreas.lua      # 世界区域
+```
+
+**关键文件说明**：
+- `SkillStatMap.lua`: **必须优先处理**，包含stat到modifier的映射关系
+- `ModCache.lua`: 包含所有mod的定义和描述
+- `Gems.lua`: 包含宝石的完整定义
+- `StatDescriptions/`: 包含所有stat的描述文本
+
+### 2. POBData/Modules/ 目录（所有文件）
+
+**必须扫描的所有文件**：
+
+```
+POBData/Modules/
+├── CalcActiveSkill.lua      # ★ 关键：主动技能计算
+├── CalcDefence.lua          # 防御计算
+├── CalcOffence.lua          # 进攻计算
+├── CalcPerform.lua          # 性能计算
+├── CalcSections.lua         # 计算部分
+├── CalcSetup.lua            # 计算设置
+├── CalcTools.lua            # 计算工具
+├── CalcTriggers.lua         # ★ 关键：触发计算（元技能能量核心）
+├── CalcWeapons.lua          # 武器计算
+├── Common.lua               # 通用函数
+├── Data.lua                 # 数据加载
+├── ItemTools.lua            # 物品工具
+├── Main.lua                 # 主模块
+├── ModParser.lua            # Mod解析器
+├── ModTools.lua             # Mod工具
+├── PantheonTools.lua        # 万神殿工具
+├── Data{platform}.lua       # 平台特定数据
+└── ... (其他所有.lua文件)
+```
+
+**关键文件说明**：
+- `CalcTriggers.lua`: **必须优先处理**，包含元技能能量生成的核心逻辑
+- `CalcActiveSkill.lua`: 包含主动技能的计算公式
+- `CalcOffence.lua`: 包含进攻相关的计算
+- `ModParser.lua`: 包含mod的解析逻辑
+
+### 3. POBData/TreeData/ 目录（最新版本）
+
+**版本选择规则**：
+- **当前版本**: `0_4/` (最新)
+- **忽略旧版本**: `0_1/`, `0_2/`, `0_3/` 等
+
+**必须扫描的文件**：
+
+```
+POBData/TreeData/0_4/
+├── tree.lua              # ★ 关键：天赋树数据
+├── tree.json             # JSON格式（如果存在）
+├── *.png                 # 天赋图标
+├── *.zst                 # 压缩数据
+└── ... (其他所有文件)
+```
+
+**版本检测逻辑**：
+```python
+import re
+from pathlib import Path
+
+def get_latest_tree_version(tree_data_dir):
+    """获取最新的天赋树版本"""
+    versions = []
+    for item in Path(tree_data_dir).iterdir():
+        if item.is_dir() and re.match(r'^\d+_\d+$', item.name):
+            # 解析版本号：0_4 -> (0, 4)
+            major, minor = map(int, item.name.split('_'))
+            versions.append((major, minor, item.name))
+    
+    if not versions:
+        return None
+    
+    # 按语义版本排序，返回最新的
+    versions.sort(reverse=True)
+    return versions[0][2]  # 返回目录名
+```
+
+### 4. GameVersions.lua（游戏版本文件）
+
+**必须扫描**：
+
+```
+POBData/GameVersions.lua
+```
+
+**用途**：
+- 获取当前游戏版本
+- 获取POB版本
+- 用于版本检测和知识库更新
+
+## 提取策略
+
+### Phase 1: 元数据提取
+
+```python
+# 1. 读取GameVersions.lua获取版本信息
+game_version, pob_version = extract_game_versions('POBData/GameVersions.lua')
+
+# 2. 确定最新的天赋树版本
+latest_tree_version = get_latest_tree_version('POBData/TreeData')
+
+# 3. 记录版本信息
+version_info = {
+    'game_version': game_version,
+    'pob_version': pob_version,
+    'tree_version': latest_tree_version,
+    'data_hash': calculate_data_hash(all_files)
+}
+```
+
+### Phase 2: 核心数据提取（优先级顺序）
+
+```python
+# 优先级1: 关键映射和计算文件
+priority_files = [
+    'Data/SkillStatMap.lua',      # stat映射
+    'Modules/CalcTriggers.lua',   # 触发计算
+    'Modules/CalcActiveSkill.lua' # 主动技能计算
+]
+
+# 优先级2: 技能定义文件
+skill_files = [
+    'Data/Skills/act_*.lua',
+    'Data/Skills/sup_*.lua',
+    'Data/Gems.lua'
+]
+
+# 优先级3: 物品和Mod文件
+item_files = [
+    'Data/Uniques/*.lua',
+    'Data/Bases/*.lua',
+    'Data/ModCache.lua'
+]
+
+# 优先级4: 天赋树（仅最新版本）
+tree_files = [
+    f'Data/TreeData/{latest_tree_version}/tree.lua'
+]
+
+# 优先级5: 其他所有文件
+other_files = [...] # Data和Modules下的所有其他文件
+```
+
+### Phase 3: 实体分类
+
+```python
+# 根据文件内容自动分类实体
+entity_types = {
+    'skill_definition': [],      # 技能定义
+    'gem_definition': [],        # 宝石定义
+    'item_base': [],             # 物品基础
+    'unique_item': [],           # 唯一物品
+    'stat_mapping': [],          # stat映射
+    'calculation_module': [],    # 计算模块
+    'passive_node': [],          # 天赋节点
+    'mod_affix': []              # Mod词缀
+}
+```
+
+## 禁止事项
+
+1. **禁止遗漏文件**
+   - 必须扫描Data目录下的所有.lua文件
+   - 必须扫描Modules目录下的所有.lua文件
+   - 必须扫描最新版本的天赋树
+
+2. **禁止扫描旧版本天赋树**
+   - 只扫描最新版本（语义版本最大的）
+   - 忽略所有旧版本
+
+3. **禁止跳过关键文件**
+   - SkillStatMap.lua必须处理
+   - CalcTriggers.lua必须处理
+   - GameVersions.lua必须处理
+
+4. **禁止部分扫描**
+   - 不能只扫描部分子目录
+   - 不能跳过某个类型的文件
+
+## 验证清单
+
+每次数据提取后，验证：
+
+- [ ] GameVersions.lua已读取
+- [ ] 最新天赋树版本已确定
+- [ ] Data目录所有.lua文件已扫描
+- [ ] Modules目录所有.lua文件已扫描
+- [ ] SkillStatMap.lua已处理
+- [ ] CalcTriggers.lua已处理
+- [ ] 天赋树仅扫描了最新版本
+- [ ] 所有实体类型都有数据
+- [ ] 版本信息已记录
+
+## 数据完整性检查
+
+```python
+def validate_extraction_completeness(extracted_data):
+    """验证提取数据的完整性"""
+    required_stats = {
+        'entities': {
+            'skill_definition': (1000, 2000),  # 预期范围
+            'gem_definition': (500, 1500),
+            'stat_mapping': (3000, 7000),
+            'passive_node': (3000, 5000)
+        },
+        'rules': {
+            'formula': (100, 1000),
+            'modifier': (10000, 50000)
+        }
+    }
+    
+    warnings = []
+    for category, types in required_stats.items():
+        for entity_type, (min_count, max_count) in types.items():
+            actual_count = extracted_data[category]['by_type'].get(entity_type, 0)
+            if actual_count < min_count:
+                warnings.append(f"⚠ {entity_type}数量过少: {actual_count} < {min_count}")
+            elif actual_count > max_count:
+                warnings.append(f"⚠ {entity_type}数量过多: {actual_count} > {max_count}")
+    
+    return warnings
+```
+
+## 示例：完整提取流程
+
+```python
+from pathlib import Path
+
+def extract_all_pob_data(pob_data_dir):
+    """完整的POB数据提取流程"""
+    
+    # Step 1: 提取版本信息
+    game_version, pob_version = extract_game_versions(
+        f'{pob_data_dir}/GameVersions.lua'
+    )
+    
+    # Step 2: 确定天赋树版本
+    latest_tree = get_latest_tree_version(f'{pob_data_dir}/TreeData')
+    
+    # Step 3: 收集所有文件路径
+    all_files = []
+    
+    # Data目录（所有文件）
+    data_dir = Path(f'{pob_data_dir}/Data')
+    all_files.extend(data_dir.rglob('*.lua'))
+    
+    # Modules目录（所有文件）
+    modules_dir = Path(f'{pob_data_dir}/Modules')
+    all_files.extend(modules_dir.glob('*.lua'))
+    
+    # 天赋树（仅最新版本）
+    tree_file = Path(f'{pob_data_dir}/TreeData/{latest_tree}/tree.lua')
+    if tree_file.exists():
+        all_files.append(tree_file)
+    
+    # Step 4: 按优先级排序
+    priority_files = prioritize_files(all_files)
+    
+    # Step 5: 提取数据
+    extracted_data = {}
+    for file_path in priority_files:
+        extract_data_from_file(file_path, extracted_data)
+    
+    # Step 6: 验证完整性
+    warnings = validate_extraction_completeness(extracted_data)
+    if warnings:
+        log_warnings(warnings)
+    
+    return extracted_data
+```
