@@ -3,7 +3,7 @@
 
 metadata:
   knowledge_base_version: "0.1.0"
-  last_initialized: "2026-03-06T17:13:13.783859"
+  last_initialized: "2026-03-06T18:38:27.446676"
 
 pob_version:
   game_version: "unknown"
@@ -12,6 +12,6 @@ pob_version:
   
   detection:
     method: "init_script"
-    detected_at: "2026-03-06T17:13:13.783859"
+    detected_at: "2026-03-06T18:38:27.446676"
 
 version_history: []

@@ -1440,10 +1440,10 @@ class POBDataScanner:
                 'skill_id': int(skill_id),
                 'name': name,
                 'type': 'ascendancy_node' if ascendancy else 'passive_node',
-                'ascendancy': ascendancy,
+                'ascendancy_name': ascendancy,  # 修复：使用正确的字段名
                 'is_notable': is_notable,
                 'is_keystone': is_keystone,
-                'stats': stats
+                'stats_node': stats  # 修复：使用正确的字段名
             }
             
             nodes.append(node)
