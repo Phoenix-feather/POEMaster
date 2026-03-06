@@ -1,0 +1,236 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-06T13:22:56.543Z
+provider: 
+---
+
+# POB Stat系统架构规则
+
+## 核心发现
+
+POB使用**三层Stat架构**，这是理解和利用POB数据的基础。
+
+## 三层架构
+
+### Layer 1: 公式代码层（CalcModules）
+
+**位置**：`POBData/Modules/*.lua`
+
+**特点**：
+- 使用简化的、语义化的stat名称
+- 例如：`"Speed"`, `"CooldownRecovery"`, `"triggerSource"`
+
+**代码示例**：
+```lua
+-- CalcTriggers.lua
+function calcTriggerEnergy(activeSkill)
+    local baseEnergy = activeSkill.skillData.triggerEnergy or 0
+    if activeSkill.triggerSource then
+        return activeSkill.triggerSource.energy
+    end
+    return baseEnergy
+end
+
+-- CalcOffence.lua
+local speed = skillModList:Sum("INC", cfg, "Speed")
+```
+
+**关键问题**：
+- 简化名称（如"Speed"）可能对应多个官方stat ID
+- 需要通过映射层才能精确定位
+
+---
+
+### Layer 2: 映射层（SkillStatMap.lua）
+
+**位置**：`POBData/Data/SkillStatMap.lua`
+
+**状态**：⚠️ **未提取**
+
+**作用**：
+- 提供简化名称 → 官方stat ID的映射
+- 定义stat如何转换为modifier
+- 包含stat的描述文本格式化规则
+
+**推测映射关系**：
+```
+"Speed" → ["CastSpeed", "AttackSpeed"]
+"CooldownRecovery" → ["CooldownRecovery"]  (直接映射)
+"trigger_energy" → ??? (可能不存在)
+```
+
+**重要性**：
+- 这是精确映射的关键
+- 缺失会导致公式匹配精确度下降
+- 建议优先提取
+
+---
+
+### Layer 3: 官方Stat层（ModCache.lua）
+
+**位置**：`POBData/Data/ModCache.lua`
+
+**状态**：✅ **已提取**（作为stat_mapping实体）
+
+**数据**：
+- 555个唯一的官方stat ID
+- 类型分布：
+  - BASE: 233个（基础数值）
+  - FLAG: 138个（布尔标记）
+  - INC: 137个（increased百分比）
+  - MORE: 8个（more百分比）
+  - MAX: 8个（最大值限制）
+  - OVERRIDE: 16个（覆盖值）
+  - LIST: 14个（列表）
+  - CHANCE: 1个
+
+**示例stat ID**：
+- `CooldownRecovery` (INC)
+- `EnergyShield` (BASE)
+- `Accuracy` (BASE)
+- `TriggerEnergy` - ❌ **不存在！**
+
+**关键发现**：
+- ✅ 所有官方stat ID都有唯一标识
+- ❌ `trigger_energy`、`triggerSource`等不在官方列表中
+- ✅ 可以直接用于精确匹配
+
+---
+
+## 规范化数据端现状
+
+### 数据库字段填充情况
+
+| 字段 | 填充率 | 说明 | 可直接用？ |
+|------|--------|------|-----------|
+| data_json | 100% | 完整数据源 | ✅ 是 |
+| stat_sets | 100% | 所有技能都有 | ✅ 是 |
+| constant_stats | 89.1% | 高填充率 | ✅ 是 |
+| stats | 54.4% | 中等填充率 | ✅ 是 |
+| skill_types | 38.2% | 低填充率 | ✅ 是 |
+| quality_stats | 32.0% | 低填充率 | ✅ 是 |
+
+### 关键结论
+
+1. **data_json是最完整的数据源**
+   - 100%填充
+   - 包含所有可用字段
+   - 直接从data_json提取即可
+
+2. **stat_sets是最可靠的字段**
+   - 100%填充（所有900个技能都有）
+   - 包含完整的stat定义
+   - 可作为主要数据源
+
+3. **独立字段填充率低是正常的**
+   - ❌ 不是识别问题
+   - ✅ 是POB原始文件本身的字段存在率
+   - 例如：只有38.2%的技能在POB中就有skillTypes字段
+
+---
+
+## 实施建议
+
+### 当前可用方案
+
+**混合特征匹配**：
+```python
+# 公式特征
+formula_features = {
+    'exact_stats': ["CooldownRecovery"],  # 能映射到官方stat ID
+    'fuzzy_stats': ["Speed", "triggerSource"],  # 简化名称
+    'inferred_tags': ["triggered"],  # 从代码推断
+}
+
+# 实体特征（从data_json提取）
+entity_features = {
+    'exact_stats': ["skill_combat_frenzy_x_ms_cooldown"],  # 官方stat ID
+    'tags': ["Spell", "Duration"],  # 规范化标签
+}
+
+# 匹配分数
+匹配分数 = 精确匹配 × 0.5 + 模糊匹配 × 0.3 + 标签匹配 × 0.2
+```
+
+### 可选优化方案
+
+**提取SkillStatMap.lua**：
+- 建立完整的简化名称 → stat ID映射
+- 提升精确度
+- 覆盖更多stat名称
+
+---
+
+## 验证方法
+
+### 检查官方stat ID
+
+```bash
+cd g:/POEMaster/.codebuddy/skills/poe-data-miner/scripts
+python extract_stat_ids.py
+```
+
+输出示例：
+```
+找到 555 个唯一的stat ID
+
+按类型分布：
+  BASE: 233
+  FLAG: 138
+  INC: 137
+  ...
+```
+
+### 检查实体数据完整性
+
+```bash
+python check_pob_field_presence.py
+```
+
+输出示例：
+```
+skill_types:
+  有数据: 344 (38.2%)
+  
+stats:
+  有数据: 490 (54.4%)
+  
+stat_sets:
+  有数据: 900 (100.0%)
+```
+
+---
+
+## 常见问题
+
+### Q1: 为什么找不到trigger_energy的stat ID？
+
+**A**: `trigger_energy`不在官方ModCache.lua中。它可能是：
+- POB内部使用的变量名
+- 来自SkillStatMap.lua的映射（未提取）
+- 需要用模糊特征匹配
+
+### Q2: 为什么技能实体的stats字段为空？
+
+**A**: 
+- 不是识别问题
+- POB原始文件中只有54.4%的技能有stats字段
+- 使用data_json字段（100%填充）作为数据源
+
+### Q3: 如何提升匹配精确度？
+
+**A**: 
+- 方案1：提取SkillStatMap.lua（推荐）
+- 方案2：优化特征提取算法
+- 方案3：调整匹配权重
+
+---
+
+## 相关文件
+
+- `scripts/extract_stat_ids.py` - 提取官方stat ID
+- `scripts/check_pob_field_presence.py` - 检查字段存在率
+- `docs/stat_system_analysis.md` - Stat系统详细分析
+- `docs/final_data_availability.md` - 数据可用性报告
