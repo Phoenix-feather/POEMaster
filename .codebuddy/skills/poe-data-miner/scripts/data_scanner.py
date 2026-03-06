@@ -729,6 +729,11 @@ class POBDataScanner:
         if 'Update\\' in path_str or '/Update/' in path_str:
             return True
         
+        # 跳过黑名单文件
+        # LaunchServer.lua - HTTP服务器，包含HTML响应代码
+        if 'LaunchServer.lua' in path_str:
+            return True
+        
         if not latest_version:
             return False
         
