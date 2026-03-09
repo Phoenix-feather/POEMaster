@@ -308,6 +308,108 @@
         "class_name": "ProcessResult"
       },
       "consumers": []
+    },
+    "universal_formulas": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_index.py",
+        "type": "sqlite_table",
+        "table_name": "universal_formulas"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "stat_mappings": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_map_index.py",
+        "type": "sqlite_table",
+        "table_name": "stat_mappings"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "gap_formulas": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_formula_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "gap_formulas"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "StatMapping": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_map_index.py",
+        "type": "dataclass",
+        "class_name": "StatMapping"
+      },
+      "consumers": []
+    },
+    "GapFormula": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_formula_extractor.py",
+        "type": "dataclass",
+        "class_name": "GapFormula"
+      },
+      "consumers": []
+    },
+    "FormulaResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_matcher.py",
+        "type": "dataclass",
+        "class_name": "FormulaResult"
+      },
+      "consumers": [
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "FormulaQueryResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_matcher.py",
+        "type": "dataclass",
+        "class_name": "FormulaQueryResult"
+      },
+      "consumers": []
     }
   },
   "notification_queue": {

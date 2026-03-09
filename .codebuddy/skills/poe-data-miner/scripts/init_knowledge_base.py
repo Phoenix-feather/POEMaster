@@ -20,8 +20,7 @@ from entity_index import EntityIndex
 from mechanism_extractor import MechanismExtractor
 from rules_extractor import RulesExtractor
 from attribute_graph import AttributeGraph, NodeType, EdgeType, GraphNode, GraphEdge
-from formula_extractor import FormulaExtractor
-from call_chain_analyzer import CallChainAnalyzer
+from formula_index import init_formula_index
 from pob_paths import get_pob_path, get_knowledge_base_path, validate_pob_path
 
 # 导入 schema 验证
@@ -83,55 +82,29 @@ def init_entity_index(pob_path: str, db_path: str) -> dict:
 
 
 def init_formula_library(pob_path: str, db_path: str, entities_db_path: str) -> dict:
-    """初始化公式库"""
+    """初始化公式库（v2: 3类公式索引）"""
     print("\n" + "=" * 60)
-    print("2. 初始化公式库")
+    print("2. 初始化公式索引")
     print("=" * 60)
     
-    # 删除旧数据库
-    if Path(db_path).exists():
-        os.remove(db_path)
-        print("[OK] 已删除旧公式库数据库")
-    
-    # Phase 1: 提取公式
-    print("\nPhase 1: 公式提取...")
-    extractor = FormulaExtractor(
+    # 调用新的统一初始化函数
+    stats = init_formula_index(
         pob_path=pob_path,
         db_path=db_path,
-        entities_db_path=entities_db_path
+        entities_db_path=entities_db_path,
+        clean_old=True
     )
     
-    formulas = extractor.extract_all_functions()
+    uf = stats.get('universal_formulas', 0)
+    sm = stats.get('stat_mappings', {}).get('total', 0)
+    gf = stats.get('gap_formulas', {}).get('total', 0)
     
-    # Phase 2: 调用链分析
-    print("\nPhase 2: 调用链分析...")
-    analyzer = CallChainAnalyzer(db_path)
-    analyzer.analyze()
+    print(f"[OK] 公式索引初始化完成")
+    print(f"     - 通用公式卡片: {uf}")
+    print(f"     - Stat映射: {sm}")
+    print(f"     - 缺口公式: {gf}")
     
-    # 统计
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM formulas")
-    formula_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM formulas WHERE exact_stats != '[]'")
-    exact_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM formulas WHERE fuzzy_stats != '[]'")
-    fuzzy_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM formulas WHERE inferred_tags != '[]'")
-    tags_count = cursor.fetchone()[0]
-    conn.close()
-    
-    print(f"[OK] 已创建 {formula_count} 个公式")
-    print(f"     - 有精确stat: {exact_count}")
-    print(f"     - 有模糊stat: {fuzzy_count}")
-    print(f"     - 有标签: {tags_count}")
-    
-    return {
-        'formulas': formula_count,
-        'exact_stats': exact_count,
-        'fuzzy_stats': fuzzy_count,
-        'tags': tags_count
-    }
+    return stats
 
 
 def init_rules_db(db_path: str, entities_db_path: str) -> dict:
@@ -610,7 +583,10 @@ def main():
     print("初始化完成")
     print("=" * 60)
     print(f"实体索引: {entity_stats['total']} 个实体")
-    print(f"公式库:   {formula_stats['formulas']} 个公式 (精确stat: {formula_stats['exact_stats']}, 模糊stat: {formula_stats['fuzzy_stats']}, 标签: {formula_stats['tags']})")
+    uf = formula_stats.get('universal_formulas', 0)
+    sm_total = formula_stats.get('stat_mappings', {}).get('total', 0)
+    gf_total = formula_stats.get('gap_formulas', {}).get('total', 0)
+    print(f"公式索引: 通用{uf} + 映射{sm_total} + 缺口{gf_total} = {formula_stats.get('total', 0)} 条")
     print(f"规则库:   {rules_stats['total']} 条规则")
     print(f"关联图:   {graph_stats['nodes']} 个节点, {graph_stats['edges']} 条边")
     print(f"机制库:   {mechanism_stats['mechanisms']} 个机制, {mechanism_stats.get('sources', 0)} 个来源")

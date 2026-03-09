@@ -2,7 +2,7 @@
 description: 
 alwaysApply: true
 enabled: true
-updatedAt: 2026-03-06T08:28:48.579Z
+up必须扫描的所有子目录和文件datedAt: 2026-03-06T08:28:48.579Z
 provider: 
 ---
 
@@ -12,7 +12,7 @@ provider:
 
 ### 1. POBData/Data/ 目录（所有文件）
 
-**必须扫描的所有子目录和文件**：
+****：
 
 ```
 POBData/Data/

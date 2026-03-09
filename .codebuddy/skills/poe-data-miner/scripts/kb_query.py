@@ -323,6 +323,115 @@ class KnowledgeBaseQuery:
         conn.close()
         return results
 
+    # ========== 公式查询 ==========
+
+    def query_formula(self, question: str, entity_id: str = None) -> Dict[str, Any]:
+        """
+        公式查询接口 — 统一入口
+        
+        Args:
+            question: 用户问题（如"Arc的DPS怎么算"、"护甲减伤公式"）
+            entity_id: 可选的实体ID
+        
+        Returns:
+            {
+                'query': str,
+                'entity_id': str or None,
+                'universal': [...],     # 通用公式卡片
+                'stat_mappings': [...], # 技能个性化映射
+                'gap_formulas': [...],  # 缺口公式(Meta)
+            }
+        """
+        formulas_db = self.kb_path / 'formulas.db'
+        if not formulas_db.exists():
+            return {'query': question, 'entity_id': entity_id,
+                    'universal': [], 'stat_mappings': [], 'gap_formulas': [],
+                    'error': 'formulas.db不存在，请先运行公式索引初始化'}
+        
+        from formula_matcher import FormulaMatcher
+        
+        matcher = FormulaMatcher(
+            formulas_db_path=str(formulas_db),
+            entities_db_path=str(self.entities_db)
+        )
+        
+        result = matcher.query(question, entity_id)
+        
+        # 转换为可序列化的字典
+        return {
+            'query': result.query,
+            'entity_id': result.entity_id,
+            'universal': [
+                {
+                    'id': r.id, 'name': r.name, 'formula': r.formula_text,
+                    'domain': r.domain, 'score': r.score, **r.details
+                }
+                for r in result.universal
+            ],
+            'stat_mappings': [
+                {
+                    'stat_name': r.name, 'modifier': r.formula_text,
+                    'domain': r.domain, **r.details
+                }
+                for r in result.stat_mappings
+            ],
+            'gap_formulas': [
+                {
+                    'id': r.id, 'name': r.name, 'formula': r.formula_text,
+                    'score': r.score, **r.details
+                }
+                for r in result.gap_formulas
+            ],
+        }
+
+    def search_formulas_by_stat(self, stat_name: str) -> List[Dict[str, Any]]:
+        """按stat名称搜索映射"""
+        formulas_db = self.kb_path / 'formulas.db'
+        if not formulas_db.exists():
+            return []
+        
+        from formula_matcher import FormulaMatcher
+        matcher = FormulaMatcher(str(formulas_db), str(self.entities_db))
+        results = matcher.query_by_stat(stat_name)
+        
+        return [
+            {
+                'stat_name': r.name, 'modifier': r.formula_text,
+                'domain': r.domain, 'score': r.score, **r.details
+            }
+            for r in results
+        ]
+
+    def get_formula_stats(self) -> Dict[str, Any]:
+        """获取公式索引统计"""
+        formulas_db = self.kb_path / 'formulas.db'
+        if not formulas_db.exists():
+            return {'error': 'formulas.db不存在'}
+        
+        conn = sqlite3.connect(formulas_db)
+        cursor = conn.cursor()
+        
+        result = {}
+        
+        # 检查各表
+        for table in ['universal_formulas', 'stat_mappings', 'gap_formulas']:
+            try:
+                cursor.execute(f'SELECT COUNT(*) FROM {table}')
+                result[table] = cursor.fetchone()[0]
+            except sqlite3.OperationalError:
+                result[table] = 'table_not_found'
+        
+        # 旧表检测
+        for old_table in ['formulas', 'formula_features', 'formula_stats', 'formula_calls']:
+            try:
+                cursor.execute(f'SELECT COUNT(*) FROM {old_table}')
+                result[f'legacy_{old_table}'] = cursor.fetchone()[0]
+            except sqlite3.OperationalError:
+                pass
+        
+        conn.close()
+        return result
+
     # ========== 统计信息 ==========
     
     def get_stats(self) -> Dict[str, Any]:
@@ -331,7 +440,8 @@ class KnowledgeBaseQuery:
             'entities': {},
             'rules': {},
             'graph': {},
-            'mechanisms': {}
+            'mechanisms': {},
+            'formulas': {}
         }
         
         # 实体统计
@@ -375,6 +485,11 @@ class KnowledgeBaseQuery:
             stats['mechanisms']['sources'] = cursor.fetchone()[0]
             conn.close()
         
+        # 公式索引统计
+        formulas_db = self.kb_path / 'formulas.db'
+        if formulas_db.exists():
+            stats['formulas'] = self.get_formula_stats()
+        
         return stats
 
 
@@ -415,6 +530,13 @@ def main():
     mech_parser.add_argument('id', nargs='?', help='机制ID')
     mech_parser.add_argument('--search', '-s', help='搜索关键词')
     mech_parser.add_argument('--all', '-a', action='store_true', help='列出所有机制')
+    
+    # 公式查询
+    formula_parser = subparsers.add_parser('formula', help='公式查询')
+    formula_parser.add_argument('--query', '-q', help='问题查询（如"护甲减伤公式"）')
+    formula_parser.add_argument('--entity', '-e', help='实体ID查询')
+    formula_parser.add_argument('--stat', '-s', help='stat名称查询')
+    formula_parser.add_argument('--stats', action='store_true', help='公式索引统计')
     
     args = parser.parse_args()
     
@@ -518,6 +640,24 @@ def main():
                 print(f"Mechanism not found: {args.id}")
         else:
             print("Please specify --all, --search, or a mechanism ID")
+    
+    elif args.command == 'formula':
+        if args.stats:
+            fstats = kb.get_formula_stats()
+            print(json.dumps(fstats, indent=2, ensure_ascii=False))
+        elif args.query:
+            result = kb.query_formula(args.query, args.entity)
+            print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        elif args.stat:
+            results = kb.search_formulas_by_stat(args.stat)
+            for r in results:
+                print(f"[{r.get('domain', '?')}] {r['stat_name']}")
+                print(f"  → {r.get('modifier', '')[:100]}")
+        elif args.entity:
+            result = kb.query_formula("", args.entity)
+            print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        else:
+            print("Please specify --query, --entity, --stat, or --stats")
     
     else:
         parser.print_help()
