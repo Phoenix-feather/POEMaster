@@ -6,7 +6,7 @@
 # 查询方式: 关键词匹配
 # ============================================================
 
-version: "1.0.0"
+version: "2.0.0"  # Code audit v2: 18 cards fixed (2 wrong formula, 11 significant omissions, 5 minor)
 source_pob_version: "0.4"
 
 formulas:
@@ -21,13 +21,18 @@ formulas:
     domain: offence
     category: dps
     keywords: [DPS, 每秒伤害, damage per second, 总DPS, total dps]
-    formula: "TotalDPS = AverageHit × (HitChance / 100) × Speed × dpsMultiplier"
+    formula: "TotalDPS = AverageDamage × (HitSpeed or Speed) × dpsMultiplier × quantityMultiplier"
     parameters:
-      AverageHit: "单次平均伤害（暴击加权）"
-      HitChance: "命中率（百分比）"
+      AverageDamage: "单次平均伤害（暴击加权）× HitChance/100"
+      HitSpeed: "触发/其他技能的特殊速率（优先于Speed）"
       Speed: "攻击/施法速度（次/秒）"
       dpsMultiplier: "DPS倍率（trap/mine/totem等额外系数）"
-    notes: "对所有Hit技能通用，DoT技能走独立公式"
+      quantityMultiplier: "数量倍率（额外投射物等，skillModList:Sum('BASE','Quantity')）"
+    notes: |
+      来源: CalcOffence.lua L4051-4063
+      AverageHit = nonCritAvg × (1-CritChance%) + critAvg × CritChance%
+      AverageDamage = AverageHit × HitChance/100
+      对所有Hit技能通用，DoT技能走独立公式
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L4050-4063"
 
@@ -52,13 +57,16 @@ formulas:
     domain: offence
     category: damage
     keywords: [伤害计算, damage calculation, INC, MORE, 加成, 增益]
-    formula: "finalDmg = baseDmg × (1 + INC/100) × MORE × moreMinMax"
+    formula: "finalDmg = round(summedMin × inc × more × moreMinMax + addMin)"
     parameters:
-      baseDmg: "基础伤害（来自武器或宝石等级）"
-      INC: "所有increased加成之和（线性叠加）"
-      MORE: "所有more乘数之积（∏(1 + more_i/100)）"
+      summedMin: "各来源基础伤害之和"
+      inc: "1 + INC/100（所有increased加成线性叠加）"
+      more: "所有more乘数之积 = skillModList:More(...)"
       moreMinMax: "最小/最大伤害独立的more系数"
-    notes: "每种伤害类型(Physical/Lightning/Cold/Fire/Chaos)独立计算"
+      addMin: "在INC×MORE之后附加的伤害（非base的一部分）"
+    notes: |
+      每种伤害类型(Physical/Lightning/Cold/Fire/Chaos)独立计算
+      关键: addMin在乘法之后加入，不在base内
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L110-158 (calcDamage函数)"
 
@@ -68,13 +76,17 @@ formulas:
     domain: offence
     category: damage
     keywords: [基础伤害, base damage, 附加伤害, added damage, 武器伤害]
-    formula: "baseMin = (weaponDmg + addedMin × addedMult) × baseMultiplier"
+    formula: "baseMin = (source[typeMin] + source[typeBonusMin] + addedMin × addedMult) × baseMultiplier"
     parameters:
-      weaponDmg: "武器基础伤害（攻击）或宝石基础伤害（法术）"
-      addedMin: "附加伤害最小值（来自装备/buff）"
-      addedMult: "附加伤害效率（某些技能<100%）"
-      baseMultiplier: "基础伤害倍率（如 Earthquake 的aftershock）"
-    notes: "法术不使用weaponDmg，攻击有MainHand/OffHand双pass"
+      source[typeMin]: "基础伤害源（武器或技能）"
+      source[typeBonusMin]: "额外奖励伤害（BonusMin/BonusMax字段）"
+      addedMin: "附加伤害（来自装备/buff/技能）"
+      addedMult: "附加伤害效率 = calcLib.mod('Added'+type+'Damage','AddedDamage')"
+      baseMultiplier: "基础伤害倍率（如Earthquake aftershock）"
+    notes: |
+      来源: CalcOffence.lua L3568-3612
+      addedMult包含类型特定和通用AddedDamage修正
+      法术不使用weaponDmg，攻击有MainHand/OffHand双pass
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L3568-3612"
 
@@ -102,16 +114,18 @@ formulas:
     domain: offence
     category: accuracy
     keywords: [命中率, hit chance, 命中, accuracy, 准确度]
-    formula: "HitChance = Accuracy / (Accuracy + (Evasion/5)^0.9) × 100"
+    formula: "HitChance = (1 - 0.95 × targetEvasion / (targetEvasion + 4 × Accuracy)) × 100"
     parameters:
-      Accuracy: "角色准确度"
-      Evasion: "目标闪避值"
+      Accuracy: "角色准确度 = floor(baseAccuracy × (1 + INC/100) × MORE)"
+      targetEvasion: "目标闪避值"
     notes: |
       法术自动命中（无需准确度）
-      近战有距离惩罚
+      公式来源: CalcDefence.lua L41 calcs.monsterHitChance
+      攻击有 accuracyVsEnemy 单独计算（含距离惩罚）
       上限100%，下限5%
-    source_file: "Modules/CalcOffence.lua"
-    source_lines: "L2399-2450"
+      Accuracy 计算含 enemy SelfAccuracy 修正
+    source_file: "Modules/CalcOffence.lua + CalcDefence.lua"
+    source_lines: "L2409-2427 (accuracy calc), CalcDefence L39-44 (hit formula)"
 
   - id: crit_chance
     name: 暴击率
@@ -119,14 +133,21 @@ formulas:
     domain: offence
     category: crit
     keywords: [暴击率, crit chance, 暴击, critical strike]
-    formula: "effectiveCrit = baseCrit × (1 + INC/100) + flatCrit"
+    formula: "effectiveCrit = min((baseCrit + flatBase) × (1 + INC/100) × MORE, CritChanceCap)"
     parameters:
-      baseCrit: "基础暴击率（来自武器/技能）"
+      baseCrit: "基础暴击率（武器CritChance或技能baseCrit）"
+      flatBase: "固定暴击加成（Sum BASE CritChance）"
       INC: "所有暴击率increased加成之和"
-      flatCrit: "固定暴击率加成（罕见）"
-    notes: "上限100%，Lucky暴击=取两次中较高的"
+      MORE: "暴击率more乘数之积"
+      CritChanceCap: "暴击率上限（Override或Sum BASE CritChanceCap）"
+    notes: |
+      来源: CalcOffence.lua L3397-3467
+      攻击暴击需乘以AccuracyHitChance（法术不需要）
+      Lucky: CritChanceLucky = 1-(1-crit%)^2
+      BifurcateCrit: 暴击分岔 = 同Lucky公式
+      CritMultiplier: (extraDamage×extraDamageInc×extraDamageMore)
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L3400-3500 (approx)"
+    source_lines: "L3390-3510"
 
   - id: attack_speed
     name: 攻击/施法速度
@@ -134,14 +155,22 @@ formulas:
     domain: offence
     category: speed
     keywords: [攻击速度, 施法速度, attack speed, cast speed, speed, 速度]
-    formula: "Speed = baseSpeed × (1 + INC/100) × MORE"
+    formula: "Speed = 1 / (baseTime / round((1 + INC/100) × MORE, 2) + TotalAttackTime + TotalCastTime)"
     parameters:
-      baseSpeed: "基础速度（武器攻速或技能施法时间的倒数）"
+      baseTime: "基础时间（攻击:1/AttackRate, 法术:castTime）"
       INC: "所有speed increased加成之和"
       MORE: "所有speed more乘数之积"
-    notes: "施法时间 = 1/Speed。部分技能有speed_+%_final修正"
+      TotalAttackTime: "额外攻击时间（Sum BASE TotalAttackTime）"
+      TotalCastTime: "额外施法时间（Sum BASE TotalCastTime）"
+    notes: |
+      来源: CalcOffence.lua L2549-2698
+      selfCast时额外乘以ActionSpeedMod
+      多种特殊路径: triggered/fixedCastTime/triggerRate/timeOverride/channel
+      Totem: 额外乘TotemActionSpeed
+      上限: min(Speed, ServerTickRate × Repeats)（非Channel技能）
+      Cooldown限制: min(Speed, 1/Cooldown × Repeats)
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L2700-2800 (approx)"
+    source_lines: "L2549-2718"
 
   # ============================================================
   # 进攻 - DoT (持续伤害)
@@ -173,14 +202,25 @@ formulas:
     domain: offence
     category: dps
     keywords: [综合DPS, combined DPS, 总DPS, total DPS, 汇总]
-    formula: "CombinedDPS = (TotalDPS + TotalDotDPS + ImpaleDPS + MirageDPS) × CullMultiplier × ReservationDpsMultiplier"
+    formula: "CombinedDPS = Σ(各DPS来源) × CullMultiplier × ReservationDpsMultiplier"
     parameters:
-      TotalDPS: "Hit DPS"
-      TotalDotDPS: "DoT DPS"
-      ImpaleDPS: "穿刺DPS"
-      MirageDPS: "分身/幻影DPS"
+      DPS来源: |
+        以下来源按条件累加:
+        - TotalDPS (Hit DPS, 或 AverageDamage 如showAverage)
+        - BleedDPS / PoisonDPS / IgniteDPS (异常状态DoT)
+        - DecayDPS (衰减)
+        - TotalDot (非异常状态DoT)
+        - ImpaleDPS (穿刺)
+        - MirageDPS (分身/幻影)
+        - BurningGroundDPS / CausticGroundDPS (地面效果)
+        - CorruptingBloodDPS (腐化之血)
       CullMultiplier: "击杀加速（Culling Strike等）"
       ReservationDpsMultiplier: "保留类技能DPS修正"
+    notes: |
+      来源: CalcOffence.lua L5729-5871
+      各DPS来源是条件性叠加（检查对应flag/output是否存在）
+      所有ailment DPS受 DotDpsCap 上限限制
+      showAverage模式下使用AverageDamage替代TotalDPS
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L5729-5872"
 
@@ -205,13 +245,19 @@ formulas:
     domain: offence
     category: duration
     keywords: [持续时间, duration, 技能持续]
-    formula: "duration = baseDuration × (1 + DurationInc/100) × DurationMore"
+    formula: "duration = (baseDuration + addedDuration) × durationMod [× debuffDurationMult]"
     parameters:
-      baseDuration: "基础持续时间（秒）"
-      DurationInc: "持续时间increased加成之和"
-      DurationMore: "持续时间more乘数之积"
+      baseDuration: "基础持续时间（秒，skillData.duration）"
+      addedDuration: "额外持续时间（Sum BASE Duration + PrimaryDuration）"
+      durationMod: "持续时间修正 = calcLib.mod('Duration','PrimaryDuration','DamagingAilmentDuration'[,'MineDuration'])"
+      debuffDurationMult: "debuff持续倍率（仅skillData.debuff为true时）= 1 / max(BuffExpirationSlowCap, calcLib.mod(enemyDB,'BuffExpireFaster'))"
+    notes: |
+      来源: CalcOffence.lua L349-362 calcSkillDuration
+      durationMod最小值为0（max(mod, 0)）
+      MineDuration仅在 skillData.mineDurationAppliesToSkill 时计入
+      debuffDurationMult仅对标记为debuff的技能生效
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L349-363 (calcSkillDuration)"
+    source_lines: "L349-362 (calcSkillDuration)"
 
   - id: area_of_effect
     name: 范围效果
@@ -219,14 +265,17 @@ formulas:
     domain: offence
     category: aoe
     keywords: [范围, AoE, area of effect, 效果范围, radius]
-    formula: "radius = baseRadius × sqrt(1 + AreaInc/100) × sqrt(AreaMore)"
+    formula: "radius = floor(baseRadius × floor(100 × sqrt(areaMod)) / 100)"
     parameters:
       baseRadius: "基础范围半径"
-      AreaInc: "范围效果increased加成之和"
-      AreaMore: "范围效果more乘数之积"
-    notes: "范围效果对半径取平方根（因为面积∝r²）"
+      areaMod: "范围效果修正 = (1 + AreaInc/100) × AreaMore (INC和MORE先合并为一个乘数)"
+    notes: |
+      来源: CalcOffence.lua L161-162 calcRadius函数
+      关键: 对INC×MORE的合积取sqrt，不是分别对INC和MORE取sqrt
+      有两层floor操作：内层floor(100×sqrt)，外层floor(result)
+      面积∝r²，所以modifier对半径取平方根
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L161-281 (calcRadius)"
+    source_lines: "L161-162 (calcRadius)"
 
   # ============================================================
   # 防御 - 护甲/闪避/ES
@@ -271,13 +320,17 @@ formulas:
     domain: defence
     category: evasion
     keywords: [闪避, evasion, 闪避率, evade chance, 回避]
-    formula: "evadeChance = 1 - monsterAccuracy / (monsterAccuracy + (evasion/5)^0.9)"
+    formula: "evadeChance = 0.95 × evasion / (evasion + 4 × monsterAccuracy)"
     parameters:
       evasion: "角色总闪避值"
       monsterAccuracy: "怪物准确度"
-    notes: "闪避使用entropy系统（不是纯随机），确保在长期中趋近概率"
+    notes: |
+      来源: CalcDefence.lua L41: rawChance = (1 - (0.95 * evasion) / (evasion + 4 * accuracy)) * 100
+      evadeChance = 1 - rawChance/100 = 0.95 × evasion / (evasion + 4 × accuracy)
+      闪避使用entropy系统（不是纯随机），确保在长期中趋近概率
+      有 Lucky/Unlucky 机制影响最终闪避判定
     source_file: "Modules/CalcDefence.lua"
-    source_lines: "L39-45 (calcs.monsterHitChance)"
+    source_lines: "L39-44 (calcs.monsterHitChance)"
 
   - id: energy_shield
     name: 能量护盾计算
@@ -327,18 +380,23 @@ formulas:
     domain: defence
     category: block
     keywords: [格挡, block, 格挡率, block chance, 攻击格挡, 法术格挡]
-    formula: "blockChance = min(baseBlock × (1 + BlockInc/100) + flatBlock, blockCap)"
+    formula: "blockChance = min((baseBlock + flatBlock) × calcLib.mod('BlockChance'), BlockChanceMax)"
     parameters:
-      baseBlock: "基础格挡率（来自盾牌/双持/天赋）"
-      BlockInc: "格挡率increased加成之和"
-      flatBlock: "固定格挡率加成"
-      blockCap: "格挡率上限（通常75%）"
+      baseBlock: "基础格挡率（盾牌BlockChance + Weapon3等）"
+      flatBlock: "固定格挡加成（Sum BASE BlockChance）"
+      calcLib.mod: "格挡修正 = (1 + BlockInc/100) × BlockMore"
+      BlockChanceMax: "格挡上限（Override 或 Sum BASE）"
     notes: |
-      攻击格挡和法术格挡分开计算
-      有些来源只影响特定类型（如投射物格挡）
-      Lucky格挡 = 取两次中较高结果
+      来源: CalcDefence.lua L970-1050
+      攻击格挡和法术格挡完全分开计算
+      法术格挡: SpellBlockChanceIsBlockChance标记或独立计算
+      ProjectileBlockChance: 投射物格挡独立加成
+      Lucky/Unlucky: 格挡判定受lucky影响
+      BlockEffect: 格挡不一定完全免疫(100-BlockEffect%)
+      Override: ReplaceShieldBlock可覆盖基础值
+      CannotBlockAttacks/CannotBlockSpells标记
     source_file: "Modules/CalcDefence.lua"
-    source_lines: "L978-1050"
+    source_lines: "L954-1050"
 
   - id: spell_suppression
     name: 法术压制
@@ -346,13 +404,19 @@ formulas:
     domain: defence
     category: suppression
     keywords: [法术压制, spell suppression, 压制, suppression]
-    formula: "suppressionChance = baseSuppression + flatSuppression"
+    formula: "suppressionChance = min(Override OR baseSum × calcLib.mod('SpellSuppression'), SuppressionChanceCap)"
     parameters:
-      baseSuppression: "基础法术压制率（来自装备/天赋）"
-      flatSuppression: "固定压制率加成"
-    notes: "压制成功时减少50%法术伤害（可通过modifier修改减伤比例）"
+      baseSum: "Sum BASE SpellSuppressionChance（所有来源加和）"
+      calcLib.mod: "SpellSuppression修正（INC×MORE）"
+      SuppressionChanceCap: "压制率上限（data.misc.SuppressionChanceCap）"
+    notes: |
+      来源: CalcDefence.lua L1476-1507
+      Override: SpellSuppressionChance可被覆盖
+      Lucky/Unlucky机制影响判定
+      SpellSuppressionEffect: 修改压制减伤比例（默认50%）
+      ConvertSpellSuppressionToSpellDodge: 可转换为法术闪避
     source_file: "Modules/CalcDefence.lua"
-    source_lines: "L1450-1538"
+    source_lines: "L1476-1507"
 
   # ============================================================
   # 防御 - 生命/魔力池
@@ -364,14 +428,20 @@ formulas:
     domain: defence
     category: pool
     keywords: [生命, life, 生命值, 最大生命, maximum life, HP]
-    formula: "maxLife = (baseLife + flatLife) × (1 + LifeInc/100) × LifeMore"
+    formula: "maxLife = (baseLife × (1 - conv/100) + extraLife) × (1 + LifeInc/100) × LifeMore"
     parameters:
-      baseLife: "基础生命（来自等级×12 + 力量/2等）"
-      flatLife: "固定生命加成（装备/天赋）"
+      baseLife: "基础生命（Sum BASE Life，含等级/力量等）"
+      conv: "转换百分比（LifeConvertToEnergyShield + LifeConvertToArmour + LifeConvertToEvasion，上限100%）"
+      extraLife: "从其他资源转换来的生命（Sum BASE ExtraLife）"
       LifeInc: "生命increased加成之和"
       LifeMore: "生命more乘数之积"
+    notes: |
+      来源: CalcDefence.lua L72-117 calcs.doActorLifeManaSpirit
+      Override: 可直接覆盖最终值
+      最小值为1
+      ChaosInoculation: Life强制为1
     source_file: "Modules/CalcDefence.lua"
-    source_lines: "L1540-1547"
+    source_lines: "L72-119"
 
   - id: mana_pool
     name: 魔力值计算
@@ -379,14 +449,19 @@ formulas:
     domain: defence
     category: pool
     keywords: [魔力, mana, 魔力值, 最大魔力, maximum mana, MP]
-    formula: "maxMana = (baseMana + flatMana) × (1 + ManaInc/100) × ManaMore"
+    formula: "maxMana = (baseMana × (1 - conv/100) + extraMana) × (1 + ManaInc/100) × ManaMore"
     parameters:
-      baseMana: "基础魔力（来自等级×...）"
-      flatMana: "固定魔力加成"
+      baseMana: "基础魔力（Sum BASE Mana）"
+      conv: "转换百分比（ManaConvertToEnergyShield等，上限100%）"
+      extraMana: "从其他资源转换来的魔力"
       ManaInc: "魔力increased加成之和"
       ManaMore: "魔力more乘数之积"
+    notes: |
+      来源: CalcDefence.lua L72-117 calcs.doActorLifeManaSpirit
+      与Life/Spirit共用相同的通用公式
+      Override: 可直接覆盖最终值
     source_file: "Modules/CalcDefence.lua"
-    source_lines: "L1540-1547"
+    source_lines: "L72-117"
 
   # ============================================================
   # 恢复 - 偷取
@@ -466,10 +541,10 @@ formulas:
     domain: recovery
     category: recharge
     keywords: [ES回充, energy shield recharge, 回充, recharge, 能量护盾回充]
-    formula: "rechargeRate = maxES × rechargeRatePercent / 100 × (1 + RechargeInc/100) × RechargeMore"
+    formula: "rechargeRate = maxES × EnergyShieldRechargeBase × (1 + RechargeInc/100) × RechargeMore"
     parameters:
       maxES: "最大能量护盾"
-      rechargeRatePercent: "回充速率百分比（默认33.3%/秒，即3秒回满）"
+      EnergyShieldRechargeBase: "回充基础速率（来自data.misc，由character constants中energy_shield_recharge_rate_per_minute_%/60/100计算得到，非固定33.3%）"
       RechargeInc: "回充速率increased加成之和"
       RechargeMore: "回充速率more乘数之积"
     notes: |
@@ -489,16 +564,20 @@ formulas:
     domain: defence
     category: damage_taken
     keywords: [受击伤害, damage taken, 减伤, mitigation, 伤害承受]
-    formula: "damageTaken = rawDamage × (1 - resistance/100) × (1 + damageTakenInc/100) × damageTakenMore"
+    formula: "damageTaken = rawDamage × (1 - armourDR%) × (1 - flatDR%) × (1 - resistance%) × AfterReductionMult × takenMod"
     parameters:
-      rawDamage: "原始伤害"
-      resistance: "对应类型抗性"
-      damageTakenInc: "受击伤害increased修正（正值=多受伤）"
-      damageTakenMore: "受击伤害more修正"
+      rawDamage: "原始伤害（经过damage shift/conversion后）"
+      armourDR%: "护甲物理减伤（仅物理）= armour/(armour+rawDmg×10) - overwhelm%"
+      flatDR%: "固定减伤百分比（如endurance charges）"
+      resistance%: "对应类型抗性"
+      AfterReductionMult: "减伤后乘数（AfterReductionTakenHitMulti等）"
+      takenMod: "受击修正 = (1+takenInc%) × takenMore"
     notes: |
-      物理伤害额外有护甲减伤
-      格挡成功完全免除伤害（或减少一部分，取决于版本）
-      伤害类型转换在抗性计算之前
+      来源: CalcDefence.lua L417-454 calcs.takenHitFromDamage
+      完整流程: 伤害类型shift → 护甲/减伤 → 抗性 → 后置乘数
+      damageShiftTable: 伤害类型转换（Physical→Lightning等）
+      overwhelm: 敌人的overwhelm减少护甲减伤效果
+      VaalArcticArmourMitigation: 特殊减伤机制
     source_file: "Modules/CalcDefence.lua"
     source_lines: "L417-454 (calcs.takenHitFromDamage)"
 
@@ -528,18 +607,21 @@ formulas:
     domain: offence
     category: attack
     keywords: [双持, dual wield, 主手, 副手, main hand, off hand, 交替攻击]
-    formula: "totalDPS = mainHandDPS × mainHandWeight + offHandDPS × offHandWeight"
+    formula: "totalDPS(mode) = combineStat(MainHand, OffHand, mode)"
     parameters:
-      mainHandDPS: "主手DPS（独立计算）"
-      offHandDPS: "副手DPS（独立计算）"
-      mainHandWeight: "主手权重（通常0.5，受攻速比影响）"
-      offHandWeight: "副手权重（通常0.5）"
+      mode: |
+        4种合并模式:
+        OR: 取主手或副手（非双持时）
+        ADD: 主手+副手（如DPS）
+        AVERAGE: (主手+副手)/2（如暴击率）
+        CRIT: doubleHitsWhenDualWielding时=MH+OH-MH×OH/100，否则=AVERAGE
     notes: |
-      攻击类技能: MainHand pass + OffHand pass
-      法术类技能: 只有一个 Skill pass（不区分武器）
-      每个pass独立走完整的伤害计算
+      来源: CalcOffence.lua L2224-2320, L2306-2319 combineStat
+      攻击技能: MainHand pass + OffHand pass（各自独立计算）
+      法术技能: 只有一个Skill pass
+      每个pass独立走完整伤害计算管道
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L2224-2303"
+    source_lines: "L2224-2320"
 
   - id: crossbow_reload
     name: 弩炮装填时间
@@ -547,11 +629,13 @@ formulas:
     domain: offence
     category: crossbow
     keywords: [弩炮, crossbow, 装填, reload, 装填时间]
-    formula: "reloadTime = baseReloadTime / (1 + ReloadSpeedInc/100) / ReloadSpeedMore"
+    formula: "reloadTime = baseReloadTime / calcLib.mod('ReloadSpeed', 'Speed')"
     parameters:
       baseReloadTime: "基础装填时间"
-      ReloadSpeedInc: "装填速度increased加成之和"
-      ReloadSpeedMore: "装填速度more乘数之积"
+      calcLib.mod: "装填速度修正（含ReloadSpeed和通用Speed）= (1+INC/100)×MORE"
+    notes: |
+      来源: CalcOffence.lua L283-320
+      通用Speed修正也影响装填速度（攻击速度加成同时加速装填）
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L283-320 (calcCrossbowReloadTime)"
 
@@ -561,10 +645,16 @@ formulas:
     domain: offence
     category: warcry
     keywords: [战吼, warcry, 战吼施放时间, warcry cast time]
-    formula: "castTime = baseCastTime / (1 + WarcryCastSpeedInc/100)"
+    formula: "castTime = 1 / min(baseSpeed × calcLib.mod('WarcrySpeed') × actionSpeedMod, ServerTickRate)"
     parameters:
-      baseCastTime: "基础施放时间"
-      WarcryCastSpeedInc: "战吼速度increased加成之和"
+      baseSpeed: "基础施放速率 = 1 / WarcryCastTime"
+      calcLib.mod: "WarcrySpeed修正 = (1 + WarcrySpeedInc/100) × WarcrySpeedMore"
+      actionSpeedMod: "行动速度修正（calcs.actionSpeedMod(actor)）"
+      ServerTickRate: "服务器tick率上限cap（约30次/秒）"
+    notes: |
+      来源: CalcOffence.lua L338-346 calcWarcryCastTime
+      速率上限 = min(computedRate, ServerTickRate)
+      InstantWarcry标记或SupportedByAutoexertion → castTime=0（即时施放）
     source_file: "Modules/CalcOffence.lua"
     source_lines: "L338-347 (calcWarcryCastTime)"
 
@@ -578,16 +668,21 @@ formulas:
     domain: offence
     category: ailment
     keywords: [点燃, ignite, 点燃伤害, ignite damage, 火焰DoT]
-    formula: "igniteBase = hitDamage × 0.9 ; igniteDPS = igniteBase / 4 × dotMultipliers"
+    formula: "igniteDPS = ailmentDamage × IgnitePercentBase × MagnitudeEffect × effectMod × rateMod × stacks × effMult"
     parameters:
-      hitDamage: "造成的火焰打击伤害"
-      dotMultipliers: "DoT系列增伤（INC × MORE × dotMulti × effMult）"
+      ailmentDamage: "异常状态伤害（暴击加权平均hit伤害）"
+      IgnitePercentBase: "IgniteHitDamagePercentPerMinute/60/100 = 1200/60/100 = 0.20/s"
+      MagnitudeEffect: "异常效果倍率（calcLib.mod AilmentMagnitude）"
+      effectMod: "异常效果修正（calcLib.mod AilmentEffect）"
+      rateMod: "速率修正 = Faster/Slower"
+      effMult: "有效倍率（抗性、受击增伤等）"
     notes: |
-      0.9 = 90% of hit damage as ignite base
-      4 = 4秒基础持续时间
-      持续时间可通过modifier调整
+      来源: CalcOffence.lua L4800-4860, Data.lua L206
+      基础持续时间: BaseIgniteDuration = 4秒
+      受DotDpsCap上限限制
+      BurningGround: 可将ignite DPS的一定比例转为地面效果
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L4500-4600 (approx)"
+    source_lines: "L4800-4860"
 
   - id: poison_damage
     name: 中毒伤害
@@ -595,17 +690,19 @@ formulas:
     domain: offence
     category: ailment
     keywords: [中毒, poison, 中毒伤害, poison damage, 混沌DoT]
-    formula: "poisonBase = (physHit + chaosHit) × 0.3 ; poisonDPS = poisonBase / 2 × dotMultipliers"
+    formula: "poisonDPS = ailmentDamage × PoisonPercentBase × MagnitudeEffect × effectMod × rateMod × stacks × effMult"
     parameters:
-      physHit: "物理打击伤害"
-      chaosHit: "混沌打击伤害"
-      dotMultipliers: "DoT系列增伤"
+      ailmentDamage: "异常状态伤害（Physical+Chaos暴击加权平均）"
+      PoisonPercentBase: "PoisonHitDamagePercentPerMinute/60/100 = 1200/60/100 = 0.20/s"
+      MagnitudeEffect: "异常效果倍率"
+      stacks: "活跃中毒层数（可叠加）"
     notes: |
-      0.3 = 30% of (physical + chaos) hit damage
-      2 = 2秒基础持续时间
+      来源: CalcOffence.lua L4800-4860, Data.lua L204
+      基础持续时间: BasePoisonDuration = 2秒
       中毒可叠加（多个实例同时存在）
+      受DotDpsCap上限限制
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L4600-4700 (approx)"
+    source_lines: "L4800-4860"
 
   - id: bleed_damage
     name: 流血伤害
@@ -613,16 +710,18 @@ formulas:
     domain: offence
     category: ailment
     keywords: [流血, bleed, 流血伤害, bleed damage, 物理DoT]
-    formula: "bleedBase = physHit × 0.7 ; bleedDPS = bleedBase / 5 × dotMultipliers"
+    formula: "bleedDPS = ailmentDamage × BleedPercentBase × MagnitudeEffect × effectMod × rateMod × stacks × effMult"
     parameters:
-      physHit: "物理打击伤害"
-      dotMultipliers: "DoT系列增伤"
+      ailmentDamage: "异常状态伤害（Physical暴击加权平均）"
+      BleedPercentBase: "BleedingHitDamagePercentPerMinute/60/100 = 900/60/100 = 0.15/s"
+      MagnitudeEffect: "异常效果倍率"
     notes: |
-      0.7 = 70% of physical hit damage
-      5 = 5秒基础持续时间
-      移动中的目标受额外流血伤害
+      来源: CalcOffence.lua L4800-4860, Data.lua L202
+      基础持续时间: BaseBleedingDuration = 5秒
+      BloodstainedMultiplierWhenMovingOrBleedingAggravated = 2 (移动时双倍)
+      受DotDpsCap上限限制
     source_file: "Modules/CalcOffence.lua"
-    source_lines: "L4700-4800 (approx)"
+    source_lines: "L4800-4860"
 
   # ============================================================
   # INC/MORE 通用规则
