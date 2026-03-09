@@ -20,6 +20,8 @@ from entity_index import EntityIndex
 from mechanism_extractor import MechanismExtractor
 from rules_extractor import RulesExtractor
 from attribute_graph import AttributeGraph, NodeType, EdgeType, GraphNode, GraphEdge
+from formula_extractor import FormulaExtractor
+from call_chain_analyzer import CallChainAnalyzer
 
 # 导入 schema 验证
 try:
@@ -79,10 +81,85 @@ def init_entity_index(pob_path: str, db_path: str) -> dict:
     return {'total': total, 'by_type': type_counts}
 
 
+def init_formula_library(pob_path: str, db_path: str, entities_db_path: str) -> dict:
+    """初始化公式库"""
+    print("\n" + "=" * 60)
+    print("2. 初始化公式库")
+    print("=" * 60)
+    
+    # 提取官方stat ID
+    print("提取官方stat ID...")
+    modcache_path = Path(pob_path) / 'Data' / 'ModCache.lua'
+    official_stat_ids = set()
+    
+    if modcache_path.exists():
+        # 从实体库中获取已提取的stat_mapping
+        conn = sqlite3.connect(entities_db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM entities WHERE type = 'stat_mapping'")
+        official_stat_ids = {row[0] for row in cursor.fetchall()}
+        conn.close()
+        print(f"  找到 {len(official_stat_ids)} 个官方stat ID")
+    else:
+        print("  [WARN] ModCache.lua 不存在，跳过官方stat ID提取")
+    
+    # Phase 1: 提取公式
+    print("\nPhase 1: 公式提取...")
+    extractor = FormulaExtractor(db_path, official_stat_ids)
+    
+    # 扫描所有Lua文件
+    modules_path = Path(pob_path) / 'Modules'
+    if not modules_path.exists():
+        print("[ERROR] Modules目录不存在")
+        return {'formulas': 0, 'calls': 0}
+    
+    lua_files = list(modules_path.glob('*.lua'))
+    print(f"  找到 {len(lua_files)} 个Lua文件")
+    
+    total_formulas = 0
+    for lua_file in lua_files:
+        count = extractor.extract_from_file(str(lua_file), str(lua_file.relative_to(pob_path)))
+        total_formulas += count
+    
+    print(f"  提取完成，共 {total_formulas} 个函数")
+    
+    # Phase 2: 调用链分析
+    print("\nPhase 2: 调用链分析...")
+    analyzer = CallChainAnalyzer(db_path)
+    
+    # 构建调用图
+    print("  构建调用图...")
+    analyzer.build_call_graph()
+    
+    # 计算调用深度
+    print("  计算调用深度...")
+    analyzer.compute_call_depth()
+    
+    # 计算综合特征
+    print("  计算综合特征...")
+    analyzer.compute_total_stats()
+    
+    # 统计
+    stats = extractor.get_stats()
+    extractor.close()
+    
+    print(f"[OK] 已创建 {stats['formula_count']} 个公式")
+    print(f"     - 精确stat: {stats['exact_stats_count']}")
+    print(f"     - 模糊stat: {stats['fuzzy_stats_count']}")
+    print(f"     - 标签: {stats['tags_count']}")
+    
+    return {
+        'formulas': stats['formula_count'],
+        'exact_stats': stats['exact_stats_count'],
+        'fuzzy_stats': stats['fuzzy_stats_count'],
+        'tags': stats['tags_count']
+    }
+
+
 def init_rules_db(db_path: str, entities_db_path: str) -> dict:
     """初始化规则库 - 使用 RulesExtractor 封装类"""
     print("\n" + "=" * 60)
-    print("2. 初始化规则库")
+    print("3. 初始化规则库")
     print("=" * 60)
     
     # 使用 RulesExtractor 封装类
@@ -240,7 +317,7 @@ def init_rules_db(db_path: str, entities_db_path: str) -> dict:
 def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, predefined_edges_path: str = None) -> dict:
     """初始化关联图 - 使用 AttributeGraph 封装类"""
     print("\n" + "=" * 60)
-    print("3. 初始化关联图")
+    print("4. 初始化关联图")
     print("=" * 60)
     
     # 使用 AttributeGraph 封装类（传递预置边配置文件路径）
@@ -352,7 +429,7 @@ version_history: []
 def import_heuristic_records(kb_path: str, rules_db_path: str, graph_db_path: str) -> dict:
     """导入启发记录到知识库"""
     print("\n" + "=" * 60)
-    print("4. 导入启发记录")
+    print("5. 导入启发记录")
     print("=" * 60)
     
     import yaml
@@ -425,7 +502,7 @@ def import_heuristic_records(kb_path: str, rules_db_path: str, graph_db_path: st
 def extract_mechanisms(modcache_path: str, db_path: str, entities_db_path: str = None) -> dict:
     """提取机制到数据库"""
     print("\n" + "=" * 60)
-    print("5. 提取机制 (基于 stat ID)")
+    print("6. 提取机制 (基于 stat ID)")
     print("=" * 60)
     
     # 检查 lupa 依赖
@@ -498,6 +575,7 @@ def main():
     
     # 初始化各模块
     entities_db = kb_path / 'entities.db'
+    formulas_db = kb_path / 'formulas.db'
     rules_db = kb_path / 'rules.db'
     graph_db = kb_path / 'graph.db'
     
@@ -513,6 +591,7 @@ def main():
         print(f"[WARN] 预置边配置文件不存在: {predefined_edges_path}")
     
     entity_stats = init_entity_index(str(pob_path), str(entities_db))
+    formula_stats = init_formula_library(str(pob_path), str(formulas_db), str(entities_db))
     rules_stats = init_rules_db(str(rules_db), str(entities_db))
     graph_stats = init_attribute_graph(
         str(graph_db), 
@@ -538,6 +617,7 @@ def main():
     print("初始化完成")
     print("=" * 60)
     print(f"实体索引: {entity_stats['total']} 个实体")
+    print(f"公式库:   {formula_stats['formulas']} 个公式 (精确stat: {formula_stats['exact_stats']}, 模糊stat: {formula_stats['fuzzy_stats']}, 标签: {formula_stats['tags']})")
     print(f"规则库:   {rules_stats['total']} 条规则")
     print(f"关联图:   {graph_stats['nodes']} 个节点, {graph_stats['edges']} 条边")
     print(f"机制库:   {mechanism_stats['mechanisms']} 个机制, {mechanism_stats.get('sources', 0)} 个来源")
