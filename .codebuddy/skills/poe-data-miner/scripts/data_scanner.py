@@ -636,32 +636,21 @@ class POBDataScanner:
     
     def scan_all_files(self) -> List[ScanResult]:
         """
-        扫描所有Lua文件
+        扫描所有Lua文件（通过pob_paths模块遵循POB数据提取范围规则）
         
         Returns:
             扫描结果列表
         """
         import time
+        from pob_paths import collect_lua_files
         
         self.results = []
-        lua_files = list(self.pob_path.rglob('*.lua'))
         
-        # 检测 TreeData 最新版本
-        latest_tree_version = self._get_latest_tree_version()
+        # 通过统一入口收集Lua文件（强制执行POB数据提取范围规则）
+        lua_files = collect_lua_files(self.pob_path, verbose=True)
+        print(f"\n符合POB数据提取范围规则的Lua文件: {len(lua_files)} 个")
         
         for file_path in lua_files:
-            # 跳过旧版本的天赋树数据
-            if self._should_skip_old_tree_data(file_path, latest_tree_version):
-                # 记录跳过的旧版本
-                if self.scan_log:
-                    self.scan_log.add_entry(ScanLogEntry(
-                        file_path=str(file_path.relative_to(self.pob_path)),
-                        file_size=file_path.stat().st_size if file_path.exists() else 0,
-                        decision='skipped',
-                        reason='old_tree_version'
-                    ))
-                continue
-            
             start_time = time.time()
             result = self.scan_file(file_path)
             parse_time_ms = int((time.time() - start_time) * 1000) if result else None
@@ -689,63 +678,6 @@ class POBDataScanner:
             self.scan_log.print_summary()
         
         return self.results
-    
-    def _get_latest_tree_version(self) -> Optional[str]:
-        """获取 TreeData 目录的最新版本"""
-        tree_data_path = self.pob_path / 'TreeData'
-        if not tree_data_path.exists():
-            return None
-        
-        versions = []
-        for item in tree_data_path.iterdir():
-            if item.is_dir() and item.name not in ['legion']:
-                # 解析版本号 (如 0_1, 0_2, 0_3, 0_4)
-                parts = item.name.split('_')
-                if len(parts) == 2:
-                    try:
-                        versions.append((int(parts[0]), int(parts[1]), item.name))
-                    except ValueError:
-                        continue
-        
-        if not versions:
-            return None
-        
-        # 返回最新版本
-        versions.sort(reverse=True)
-        return versions[0][2]
-    
-    def _should_skip_old_tree_data(self, file_path: Path, latest_version: Optional[str]) -> bool:
-        """检查是否应该跳过非游戏数据"""
-        path_str = str(file_path)
-        
-        # 跳过黑名单目录
-        # lua/ - Lua 语言工具库
-        if '\\lua\\' in path_str or '/lua/' in path_str or path_str.endswith('\\lua') or '/lua' in path_str:
-            return True
-        # Classes/ - POB 数据管理 + UI 层
-        if '\\Classes\\' in path_str or '/Classes/' in path_str:
-            return True
-        # Update/ - 更新临时数据
-        if 'Update\\' in path_str or '/Update/' in path_str:
-            return True
-        
-        # 跳过黑名单文件
-        # LaunchServer.lua - HTTP服务器，包含HTML响应代码
-        if 'LaunchServer.lua' in path_str:
-            return True
-        
-        if not latest_version:
-            return False
-        
-        # 检查是否是 TreeData 下的 tree.lua
-        if 'TreeData' in path_str and 'tree.lua' in path_str:
-            # 只保留最新版本，跳过其他所有版本
-            if latest_version in path_str:
-                return False
-            else:
-                return True
-        
-        return False
     
     def scan_file(self, file_path: Path) -> Optional[ScanResult]:
         """
@@ -2068,22 +2000,23 @@ class POBDataScanner:
     
     def _extract_version(self) -> Optional[str]:
         """提取版本信息"""
-        # 查找GameVersions.lua
-        version_files = list(self.pob_path.rglob('GameVersions.lua'))
+        # GameVersions.lua 在 POB 根目录下（固定位置）
+        version_file = self.pob_path / 'GameVersions.lua'
+        if not version_file.exists():
+            return None
         
-        for version_file in version_files:
-            try:
-                with open(version_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # 尝试匹配版本号
-                patterns = self.config.get('version_patterns', {}).get('game_version', {}).get('patterns', [])
-                for pattern in patterns:
-                    match = re.search(pattern, content)
-                    if match:
-                        return match.group(1)
-            except Exception:
-                continue
+        try:
+            with open(version_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 尝试匹配版本号
+            patterns = self.config.get('version_patterns', {}).get('game_version', {}).get('patterns', [])
+            for pattern in patterns:
+                match = re.search(pattern, content)
+                if match:
+                    return match.group(1)
+        except Exception:
+            pass
         
         return None
     

@@ -22,6 +22,7 @@ from rules_extractor import RulesExtractor
 from attribute_graph import AttributeGraph, NodeType, EdgeType, GraphNode, GraphEdge
 from formula_extractor import FormulaExtractor
 from call_chain_analyzer import CallChainAnalyzer
+from pob_paths import get_pob_path, get_knowledge_base_path, validate_pob_path
 
 # 导入 schema 验证
 try:
@@ -87,72 +88,49 @@ def init_formula_library(pob_path: str, db_path: str, entities_db_path: str) -> 
     print("2. 初始化公式库")
     print("=" * 60)
     
-    # 提取官方stat ID
-    print("提取官方stat ID...")
-    modcache_path = Path(pob_path) / 'Data' / 'ModCache.lua'
-    official_stat_ids = set()
-    
-    if modcache_path.exists():
-        # 从实体库中获取已提取的stat_mapping
-        conn = sqlite3.connect(entities_db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM entities WHERE type = 'stat_mapping'")
-        official_stat_ids = {row[0] for row in cursor.fetchall()}
-        conn.close()
-        print(f"  找到 {len(official_stat_ids)} 个官方stat ID")
-    else:
-        print("  [WARN] ModCache.lua 不存在，跳过官方stat ID提取")
+    # 删除旧数据库
+    if Path(db_path).exists():
+        os.remove(db_path)
+        print("[OK] 已删除旧公式库数据库")
     
     # Phase 1: 提取公式
     print("\nPhase 1: 公式提取...")
-    extractor = FormulaExtractor(db_path, official_stat_ids)
+    extractor = FormulaExtractor(
+        pob_path=pob_path,
+        db_path=db_path,
+        entities_db_path=entities_db_path
+    )
     
-    # 扫描所有Lua文件
-    modules_path = Path(pob_path) / 'Modules'
-    if not modules_path.exists():
-        print("[ERROR] Modules目录不存在")
-        return {'formulas': 0, 'calls': 0}
-    
-    lua_files = list(modules_path.glob('*.lua'))
-    print(f"  找到 {len(lua_files)} 个Lua文件")
-    
-    total_formulas = 0
-    for lua_file in lua_files:
-        count = extractor.extract_from_file(str(lua_file), str(lua_file.relative_to(pob_path)))
-        total_formulas += count
-    
-    print(f"  提取完成，共 {total_formulas} 个函数")
+    formulas = extractor.extract_all_functions()
     
     # Phase 2: 调用链分析
     print("\nPhase 2: 调用链分析...")
     analyzer = CallChainAnalyzer(db_path)
-    
-    # 构建调用图
-    print("  构建调用图...")
-    analyzer.build_call_graph()
-    
-    # 计算调用深度
-    print("  计算调用深度...")
-    analyzer.compute_call_depth()
-    
-    # 计算综合特征
-    print("  计算综合特征...")
-    analyzer.compute_total_stats()
+    analyzer.analyze()
     
     # 统计
-    stats = extractor.get_stats()
-    extractor.close()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM formulas")
+    formula_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM formulas WHERE exact_stats != '[]'")
+    exact_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM formulas WHERE fuzzy_stats != '[]'")
+    fuzzy_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM formulas WHERE inferred_tags != '[]'")
+    tags_count = cursor.fetchone()[0]
+    conn.close()
     
-    print(f"[OK] 已创建 {stats['formula_count']} 个公式")
-    print(f"     - 精确stat: {stats['exact_stats_count']}")
-    print(f"     - 模糊stat: {stats['fuzzy_stats_count']}")
-    print(f"     - 标签: {stats['tags_count']}")
+    print(f"[OK] 已创建 {formula_count} 个公式")
+    print(f"     - 有精确stat: {exact_count}")
+    print(f"     - 有模糊stat: {fuzzy_count}")
+    print(f"     - 有标签: {tags_count}")
     
     return {
-        'formulas': stats['formula_count'],
-        'exact_stats': stats['exact_stats_count'],
-        'fuzzy_stats': stats['fuzzy_stats_count'],
-        'tags': stats['tags_count']
+        'formulas': formula_count,
+        'exact_stats': exact_count,
+        'fuzzy_stats': fuzzy_count,
+        'tags': tags_count
     }
 
 
@@ -543,17 +521,32 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='初始化POE知识库')
-    parser.add_argument('pob_path', help='POB数据目录路径')
+    parser.add_argument('pob_path', nargs='?', default=None, help='POB数据目录路径（默认自动检测）')
     parser.add_argument('--kb-path', default=None, help='知识库目录路径')
     
     args = parser.parse_args()
     
-    # 转换为绝对路径
-    pob_path = Path(args.pob_path).resolve()
-    kb_path = Path(args.kb_path).resolve() if args.kb_path else pob_path.parent / 'knowledge_base'
+    # 使用 pob_paths 模块获取路径（统一入口）
+    try:
+        if args.pob_path:
+            pob_path = Path(args.pob_path).resolve()
+        else:
+            pob_path = get_pob_path()
+    except FileNotFoundError as e:
+        print(f"[ERROR] {e}")
+        sys.exit(1)
+    
+    kb_path = Path(args.kb_path).resolve() if args.kb_path else get_knowledge_base_path()
     
     # 创建目录
     kb_path.mkdir(parents=True, exist_ok=True)
+    
+    # POB路径验证
+    is_valid, warnings = validate_pob_path(pob_path)
+    if warnings:
+        print(f"\n[WARN] POB路径验证有 {len(warnings)} 个警告:")
+        for w in warnings:
+            print(f"  - {w}")
     
     print("=" * 60)
     print("POE知识库初始化")

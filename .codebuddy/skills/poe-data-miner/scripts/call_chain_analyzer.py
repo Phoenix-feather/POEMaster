@@ -51,7 +51,7 @@ class CallChainAnalyzer:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, name, calls, exact_stats, fuzzy_stats
+            SELECT id, name, calls, exact_stats, fuzzy_stats, source_file
             FROM formulas
         """)
         
@@ -61,6 +61,7 @@ class CallChainAnalyzer:
             calls = json.loads(row[2]) if row[2] else []
             exact_stats = json.loads(row[3]) if row[3] else []
             fuzzy_stats = json.loads(row[4]) if row[4] else []
+            source_file = row[5] or ''
             
             self.formulas[formula_id] = {
                 'id': formula_id,
@@ -68,12 +69,23 @@ class CallChainAnalyzer:
                 'calls': calls,
                 'exact_stats': exact_stats,
                 'fuzzy_stats': fuzzy_stats,
+                'source_file': source_file,
                 'called_by': [],
                 'call_depth': 0,
                 'total_stats': set(exact_stats + fuzzy_stats)
             }
             
-            self.name_to_id[name] = formula_id
+            # 同名函数保存为列表（处理重复）
+            if name not in self.name_to_id:
+                self.name_to_id[name] = []
+            self.name_to_id[name].append(formula_id)
+            
+            # 也存储 module.name 和 module:name 的短名称映射
+            if '.' in name or ':' in name:
+                short_name = name.split('.')[-1].split(':')[-1]
+                if short_name not in self.name_to_id:
+                    self.name_to_id[short_name] = []
+                self.name_to_id[short_name].append(formula_id)
         
         conn.close()
         
@@ -92,19 +104,45 @@ class CallChainAnalyzer:
         # 建立边
         edge_count = 0
         for formula_id, formula in self.formulas.items():
+            caller_source = formula.get('source_file', '')
+            
             for called_name in formula['calls']:
                 # 查找被调用函数的formula_id
-                if called_name in self.name_to_id:
-                    callee_id = self.name_to_id[called_name]
-                    
-                    # 添加边
-                    self.call_graph.edges[formula_id].add(callee_id)
-                    self.call_graph.reverse_edges[callee_id].add(formula_id)
-                    
-                    # 更新called_by
-                    self.formulas[callee_id]['called_by'].append(formula_id)
-                    
-                    edge_count += 1
+                candidates = self.name_to_id.get(called_name, [])
+                
+                if not candidates:
+                    continue
+                
+                # 优先匹配同文件的函数，其次选择第一个
+                callee_id = None
+                for cid in candidates:
+                    if cid == formula_id:
+                        continue  # 跳过自身递归
+                    callee_src = self.formulas[cid].get('source_file', '')
+                    if callee_src == caller_source:
+                        callee_id = cid
+                        break
+                
+                if callee_id is None:
+                    # 选择第一个非自身的候选
+                    for cid in candidates:
+                        if cid != formula_id:
+                            callee_id = cid
+                            break
+                
+                if callee_id is None:
+                    continue
+                
+                # 添加边
+                self.call_graph.edges[formula_id].add(callee_id)
+                if callee_id not in self.call_graph.reverse_edges:
+                    self.call_graph.reverse_edges[callee_id] = set()
+                self.call_graph.reverse_edges[callee_id].add(formula_id)
+                
+                # 更新called_by
+                self.formulas[callee_id]['called_by'].append(formula_id)
+                
+                edge_count += 1
         
         print(f"[OK] 构建完成，{len(self.call_graph.nodes)} 个节点，{edge_count} 条边")
         
@@ -141,40 +179,69 @@ class CallChainAnalyzer:
         print(f"[OK] 调用关系已保存到数据库")
     
     def calculate_call_depth(self):
-        """计算调用深度（BFS从叶子节点开始）"""
+        """计算调用深度（反向BFS：从叶子节点向上传播最大深度）
+        
+        深度定义：
+        - 叶子节点（不调用其他函数）= 深度0
+        - 调用叶子节点的函数 = 深度1
+        - 以此类推，取最大值
+        
+        修复：不使用visited集合阻止重复访问，而是使用深度更新逻辑
+        确保每个节点取到最大深度值。
+        """
         print("\n计算调用深度...")
         
-        # 找到叶子节点（不调用其他函数的函数）
-        leaves = []
-        for formula_id, callees in self.call_graph.edges.items():
-            if not callees:  # 没有调用任何函数
-                leaves.append(formula_id)
+        # 方法：拓扑排序 + 动态规划（正向：caller→callee）
+        # depth(f) = 0 if f是叶子节点
+        # depth(f) = 1 + max(depth(callee) for callee in f.callees) 
         
-        print(f"  找到 {len(leaves)} 个叶子节点")
-        
-        # BFS计算深度
+        # 初始化深度
         depths = {}
-        queue = deque([(leaf_id, 0) for leaf_id in leaves])
-        visited = set()
+        for formula_id in self.formulas:
+            depths[formula_id] = 0
         
-        while queue:
-            formula_id, depth = queue.popleft()
+        # 计算入度（被多少函数调用不重要，重要的是调用了多少函数）
+        # 使用拓扑排序：先处理叶子节点，再逐层向上
+        
+        # 检测循环依赖，使用DFS + memo
+        computing = set()
+        computed = set()
+        
+        def compute_depth(fid):
+            """递归计算深度，处理循环引用"""
+            if fid in computed:
+                return depths[fid]
+            if fid in computing:
+                # 循环依赖，返回0避免无限递归
+                return 0
             
-            if formula_id in visited:
-                continue
+            computing.add(fid)
             
-            visited.add(formula_id)
-            
-            # 更新深度（如果已经有深度，取最大值）
-            if formula_id in depths:
-                depths[formula_id] = max(depths[formula_id], depth)
+            callees = self.call_graph.edges.get(fid, set())
+            if not callees:
+                depths[fid] = 0
             else:
-                depths[formula_id] = depth
+                max_callee_depth = 0
+                for callee_id in callees:
+                    if callee_id in self.formulas:
+                        d = compute_depth(callee_id)
+                        max_callee_depth = max(max_callee_depth, d)
+                depths[fid] = 1 + max_callee_depth
             
-            # 处理调用者
-            for caller_id in self.call_graph.reverse_edges[formula_id]:
-                if caller_id not in visited:
-                    queue.append((caller_id, depth + 1))
+            computing.discard(fid)
+            computed.add(fid)
+            return depths[fid]
+        
+        for formula_id in self.formulas:
+            compute_depth(formula_id)
+        
+        # 统计
+        max_depth = max(depths.values()) if depths else 0
+        leaves = sum(1 for d in depths.values() if d == 0)
+        non_zero = sum(1 for d in depths.values() if d > 0)
+        
+        print(f"  叶子节点(depth=0): {leaves}")
+        print(f"  非叶子节点(depth>0): {non_zero}")
         
         # 更新formulas
         for formula_id, depth in depths.items():
@@ -183,7 +250,7 @@ class CallChainAnalyzer:
         # 保存到数据库
         self._save_call_depths()
         
-        print(f"[OK] 计算完成，深度范围: 0 - {max(depths.values()) if depths else 0}")
+        print(f"[OK] 计算完成，深度范围: 0 - {max_depth}")
     
     def _save_call_depths(self):
         """保存调用深度到数据库"""
@@ -224,8 +291,12 @@ class CallChainAnalyzer:
         self._save_total_stats()
         
         # 计算统计信息
-        max_stats = max(len(f['total_stats']) for f in self.formulas.values())
-        avg_stats = sum(len(f['total_stats']) for f in self.formulas.values()) / len(self.formulas)
+        if self.formulas:
+            max_stats = max(len(f['total_stats']) for f in self.formulas.values())
+            avg_stats = sum(len(f['total_stats']) for f in self.formulas.values()) / len(self.formulas)
+        else:
+            max_stats = 0
+            avg_stats = 0
         
         print(f"[OK] 计算完成，平均stats数: {avg_stats:.1f}，最大: {max_stats}")
     
