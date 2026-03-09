@@ -670,19 +670,41 @@ formulas:
     domain: meta
     category: energy
     keywords: [能量, energy, 元技能, meta skill, 能量获取, energy generation, 能量生成]
-    formula: "energy_per_event = (centienergy / 100) × event_value × (1 + energy_generated_+% / 100)"
+    formula: "energy = base_factor × (centienergy / 100) × INC_term × MORE_term"
     parameters:
       centienergy: "constantStats中的centienergy值（÷100得到实际值）"
-      event_value: "事件值（monster_power / 固定值1 / 距离等，取决于技能类型）"
-      energy_generated_percent: "能量生成加成百分比（来自品质/辅助宝石）"
+      base_factor: |
+        取决于技能子类型:
+        SubA: enemy_power × (hit_damage / ailment_threshold)  [monster_power + Ailment Threshold修正]
+        SubB: enemy_power                                       [monster_power, 无threshold]
+        SubC: 1                                                 [stat名含monster_power但描述无per Power]
+        SubD: 1                                                 [固定值事件: block/hit/stun]
+        SubE: unit_measure                                      [连续型: per metre/second/charge]
+        SubF: base_energy × minion_power_ratio                  [minion_death特殊型]
+      INC_term: |
+        (1 + Σ(所有energy相关_+% stat) / 100)
+        数据来源（通过实体数据扫描动态收集）:
+        - 实体自身 stats[]: energy_generated_+% (14/17 Meta实体有)
+        - 实体自身 qualityStats[]: energy_generated_+% = 0.75/quality (11/17实体有)
+        - Support辅助 constantStats[]: energy_generated_+% = 35/45 (Boundless Energy)
+        判定规则: stat名含'energy'且以'_+%'结尾(不含_final)
+      MORE_term: |
+        Π(1 + 每个energy相关_+%_final stat / 100)
+        数据来源（通过实体数据扫描动态收集）:
+        - active_skill_energy_generated_+%_final (特定非Meta技能, 如Incinerate -98%)
+        - 注: 17个Meta技能实体中0个含此stat
+        判定规则: stat名含'energy'且以'_+%_final'结尾
     notes: |
       ⚠️ POB未实现
-      3种能量获取模式:
-      1. monster_power型 (CoC等): event_value = monster_power
-      2. 固定值型 (Invocation): event_value = 1
-      3. 连续型 (Cast on Channel): event_value = per_unit_measure
-    source_file: "Data/Skills/act_int.lua 等"
-    source_lines: "数据推导"
+      INC和MORE是独立的乘法因子:
+      - INC: increased/reduced类型, 所有来源加法叠加后乘算
+      - MORE: more/less类型, 每个来源独立乘算
+      - StatDescriptions文本: energy_generated_+% = "{0}% reduced Energy gained" (确认INC)
+      - _+%_final后缀 = POB惯例的MORE修正
+      子类型判定依据: StatDescriptions精确文本 (是否含"per Power"/"Ailment Threshold")
+      INC/MORE收集依据: 实体完整数据扫描 (stats/constantStats/qualityStats + 关联Support)
+    source_file: "Data/Skills/act_int.lua 等 + entities.db动态扫描"
+    source_lines: "数据推导 + StatDescriptions驱动"
 
   - id: meta_max_energy
     name: 元技能最大能量

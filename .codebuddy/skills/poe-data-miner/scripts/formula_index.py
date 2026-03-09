@@ -190,7 +190,7 @@ def init_formula_index(
     print("\n  Phase 3: 缺口公式 (类型C)")
     
     if entities_db_path and Path(entities_db_path).exists():
-        extractor = StatFormulaExtractor(entities_db_path, db_path)
+        extractor = StatFormulaExtractor(entities_db_path, db_path, pob_path)
         extractor.extract_all()
         extractor.save_to_db()
         
