@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Meta缺口公式提取器 (Gap Formula Extractor) v4
+Meta缺口公式提取器 (Gap Formula Extractor) v5
 
 从Meta技能的实体完整数据中提取POB未实现的公式:
 - 能量获取公式 (energy_gain)
@@ -16,6 +16,11 @@ Meta缺口公式提取器 (Gap Formula Extractor) v4
 - entities.db 中的非Meta技能实体 (active_skill_energy_generated_+%_final)
 - StatDescriptions/skill_stat_descriptions.lua 中的精确描述文本 (决定公式修正因子)
 - StatDescriptions/stat_descriptions.lua 中的能量stat分类谱 (INC/MORE/条件/特殊)
+- [v5新增] Data/Mod*.lua 装备词缀定义 (珠宝/腐化/符文/独占词缀)
+
+v5 核心变更 (相对于v4):
+- 新增装备词缀能量修饰符扫描: ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability
+- 完整覆盖所有能量修饰符来源 (天赋+辅助+装备+被触发法术)
 
 v4 核心变更 (相对于v3):
 - 扩展搜索范围: 被动天赋/升华节点中的能量INC/MORE文本模式
@@ -88,7 +93,7 @@ class EnergyModifier:
 #   │ active_skill_energy_generated_+%_final│ MORE   │ 技能专属MORE惩罚 (Incinerate -98%, FlameWall -50%等)  │
 #   └───────────────────────────────────────┴────────┴───────────────────────────────────────────────────────┘
 #
-# 数据来源层级 (v4扩展):
+# 数据来源层级 (v5扩展):
 #   1. Meta实体自身 stats[] — 声明stat存在，值由levels表按等级插值
 #   2. Meta实体自身 constantStats[] — 固定值stat
 #   3. Meta实体自身 qualityStats[] — 按品质缩放的stat (如 0.75 per quality)
@@ -101,6 +106,9 @@ class EnergyModifier:
 #      → 如 Incinerate(-98%), FlameWall(-50%), SolarOrb(-50%)
 #   8. [v4新增] 条件INC: energy_generated_+%_if_crit_recently, energy_generated_+%_on_full_mana
 #   9. [v4新增] 特殊: energy_generation_is_doubled (×2)
+#  10. [v5新增] 装备词缀 (ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability)
+#      → 如 "Meta Skills gain (4-8)% increased Energy" (珠宝词缀)
+#      → 如 "Meta Skills gain (20-30)% increased Energy" (腐化词缀)
 #
 # ────────────────────────────────────────────────────────
 
@@ -181,7 +189,7 @@ PER_POWER_PHRASES = ["per Power of enemies", "per enemy Power"]
 
 
 class StatFormulaExtractor:
-    """缺口公式提取器 v4 - 扩展搜索到被动天赋/升华/被触发法术"""
+    """缺口公式提取器 v5 - 完整覆盖天赋+辅助+装备+被触发法术"""
 
     def __init__(self, entities_db_path: str, db_path: str, pob_path: str = None):
         self.entities_db_path = Path(entities_db_path)
@@ -198,6 +206,8 @@ class StatFormulaExtractor:
         self._triggered_spell_more_modifiers: Optional[List[EnergyModifier]] = None
         # v4缓存: 条件INC和特殊stat
         self._conditional_energy_modifiers: Optional[List[EnergyModifier]] = None
+        # v5缓存: 装备词缀中的能量修饰符
+        self._equipment_energy_modifiers: Optional[List[EnergyModifier]] = None
 
     def extract_all(self) -> List[GapFormula]:
         """提取所有缺口公式"""
@@ -223,6 +233,14 @@ class StatFormulaExtractor:
         # Step 1.6 [v4]: 预加载被触发法术的能量MORE惩罚
         self._triggered_spell_more_modifiers = self._query_triggered_spell_energy_more()
         print(f"    找到 {len(self._triggered_spell_more_modifiers)} 个被触发法术能量MORE惩罚")
+
+        # Step 1.7 [v5]: 预加载装备词缀中的能量修饰符
+        self._equipment_energy_modifiers = self._scan_equipment_energy_mods()
+        eq_inc = sum(1 for m in self._equipment_energy_modifiers if m.mod_type == 'INC')
+        eq_more = sum(1 for m in self._equipment_energy_modifiers if m.mod_type == 'MORE')
+        eq_cond = sum(1 for m in self._equipment_energy_modifiers if 'condition' in m.evidence.lower())
+        print(f"    找到 {len(self._equipment_energy_modifiers)} 个装备词缀能量修饰符 "
+              f"(INC={eq_inc}, MORE={eq_more}, 条件={eq_cond})")
 
         # Step 2: 获取所有Meta技能实体（含完整字段）
         meta_entities = self._get_meta_entities()
@@ -347,6 +365,12 @@ class StatFormulaExtractor:
         # 它们不是全局修饰符，但记录在公式中以展示MORE项的存在
         if self._triggered_spell_more_modifiers:
             modifiers.extend(self._triggered_spell_more_modifiers)
+
+        # ── 7. [v5] 装备词缀中的能量修饰符 ──
+        # 注意: 这些是装备词缀，玩家可通过装备获得能量修饰符
+        # 如珠宝词缀 "Meta Skills gain (4-8)% increased Energy"
+        if self._equipment_energy_modifiers:
+            modifiers.extend(self._equipment_energy_modifiers)
 
         return modifiers
 
@@ -1399,6 +1423,133 @@ class StatFormulaExtractor:
             print(f"\n  样本:")
             for f in self.formulas[:5]:
                 print(f"    [{f.entity_name}] {f.formula_type}: {f.formula_text[:80]}...")
+
+    # ================================================================
+    # v5新增: 装备词缀能量修饰符扫描
+    # ================================================================
+
+    def _scan_equipment_energy_mods(self) -> List[EnergyModifier]:
+        """
+        [v5] 扫描 POBData/Data/Mod*.lua 文件，提取装备词缀中的能量修饰符。
+
+        装备词缀来源:
+        - ModJewel.lua: 珠宝词缀 (如 "Meta Skills gain (4-8)% increased Energy")
+        - ModCorrupted.lua: 腐化词缀 (如 "Meta Skills gain (20-30)% increased Energy")
+        - ModItemExclusive.lua: 独占词缀 (如 "Meta Skills gain (10-16)% increased Energy")
+        - ModRunes.lua: 符文词缀 (如 "Meta Skills gain 10% increased Energy")
+        - ModScalability.lua: 可扩展词缀 (各种范围值)
+
+        词缀格式:
+        ["ModName"] = {
+            type = "Suffix",
+            affix = "of Generation",
+            "Meta Skills gain (4-8)% increased Energy",
+            statOrder = { 5987 },
+            level = 1,
+            group = "EnergyGeneration",
+            ...
+        }
+
+        返回: EnergyModifier 列表，每个代表一个装备词缀的能量修饰符
+        """
+        modifiers: List[EnergyModifier] = []
+
+        if not self.pob_path:
+            return modifiers
+
+        # 要扫描的文件列表
+        mod_files = [
+            'ModJewel.lua',
+            'ModCorrupted.lua',
+            'ModItemExclusive.lua',
+            'ModRunes.lua',
+            'ModScalability.lua',
+        ]
+
+        # 能量词缀文本模式
+        energy_pattern = re.compile(
+            r'Meta Skills gain (\(.*?\))?\s*(\d+(?:-\d+)?)?\s*%?\s*(increased|reduced|more|less)\s*Energy'
+            r'(.*?)$',
+            re.IGNORECASE
+        )
+
+        for mod_file in mod_files:
+            filepath = self.pob_path / 'Data' / mod_file
+            if not filepath.exists():
+                continue
+
+            try:
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+            except Exception as e:
+                print(f"      警告: 无法读取 {mod_file}: {e}")
+                continue
+
+            # 提取所有词缀定义
+            # 格式: ["ModName"] = { ... "Meta Skills gain ..." ... }
+            mod_pattern = re.compile(
+                r'\["([^"]+)"\]\s*=\s*\{[^}]*?"([^"]*Meta Skills[^"]*Energy[^"]*)"',
+                re.DOTALL
+            )
+
+            for match in mod_pattern.finditer(content):
+                mod_name = match.group(1)
+                mod_text = match.group(2)
+
+                # 解析修饰符类型和值
+                m = energy_pattern.search(mod_text)
+                if not m:
+                    continue
+
+                range_str = m.group(1) or m.group(2)  # (X-Y) 或 X
+                mod_type_str = m.group(3).lower()     # increased/reduced/more/less
+                condition_str = m.group(4).strip() if m.group(4) else ""
+
+                # 确定值范围
+                if range_str and '(' in range_str:
+                    # 范围值 (X-Y)
+                    range_match = re.search(r'(\d+)-(\d+)', range_str)
+                    if range_match:
+                        min_val = int(range_match.group(1))
+                        max_val = int(range_match.group(2))
+                        value = (min_val + max_val) / 2  # 取中间值
+                    else:
+                        continue
+                elif range_str:
+                    # 固定值 X
+                    value = int(range_str)
+                else:
+                    continue
+
+                # 确定修饰符类型
+                if mod_type_str in ('increased', 'reduced'):
+                    mod_type = 'INC'
+                    if mod_type_str == 'reduced':
+                        value = -value
+                elif mod_type_str in ('more', 'less'):
+                    mod_type = 'MORE'
+                    if mod_type_str == 'less':
+                        value = -value
+                else:
+                    continue
+
+                # 构建证据字符串
+                evidence = f"Equipment mod {mod_name} ({mod_file}): {mod_text}"
+                if condition_str:
+                    evidence += f" [条件: {condition_str}]"
+
+                # 创建 EnergyModifier
+                modifiers.append(EnergyModifier(
+                    stat_name='energy_generated_+%' if mod_type == 'INC' else 'ascendancy_energy_generated_+%_final',
+                    mod_type=mod_type,
+                    source_field='equipment_mod',
+                    source_entity=mod_name,
+                    value=value,
+                    per_quality=False,
+                    evidence=evidence
+                ))
+
+        return modifiers
 
 
 def main():

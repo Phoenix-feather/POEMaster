@@ -6,7 +6,7 @@
 # 查询方式: 关键词匹配
 # ============================================================
 
-version: "2.1.0"  # v2.1: meta_energy_gain MORE sources corrected (ascendancy/triggered spell/passive tree)
+version: "2.2.0"  # v2.2: 添加装备词缀能量来源 (v5扩展)
 source_pob_version: "0.4"
 
 formulas:
@@ -782,17 +782,20 @@ formulas:
         SubF: base_energy × minion_power_ratio                  [minion_death特殊型]
       INC_term: |
         (1 + Σ(所有energy相关INC stat) / 100)
-        已确认的INC来源（6层数据）:
+        已确认的INC来源（7层数据）:
         ① Meta实体自身 stats[]: energy_generated_+% (14/17 Meta实体有)
         ② Meta实体自身 qualityStats[]: energy_generated_+% = 0.75/quality (11/17实体有)
         ③ Support辅助 constantStats[]: energy_generated_+% = 35/45 (Boundless Energy I/II)
         ④ [v4] 被动天赋节点: "Meta Skills gain X% increased Energy" (如passive_3688=15%)
         ⑤ [v4] 升华天赋节点(INC): "Meta Skills gain X% increased Energy" (如passive_4873=20%, Oracle)
         ⑥ [v4] 条件INC(可选): energy_generated_+%_if_crit_recently, energy_generated_+%_on_full_mana
+        ⑦ [v5] 装备词缀: ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability
+           → 如珠宝词缀 "Meta Skills gain (4-8)% increased Energy"
+           → 如腐化词缀 "Meta Skills gain (20-30)% increased Energy"
         判定规则: stat名含'energy'且以'_+%'结尾(不含_final)，或被动文本含"increased Energy"
       MORE_term: |
         Π(1 + 每个energy相关MORE stat / 100)
-        已确认的MORE来源（3层数据）:
+        已确认的MORE来源（4层数据）:
         ① [v4] 升华天赋节点: ascendancy_energy_generated_+%_final
            → StatDescriptions: "Meta Skills gain X% more/less Energy"
            → 此stat仅出现在升华天赋，不在Meta技能实体上（所以v3搜索Meta实体=MORE=0是范围错误）
@@ -800,7 +803,8 @@ formulas:
            → FlameWall(-50%), Incinerate(-98%), SolarOrb(-50%)
            → 这些MORE惩罚在被触发法术上，不在Meta实体上
            → 当法术作为Meta插槽法术时，此惩罚生效于该法术的能量贡献
-        ③ Meta实体自身: 无（17个Meta实体中0个含_+%_final stat — 这是正确的，因为MORE来自外部）
+        ③ [v5] 装备词缀(罕见): ModScalability等可能含 "Meta Skills gain X% more Energy"
+        ④ Meta实体自身: 无（17个Meta实体中0个含_+%_final stat — 这是正确的，因为MORE来自外部）
         判定规则: stat名以'_+%_final'结尾，或被动文本含"more/less Energy"
       SPECIAL_term: |
         [可选] ×2 如果 energy_generation_is_doubled 为true
@@ -823,6 +827,10 @@ formulas:
         从未搜索第5-9层: 被动天赋/升华节点/被触发法术/条件INC/特殊stat。
         实际上ascendancy_energy_generated_+%_final (MORE)存在于升华天赋节点中，
         active_skill_energy_generated_+%_final (MORE)存在于被触发法术(Incinerate等)的constantStats中。
+      v5修正: v4缺失装备词缀来源 —
+        v4未扫描 ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability 文件，
+        导致装备上的能量词缀（如珠宝 "Meta Skills gain (4-8)% increased Energy"）被遗漏。
+        v5新增第10层扫描，覆盖所有装备词缀来源。
     source_file: "Data/Skills/act_int.lua 等 + entities.db动态扫描 + tree.lua被动天赋"
     source_lines: "数据推导 + StatDescriptions驱动 + v4扩展搜索"
 
