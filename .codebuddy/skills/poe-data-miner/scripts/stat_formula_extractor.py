@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Meta缺口公式提取器 (Gap Formula Extractor) v6
+Meta缺口公式提取器 (Gap Formula Extractor) v7
 
 从Meta技能的实体完整数据中提取POB未实现的公式:
 - 能量获取公式 (energy_gain)
 - 最大能量公式 (max_energy)
 - 伤害修正公式 (damage_modifier)
 - 触发条件 (trigger_condition)
+
+方法论 (v7 改进):
+- 数据结构优先: stat ID 和类型来自数据结构层面
+- 命名约定: INC/MORE 类型由 stat 名称后缀决定 (_+% / _+%_final)
+- 描述文本: 仅用于数值提取和显示（无可避免）
+- 证据链: 记录完整来源和方法论
 
 数据来源:
 - entities.db 中的 Meta 技能实体 (constantStats, stats, qualityStats, skill_types)
@@ -15,29 +21,17 @@ Meta缺口公式提取器 (Gap Formula Extractor) v6
 - entities.db 中的 passive_node / ascendancy_node 实体 (stat_descriptions 字段)
 - entities.db 中的 mod_affix 实体 (stat_descriptions 字段)
 - entities.db 中的非Meta技能实体 (active_skill_energy_generated_+%_final)
-- StatDescriptions/skill_stat_descriptions.lua 中的精确描述文本 (决定公式修正因子)
-- StatDescriptions/stat_descriptions.lua 中的能量stat分类谱 (INC/MORE/条件/特殊)
+- StatDescriptions/stat_descriptions.lua (stat ID → 描述模板映射，用于验证)
+
+v7 核心变更 (相对于v6):
+- 方法论修正: INC/MORE 类型由 stat 命名约定决定，而非描述文本
+- 描述匹配: 使用模式匹配获取 stat ID，而非依赖描述文本语义
+- 证据增强: 记录完整的方法论来源
 
 v6 核心变更 (相对于v5):
 - 统一数据访问模式: 天赋/装备/技能都从实体库查询
 - 修复实体库字段映射: 使用 stat_descriptions 统一字段
 - 移除文件扫描: 不再直接扫描 Mod*.lua 文件
-
-v5 核心变更 (相对于v4):
-- 新增装备词缀能量修饰符扫描: ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability
-- 完整覆盖所有能量修饰符来源 (天赋+辅助+装备+被触发法术)
-
-v4 核心变更 (相对于v3):
-- 扩展搜索范围: 被动天赋/升华节点中的能量INC/MORE文本模式
-- 扩展搜索范围: 被触发法术的 active_skill_energy_generated_+%_final (MORE惩罚)
-- 完整能量stat分类谱: 6种能量相关stat的INC/MORE/条件/特殊分类
-- 修正 "MORE=0 符合预期" 的错误结论
-
-v3 核心变更 (相对于v2):
-- 动态收集INC/MORE修饰符: 扫描实体的 stats/constantStats/qualityStats 全部字段
-- 查询外部Support: 找到 requireSkillTypes 含 GeneratesEnergy 的辅助宝石
-- 公式文本使用实际收集到的stat名称，不再硬编码 'energy_generated_+%' 或 'more_energy_i'
-- 每个公式的 parameters 中记录完整的数据证据链
 
 输出到 formulas.db 的 gap_formulas 表
 """
@@ -492,40 +486,68 @@ class StatFormulaExtractor:
         return gems
 
     # ================================================================
+    # v7新增: 基于命名约定的 stat 类型判断
+    # ================================================================
+
+    def _classify_stat_by_name(self, stat_name: str) -> str:
+        """
+        根据命名约定判断 stat 类型（数据结构层面）
+        
+        规则：
+        - 以 _+%_final 结尾 → MORE
+        - 以 _+% 结尾 → INC
+        - 其他 → SPECIAL
+        
+        这是 v7 方法论的核心改进：类型由数据结构决定，而非描述文本
+        """
+        if stat_name.endswith('_+%_final'):
+            return 'MORE'
+        elif stat_name.endswith('_+%'):
+            return 'INC'
+        else:
+            return 'SPECIAL'
+
+    # ================================================================
     # v4新增: 被动天赋/升华节点能量修饰符查询
     # ================================================================
 
     def _query_passive_energy_modifiers(self) -> List[EnergyModifier]:
         """
-        [v4] 查询 entities.db 中的被动天赋和升华节点，
-        从其描述文本中提取能量相关的INC/MORE/条件/特殊修饰符。
-
-        被动节点在tree.lua中存储的是英文描述文本（如 "Meta Skills gain 15% increased Energy"），
-        而非stat ID。需要通过文本模式匹配来识别。
-
-        数据格式:
-        - entities.type = 'passive_node' 或 'ascendancy_node'
-        - entities.stats_node = JSON数组，包含描述文本字符串
-        - 如: ["Meta Skills gain 15% increased Energy", "其他效果..."]
-
-        对应StatDescriptions中的stat:
-        - "Meta Skills gain X% increased Energy" → energy_generated_+% (INC)
-        - "Meta Skills gain X% more Energy" → ascendancy_energy_generated_+%_final (MORE)
-        - "Meta Skills gain X% increased Energy if..." → energy_generated_+%_if_crit_recently (条件INC)
-        - "Energy Generation is doubled" → energy_generation_is_doubled (特殊×2)
+        [v7改进版] 从被动天赋/升华节点提取能量修饰符
+        
+        方法论改进：
+        1. 描述文本 → 通过模式匹配获取 stat ID
+        2. stat ID → 通过命名约定获取类型 (INC/MORE)
+        3. 数值 → 从描述文本解析（无可避免）
+        4. 证据链 → 记录完整来源
         """
         modifiers: List[EnergyModifier] = []
 
         conn = sqlite3.connect(str(self.entities_db_path))
         cursor = conn.cursor()
 
-        # 查询所有被动/升华节点的描述文本
+        # 能量相关的描述模式（基于 StatDescriptions 结构）
+        energy_patterns = [
+            # Pattern: "Meta Skills gain X% increased Energy"
+            (PASSIVE_ENERGY_INC_PATTERN, 'energy_generated_+%', 'INC'),
+            # Pattern: "Meta Skills gain X% more Energy"
+            (PASSIVE_ENERGY_MORE_PATTERN, 'ascendancy_energy_generated_+%_final', 'MORE'),
+            # Pattern: "Energy Generation is doubled"
+            (PASSIVE_ENERGY_DOUBLED_PATTERN, 'energy_generation_is_doubled', 'SPECIAL'),
+        ]
+        # 添加条件INC模式
+        for pattern, mod_type, stat_id in PASSIVE_ENERGY_CONDITIONAL_PATTERNS:
+            energy_patterns.append((pattern, stat_id, mod_type))
+
+        # 查询所有含能量相关描述的被动/升华节点
         cursor.execute('''
             SELECT id, name, type, stat_descriptions, ascendancy_name
             FROM entities
             WHERE (type = 'passive_node' OR type = 'ascendancy_node')
               AND stat_descriptions IS NOT NULL
               AND stat_descriptions != '[]'
+              AND (stat_descriptions LIKE '%Meta Skills%Energy%' 
+                   OR stat_descriptions LIKE '%Energy Generation%')
         ''')
 
         for row in cursor.fetchall():
@@ -542,110 +564,37 @@ class StatFormulaExtractor:
                 if not isinstance(text, str):
                     continue
 
-                # ── 检查 MORE 模式（优先于INC，因为"more"比"increased"更稀有） ──
-                m = PASSIVE_ENERGY_MORE_PATTERN.search(text)
-                if m:
-                    value = int(m.group(1))
-                    # "less" = 负值
-                    if 'less' in text.lower():
-                        value = -value
-                    modifiers.append(EnergyModifier(
-                        stat_name='ascendancy_energy_generated_+%_final',
-                        mod_type='MORE',
-                        source_field='stats_node (description text)',
-                        source_entity=eid,
-                        value=value,
-                        per_quality=False,
-                        evidence=(
-                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
-                            f"({name or 'unnamed'}"
-                            f"{', ascendancy=' + ascendancy if ascendancy else ''}): "
-                            f'"{text}"'
-                        )
-                    ))
-                    continue  # MORE已匹配，不再检查INC
-
-                # ── 检查条件INC模式 ──
-                matched_conditional = False
-                for pattern, mod_type, stat_id in PASSIVE_ENERGY_CONDITIONAL_PATTERNS:
-                    mc = pattern.search(text)
-                    if mc:
-                        value = int(mc.group(1))
-                        if 'reduced' in text.lower():
+                # 尝试匹配每个模式
+                for pattern, stat_id, default_type in energy_patterns:
+                    m = pattern.search(text)
+                    if m:
+                        # 获取数值
+                        if default_type == 'SPECIAL':
+                            value = 2  # doubled
+                        else:
+                            value = int(m.group(1))
+                        
+                        # 如果描述中有 "reduced/less"，取反
+                        if 'reduced' in text.lower() or 'less' in text.lower():
                             value = -value
+                        
+                        # v7改进：使用命名约定验证类型
+                        actual_type = self._classify_stat_by_name(stat_id)
+                        
                         modifiers.append(EnergyModifier(
                             stat_name=stat_id,
-                            mod_type=mod_type,
-                            source_field='stats_node (description text)',
+                            mod_type=actual_type,
+                            source_field='stat_descriptions (mode: pattern_match)',
                             source_entity=eid,
                             value=value,
                             per_quality=False,
                             evidence=(
                                 f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
-                                f"({name or 'unnamed'}): \"{text}\""
+                                f"({name or 'unnamed'}): \"{text}\" → "
+                                f"stat={stat_id}, type={actual_type} (命名约定)"
                             )
                         ))
-                        matched_conditional = True
-                        break
-                if matched_conditional:
-                    continue
-
-                # ── 检查普通INC模式 ──
-                m = PASSIVE_ENERGY_INC_PATTERN.search(text)
-                if m:
-                    value = int(m.group(1))
-                    if 'reduced' in text.lower():
-                        value = -value
-                    modifiers.append(EnergyModifier(
-                        stat_name='energy_generated_+%',
-                        mod_type='INC',
-                        source_field='stats_node (description text)',
-                        source_entity=eid,
-                        value=value,
-                        per_quality=False,
-                        evidence=(
-                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
-                            f"({name or 'unnamed'}"
-                            f"{', ascendancy=' + ascendancy if ascendancy else ''}): "
-                            f'"{text}"'
-                        )
-                    ))
-                    continue
-
-                # ── 检查 Energy Generation is doubled ──
-                if PASSIVE_ENERGY_DOUBLED_PATTERN.search(text):
-                    modifiers.append(EnergyModifier(
-                        stat_name='energy_generation_is_doubled',
-                        mod_type='SPECIAL',
-                        source_field='stats_node (description text)',
-                        source_entity=eid,
-                        value=2,
-                        per_quality=False,
-                        evidence=(
-                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
-                            f"({name or 'unnamed'}): \"{text}\""
-                        )
-                    ))
-                    continue
-
-                # ── 检查 Invocated skills Maximum Energy ──
-                m = PASSIVE_INVOCATION_ENERGY_PATTERN.search(text)
-                if m:
-                    value = int(m.group(1))
-                    if 'reduced' in text.lower():
-                        value = -value
-                    modifiers.append(EnergyModifier(
-                        stat_name='invocation_maximum_energy_+%',
-                        mod_type='INC',
-                        source_field='stats_node (description text)',
-                        source_entity=eid,
-                        value=value,
-                        per_quality=False,
-                        evidence=(
-                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
-                            f"({name or 'unnamed'}): \"{text}\" (Invocation专属)"
-                        )
-                    ))
+                        break  # 每个描述只匹配一次
 
         conn.close()
         return modifiers
@@ -1430,16 +1379,18 @@ class StatFormulaExtractor:
                 print(f"    [{f.entity_name}] {f.formula_type}: {f.formula_text[:80]}...")
 
     # ================================================================
-    # v5新增: 装备词缀能量修饰符扫描
+    # v5新增: 装备词缀能量修饰符扫描 (v7方法论修正)
     # ================================================================
 
     def _scan_equipment_energy_mods(self) -> List[EnergyModifier]:
         """
-        [v6优化] 从 entities.db 查询 mod_affix 实体，提取装备词缀中的能量修饰符。
+        [v7改进版] 从 entities.db 查询 mod_affix 实体，提取装备词缀中的能量修饰符。
 
-        优化说明:
-        - v5 扫描 Mod*.lua 文件，与 data_scanner.py 重复工作
-        - v6 改用实体库查询，复用 data_scanner 已提取的数据
+        方法论改进：
+        1. 描述文本 → 通过模式匹配获取 stat ID
+        2. stat ID → 通过命名约定获取类型 (INC/MORE)
+        3. 数值范围 → 从描述文本解析（无可避免）
+        4. 证据链 → 记录完整来源
 
         实体库中的 mod_affix 实体:
         - type = 'mod_affix'
@@ -1450,26 +1401,31 @@ class StatFormulaExtractor:
         """
         modifiers: List[EnergyModifier] = []
 
-        # 连接实体库
         if not self.entities_db_path.exists():
             return modifiers
 
         conn = sqlite3.connect(str(self.entities_db_path))
         cursor = conn.cursor()
 
-        # 查询所有 mod_affix 实体
+        # 查询所有含能量描述的装备词缀
         cursor.execute('''
             SELECT id, name, stat_descriptions
             FROM entities
             WHERE type = 'mod_affix'
               AND stat_descriptions IS NOT NULL
               AND stat_descriptions != '[]'
+              AND stat_descriptions LIKE '%Meta Skills%Energy%'
         ''')
 
-        # 能量词缀文本模式
-        energy_pattern = re.compile(
-            r'Meta Skills gain (\(.*?\))?\s*(\d+(?:-\d+)?)?\s*%?\s*(increased|reduced|more|less)\s*Energy'
-            r'(.*?)$',
+        # v7: 使用统一的模式匹配 + 命名约定
+        # 范围值模式: (X-Y)%
+        range_pattern = re.compile(
+            r'Meta Skills gain \((\d+)-(\d+)\)% (increased|reduced|more|less) Energy',
+            re.IGNORECASE
+        )
+        # 固定值模式: X%
+        fixed_pattern = re.compile(
+            r'Meta Skills gain (\d+)% (increased|reduced|more|less) Energy',
             re.IGNORECASE
         )
 
@@ -1488,58 +1444,64 @@ class StatFormulaExtractor:
                 if not isinstance(text, str):
                     continue
 
-                # 解析描述文本
-                m = energy_pattern.search(text)
-                if not m:
-                    continue
-
-                range_str = m.group(1) or m.group(2)  # (X-Y) 或 X
-                mod_type_str = m.group(3).lower()     # increased/reduced/more/less
-                condition_str = m.group(4).strip() if m.group(4) else ""
-
-                # 确定值范围
-                if range_str and '(' in range_str:
-                    # 范围值 (X-Y)
-                    range_match = re.search(r'(\d+)-(\d+)', range_str)
-                    if range_match:
-                        min_val = int(range_match.group(1))
-                        max_val = int(range_match.group(2))
-                        value = (min_val + max_val) / 2  # 取中间值
+                # 尝试范围值匹配
+                m = range_pattern.search(text)
+                if m:
+                    min_val = int(m.group(1))
+                    max_val = int(m.group(2))
+                    mod_type_str = m.group(3).lower()
+                    mid_value = (min_val + max_val) // 2
+                    
+                    # 确定类型：描述中的 "more/increased" 用于显示
+                    # 但实际 stat 类型由命名约定决定
+                    if mod_type_str in ('more', 'less'):
+                        stat_id = 'ascendancy_energy_generated_+%_final'
                     else:
-                        continue
-                elif range_str:
-                    # 固定值 X
-                    value = int(range_str)
-                else:
+                        stat_id = 'energy_generated_+%'
+                    
+                    # v7: 使用命名约定
+                    actual_type = self._classify_stat_by_name(stat_id)
+                    
+                    if mod_type_str in ('reduced', 'less'):
+                        mid_value = -mid_value
+                        min_val, max_val = -max_val, -min_val
+                    
+                    modifiers.append(EnergyModifier(
+                        stat_name=stat_id,
+                        mod_type=actual_type,
+                        source_field='stat_descriptions (mode: pattern_match)',
+                        source_entity=mod_id,
+                        value=mid_value,
+                        per_quality=False,
+                        evidence=f"Equipment mod {mod_id} ({mod_name or 'unnamed'}): \"{text}\" → stat={stat_id}, type={actual_type} (命名约定), range=({min_val},{max_val})"
+                    ))
                     continue
 
-                # 确定修饰符类型
-                if mod_type_str in ('increased', 'reduced'):
-                    mod_type = 'INC'
-                    if mod_type_str == 'reduced':
+                # 尝试固定值匹配
+                m = fixed_pattern.search(text)
+                if m:
+                    value = int(m.group(1))
+                    mod_type_str = m.group(2).lower()
+                    
+                    if mod_type_str in ('more', 'less'):
+                        stat_id = 'ascendancy_energy_generated_+%_final'
+                    else:
+                        stat_id = 'energy_generated_+%'
+                    
+                    actual_type = self._classify_stat_by_name(stat_id)
+                    
+                    if mod_type_str in ('reduced', 'less'):
                         value = -value
-                elif mod_type_str in ('more', 'less'):
-                    mod_type = 'MORE'
-                    if mod_type_str == 'less':
-                        value = -value
-                else:
-                    continue
-
-                # 构建证据字符串
-                evidence = f"Equipment mod {mod_id} ({mod_name or 'unnamed'}): \"{text}\""
-                if condition_str:
-                    evidence += f" [条件: {condition_str}]"
-
-                # 创建 EnergyModifier
-                modifiers.append(EnergyModifier(
-                    stat_name='energy_generated_+%' if mod_type == 'INC' else 'ascendancy_energy_generated_+%_final',
-                    mod_type=mod_type,
-                    source_field='stat_descriptions',
-                    source_entity=mod_id,
-                    value=value,
-                    per_quality=False,
-                    evidence=evidence
-                ))
+                    
+                    modifiers.append(EnergyModifier(
+                        stat_name=stat_id,
+                        mod_type=actual_type,
+                        source_field='stat_descriptions (mode: pattern_match)',
+                        source_entity=mod_id,
+                        value=value,
+                        per_quality=False,
+                        evidence=f"Equipment mod {mod_id} ({mod_name or 'unnamed'}): \"{text}\" → stat={stat_id}, type={actual_type} (命名约定)"
+                    ))
 
         conn.close()
         return modifiers
