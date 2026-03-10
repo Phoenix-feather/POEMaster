@@ -62,24 +62,32 @@ class RulesExtractor:
         print("规则推导 Pipeline v2")
         print("=" * 70)
         
-        # Step 1: 从 S3 代码层提取 constraint 规则
-        print("\n[Step 1] 从 S3 代码层提取 constraint 规则...")
-        self._extract_constraint_rules()
+        # Step 1: 从 S1 实体库提取 constraint 规则
+        print("\n[Step 1] 从 S1 实体库提取 constraint 规则...")
+        self._extract_constraint_rules_from_entities()
         
-        # Step 2: 从 S2 公式库提取 relation 规则
-        print("\n[Step 2] 从 S2 公式库提取 relation 规则...")
+        # Step 2: 从 Support 实体提取 constraint 规则
+        print("\n[Step 2] 从 Support 实体提取 constraint 规则...")
+        self._extract_constraints_from_support_entities()
+        
+        # Step 3: 从代码逻辑提取 constraint 规则
+        print("\n[Step 3] 从代码逻辑提取 constraint 规则...")
+        self._extract_constraints_from_code()
+        
+        # Step 4: 从 S2 公式库提取 relation 规则
+        print("\n[Step 4] 从 S2 公式库提取 relation 规则...")
         self._extract_relation_rules_from_formulas()
         
-        # Step 3: 从 S1 实体库提取 relation 规则
-        print("\n[Step 3] 从 S1 实体库提取 relation 规则...")
+        # Step 5: 从 S1 实体库提取 relation 规则
+        print("\n[Step 5] 从 S1 实体库提取 relation 规则...")
         self._extract_relation_rules_from_entities()
         
-        # Step 4: 从 S2 公式库提取 formula_application 规则
-        print("\n[Step 4] 从 S2 公式库提取 formula_application 规则...")
+        # Step 6: 从 S2 公式库提取 formula_application 规则
+        print("\n[Step 6] 从 S2 公式库提取 formula_application 规则...")
         self._extract_formula_application_rules()
         
-        # Step 5: 入库
-        print("\n[Step 5] 入库...")
+        # Step 7: 入库
+        print("\n[Step 7] 入库...")
         self._save_to_db()
         
         # 统计
@@ -237,7 +245,13 @@ class RulesExtractor:
         return content[start:end]
     
     def _extract_constraints_from_code(self):
-        """从代码逻辑提取通用约束 (L3代码约束)"""
+        """
+        从代码逻辑提取约束 (L3代码约束)
+        
+        来源:
+        1. 通用条件约束 (如 not isTriggered)
+        2. CalcTriggers.lua configTable 中的触发器条件
+        """
         
         calc_triggers_path = self.pob_path / 'Modules' / 'CalcTriggers.lua'
         if not calc_triggers_path.exists():
@@ -247,6 +261,7 @@ class RulesExtractor:
         with open(calc_triggers_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
+        # 1. 通用条件约束
         code_constraints = self._parse_code_constraints(content)
         
         for constraint in code_constraints:
@@ -263,60 +278,246 @@ class RulesExtractor:
             )
             self.rules.append(rule)
             self.stats['constraint'] += 1
-            print(f"    ✓ {constraint['id']}")
+            print(f"    ✓ [通用] {constraint['id']}")
+        
+        # 2. 从 configTable 提取触发器条件约束
+        trigger_constraints = self._parse_trigger_config_table(content)
+        
+        for constraint in trigger_constraints:
+            rule = Rule(
+                id=f'constraint_{constraint["id"]}',
+                category='constraint',
+                source_entity=constraint['source'],
+                target_entity=constraint['target'],
+                relation_type=constraint['relation'],
+                condition=constraint['condition'],
+                effect=constraint['effect'],
+                evidence=f'CalcTriggers.lua:configTable:{constraint["trigger_name"]}',
+                source_layer=3
+            )
+            self.rules.append(rule)
+            self.stats['constraint'] += 1
+            print(f"    ✓ [触发器] {constraint['trigger_name']}: {constraint['condition'][:50]}...")
     
-    def _parse_code_constraints(self, content: str) -> List[Dict]:
-        """解析代码中的约束模式"""
+    def _parse_trigger_config_table(self, content: str) -> List[Dict]:
+        """
+        解析 CalcTriggers.lua 中的 configTable
+        
+        提取每个触发器的:
+        - triggerSkillCond: 触发源条件
+        - triggeredSkillCond: 被触发技能条件
+        """
+        
         constraints = []
         
-        # 核心约束1: 触发源不能是已触发技能
-        if 'not isTriggered' in content:
+        # 查找 configTable 定义
+        config_match = re.search(r'local configTable\s*=\s*\{', content)
+        if not config_match:
+            return constraints
+        
+        # 提取 configTable 内容（到下一个 top-level 定义）
+        start = config_match.end()
+        
+        # 查找每个触发器配置
+        trigger_pattern = r'\["([^"]+)"\]\s*=\s*function\(\)[^}]*return\s*\{([^}]+)\}'
+        
+        for match in re.finditer(trigger_pattern, content[start:], re.DOTALL):
+            trigger_name = match.group(1)
+            config_body = match.group(2)
+            
+            # 提取 triggerSkillCond
+            trigger_cond = self._extract_function_condition(config_body, 'triggerSkillCond')
+            if trigger_cond:
+                constraints.append({
+                    'id': f'trigger_{trigger_name}_source_cond',
+                    'source': trigger_name,
+                    'target': 'TriggerSource',
+                    'relation': 'requires',
+                    'condition': trigger_cond,
+                    'effect': 'trigger source must match condition',
+                    'trigger_name': trigger_name
+                })
+            
+            # 提取 triggeredSkillCond
+            triggered_cond = self._extract_function_condition(config_body, 'triggeredSkillCond')
+            if triggered_cond:
+                constraints.append({
+                    'id': f'trigger_{trigger_name}_target_cond',
+                    'source': trigger_name,
+                    'target': 'TriggeredSkill',
+                    'relation': 'requires',
+                    'condition': triggered_cond,
+                    'effect': 'triggered skill must match condition',
+                    'trigger_name': trigger_name
+                })
+        
+        return constraints
+    
+    def _extract_function_condition(self, config_body: str, func_name: str) -> Optional[str]:
+        """提取函数体中的条件逻辑"""
+        
+        # 查找函数定义
+        pattern = func_name + r'\s*=\s*function\([^)]*\)\s*return\s+([^}]+)\s*end'
+        match = re.search(pattern, config_body, re.DOTALL)
+        
+        if not match:
+            return None
+        
+        condition_body = match.group(1).strip()
+        
+        # 提取关键条件
+        conditions = []
+        
+        # skillTypes 检查
+        skill_types = re.findall(r'skillTypes\[SkillType\.(\w+)\]', condition_body)
+        if skill_types:
+            conditions.append(f"skillTypes: {','.join(skill_types)}")
+        
+        # skillFlags 检查
+        flags = re.findall(r'skillFlags\.(\w+)', condition_body)
+        if flags:
+            conditions.append(f"skillFlags: {','.join(flags)}")
+        
+        # slotMatch 检查
+        if 'slotMatch' in condition_body:
+            conditions.append('slotMatch: true')
+        
+        # weaponTypes 检查
+        weapons = re.findall(r'weaponTypes\["(\w+)"\]', condition_body)
+        if weapons:
+            conditions.append(f"weaponTypes: {','.join(weapons)}")
+        
+        # weapon 检查
+        weapon_flags = re.findall(r'ModFlag\.(\w+)', condition_body)
+        if weapon_flags:
+            conditions.append(f"weaponFlags: {','.join(weapon_flags)}")
+        
+        return ', '.join(conditions) if conditions else condition_body[:100]
+    
+    def _parse_code_constraints(self, content: str) -> List[Dict]:
+        """
+        从 CalcTriggers.lua 提取通用代码约束
+        
+        提取源:
+        1. 条件判断语句中的 isTriggered/notTriggered 等
+        2. 隐式约束（如触发源不能是被触发技能）
+        """
+        
+        constraints = []
+        
+        # 1. 触发源不能是被触发技能
+        if re.search(r'not\s+skillData\.triggered', content) or \
+           re.search(r'not\s+activeSkill\.skillData\.triggered', content):
             constraints.append({
                 'id': 'trigger_source_not_triggered',
-                'source': 'TriggerSource',
+                'source': 'TriggerSkill',
                 'target': 'TriggeredSkill',
                 'relation': 'excludes',
-                'condition': 'isTriggered(skill) == false',
-                'effect': 'triggered skills cannot be trigger sources',
-                'evidence': 'not isTriggered(skill) check'
+                'condition': 'source skill must not be triggered',
+                'effect': 'prevents recursive triggers',
+                'evidence': 'not skillData.triggered'
             })
         
-        # 核心约束2: 禁用技能不能触发
-        if 'skillFlags.disable' in content:
+        # 2. 禁用的技能无法触发
+        if re.search(r'skillFlags\.disabled', content):
             constraints.append({
                 'id': 'disabled_skill_blocks_trigger',
-                'source': 'Disabled',
-                'target': 'TriggerRate',
-                'relation': 'blocks',
-                'condition': 'skillFlags.disable == true',
-                'effect': 'trigger_rate = 0',
-                'evidence': 'skillFlags.disable check'
-            })
-        
-        # 核心约束3: OtherThingUsesSkill 排除
-        if 'OtherThingUsesSkill' in content:
-            constraints.append({
-                'id': 'other_thing_uses_skill_excludes',
-                'source': 'OtherThingUsesSkill',
-                'target': 'TriggerCandidate',
+                'source': 'DisabledSkill',
+                'target': 'TriggerSystem',
                 'relation': 'excludes',
-                'condition': 'skillTypes[OtherThingUsesSkill] == true',
-                'effect': 'not eligible as trigger source',
-                'evidence': 'OtherThingUsesSkill check'
+                'condition': 'skillFlags.disabled == true',
+                'effect': 'disabled skills cannot trigger',
+                'evidence': 'skillFlags.disabled check'
             })
         
-        # 核心约束4: globalTrigger 启用
-        if 'globalTrigger' in content:
+        # 3. 技能必须启用才能被触发
+        if re.search(r'skillFlags\.enable', content):
+            constraints.append({
+                'id': 'skill_must_be_enabled',
+                'source': 'TriggeredSkill',
+                'target': 'SkillFlag',
+                'relation': 'requires',
+                'condition': 'skillFlags.enable == true',
+                'effect': 'disabled skills cannot be triggered',
+                'evidence': 'skillFlags.enable check'
+            })
+        
+        # 4. 触发器能量检查
+        if re.search(r'triggerEnergy', content):
+            constraints.append({
+                'id': 'trigger_energy_required',
+                'source': 'MetaSkill',
+                'target': 'TriggerEnergy',
+                'relation': 'requires',
+                'condition': 'triggerEnergy >= threshold',
+                'effect': 'requires sufficient trigger energy to fire',
+                'evidence': 'triggerEnergy threshold check'
+            })
+        
+        # 5. 冷却时间约束
+        if re.search(r'cooldownSpeed', content):
+            constraints.append({
+                'id': 'cooldown_applies_to_triggered',
+                'source': 'TriggeredSkill',
+                'target': 'Cooldown',
+                'relation': 'has',
+                'condition': 'triggered skill has cooldown',
+                'effect': 'triggered skill goes on cooldown after triggering',
+                'evidence': 'cooldownSpeed check'
+            })
+        
+        # 6. 武器类型约束
+        if re.search(r'weaponTypes', content):
+            constraints.append({
+                'id': 'weapon_type_restriction',
+                'source': 'TriggerSkill',
+                'target': 'WeaponType',
+                'relation': 'requires',
+                'condition': 'correct weapon type equipped',
+                'effect': 'trigger requires specific weapon type',
+                'evidence': 'weaponTypes check'
+            })
+        
+        # 7. 全局触发计数器
+        if re.search(r'globalTrigger', content):
             constraints.append({
                 'id': 'global_trigger_enables',
                 'source': 'GlobalTrigger',
-                'target': 'TriggeredSkill',
-                'relation': 'enables',
-                'condition': 'skillFlags.globalTrigger == true',
-                'effect': 'can trigger other skills',
-                'evidence': 'globalTrigger flag'
+                'target': 'TriggerSystem',
+                'relation': 'controls',
+                'condition': 'globalTrigger enabled',
+                'effect': 'global trigger enables/disables all triggers',
+                'evidence': 'globalTrigger check'
             })
         
+        # 8. 插槽匹配约束
+        if re.search(r'slotMatch', content):
+            constraints.append({
+                'id': 'slot_matching_required',
+                'source': 'TriggeredSkill',
+                'target': 'TriggerSkill',
+                'relation': 'requires',
+                'condition': 'triggered skill must be socketed in meta skill',
+                'effect': 'skills must be in correct socket',
+                'evidence': 'slotMatch check'
+            })
+        
+        # 9. 技能类型标签约束（从代码逻辑中提取）
+        skill_type_checks = re.findall(r'skillTypes\[SkillType\.(\w+)\]', content)
+        unique_skill_types = list(set(skill_type_checks))
+        
+        for skill_type in unique_skill_types:
+            constraints.append({
+                'id': f'skill_type_{skill_type.lower()}_checked',
+                'source': 'TriggerSystem',
+                'target': f'SkillType.{skill_type}',
+                'relation': 'checks',
+                'condition': f'skillTypes[{skill_type}] evaluated',
+                'effect': f'skill type {skill_type} affects trigger behavior',
+                'evidence': f'skillTypes[SkillType.{skill_type}]'
+            })
+        
+        print(f"    找到 {len(constraints)} 个通用代码约束")
         return constraints
     
     def _extract_relation_rules_from_formulas(self):
@@ -413,8 +614,13 @@ class RulesExtractor:
             self.rules.append(rule)
             self.stats['relation'] += 1
     
-    def _extract_relation_rules_from_entities(self):
-        """从 S1 实体库提取 relation 规则"""
+    def _extract_constraint_rules_from_entities(self):
+        """
+        从 S1 实体库提取 constraint 规则
+        
+        约束字段: requireSkillTypes, excludeSkillTypes
+        关系字段: addSkillTypes（保留为relation规则）
+        """
         
         if not self.entities_db.exists():
             print("  ⚠ 实体库不存在")
@@ -423,9 +629,11 @@ class RulesExtractor:
         conn = sqlite3.connect(str(self.entities_db))
         cursor = conn.cursor()
         
-        # 查询支持宝石的 require_skill_types (单独字段)
+        constraint_count = 0
+        
+        # 查询 require_skill_types → constraint
         cursor.execute('''
-            SELECT id, name, require_skill_types, add_skill_types
+            SELECT id, name, require_skill_types
             FROM entities
             WHERE type = 'skill_definition'
               AND require_skill_types IS NOT NULL
@@ -433,32 +641,84 @@ class RulesExtractor:
         ''')
         
         for row in cursor.fetchall():
-            entity_id, name, req_types_json, add_types_json = row
+            entity_id, name, req_types_json = row
             
             try:
                 req_types = json.loads(req_types_json) if req_types_json else []
             except:
                 req_types = []
             
-            for req_type in req_types:
-                if not req_type or req_type == 'AND':
-                    continue
+            # 过滤 AND/OR
+            req_types = [t for t in req_types if t and t not in ('AND', 'OR')]
+            
+            if req_types:
+                condition_str = f"requireSkillTypes: {','.join(req_types)}"
                 
                 rule = Rule(
-                    id=f'relation_{entity_id}_requires_{req_type}',
-                    category='relation',
+                    id=f'constraint_{entity_id}_skill_type_requires',
+                    category='constraint',
                     source_entity=entity_id,
-                    target_entity=req_type,
+                    target_entity='SupportedSkill',
                     relation_type='requires',
-                    condition=None,
-                    effect=f'requires skill type: {req_type}',
-                    evidence=f'entities.db:skill_definition:{entity_id}',
+                    condition=condition_str,
+                    effect='skill must match required types',
+                    evidence=f'entities.db:{entity_id}.requireSkillTypes',
                     source_layer=1
                 )
                 self.rules.append(rule)
-                self.stats['relation'] += 1
+                self.stats['constraint'] += 1
+                constraint_count += 1
         
-        # 查询 add_skill_types
+        # 查询 exclude_skill_types → constraint
+        cursor.execute('''
+            SELECT id, name, exclude_skill_types
+            FROM entities
+            WHERE type = 'skill_definition'
+              AND exclude_skill_types IS NOT NULL
+              AND exclude_skill_types != '[]'
+        ''')
+        
+        for row in cursor.fetchall():
+            entity_id, name, exc_types_json = row
+            
+            try:
+                exc_types = json.loads(exc_types_json) if exc_types_json else []
+            except:
+                exc_types = []
+            
+            exc_types = [t for t in exc_types if t and t not in ('AND', 'OR')]
+            
+            if exc_types:
+                condition_str = f"excludeSkillTypes: {','.join(exc_types)}"
+                
+                rule = Rule(
+                    id=f'constraint_{entity_id}_skill_type_excludes',
+                    category='constraint',
+                    source_entity=entity_id,
+                    target_entity='SupportedSkill',
+                    relation_type='excludes',
+                    condition=condition_str,
+                    effect='skill cannot have excluded types',
+                    evidence=f'entities.db:{entity_id}.excludeSkillTypes',
+                    source_layer=1
+                )
+                self.rules.append(rule)
+                self.stats['constraint'] += 1
+                constraint_count += 1
+        
+        conn.close()
+        print(f"  ✓ 提取 constraint 规则: {constraint_count} 条")
+    
+    def _extract_relation_rules_from_entities(self):
+        """从 S1 实体库提取 relation 规则（仅 addSkillTypes）"""
+        
+        if not self.entities_db.exists():
+            return
+        
+        conn = sqlite3.connect(str(self.entities_db))
+        cursor = conn.cursor()
+        
+        # 查询 add_skill_types → relation（功能性关系）
         cursor.execute('''
             SELECT id, name, add_skill_types
             FROM entities
@@ -476,7 +736,7 @@ class RulesExtractor:
                 add_types = []
             
             for add_type in add_types:
-                if not add_type:
+                if not add_type or add_type in ('AND', 'OR'):
                     continue
                 
                 rule = Rule(
@@ -494,7 +754,6 @@ class RulesExtractor:
                 self.stats['relation'] += 1
         
         conn.close()
-        print(f"  ✓ 提取 relation 规则: {self.stats['relation']} 条")
     
     def _extract_formula_application_rules(self):
         """从 S2 公式库提取 formula_application 规则"""
@@ -579,7 +838,7 @@ class RulesExtractor:
 
 def main():
     kb_path = Path('.codebuddy/skills/poe-data-miner/knowledge_base')
-    extractor = RulesExtractorV2(str(kb_path))
+    extractor = RulesExtractor(str(kb_path))
     extractor.run()
 
 
