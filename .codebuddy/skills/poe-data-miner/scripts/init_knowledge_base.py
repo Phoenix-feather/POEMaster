@@ -18,8 +18,8 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from data_scanner import POBDataScanner
 from entity_index import EntityIndex
 from mechanism_extractor import MechanismExtractor
-from rules_extractor import RulesExtractor
-from attribute_graph import AttributeGraph, NodeType, EdgeType, GraphNode, GraphEdge
+from rules_extractor import RulesExtractor  # 使用新版本
+from attribute_graph import AttributeGraph  # 用于初始化表结构和加载预置边
 from formula_index import init_formula_index
 from pob_paths import get_pob_path, get_knowledge_base_path, validate_pob_path
 
@@ -108,155 +108,26 @@ def init_formula_library(pob_path: str, db_path: str, entities_db_path: str) -> 
 
 
 def init_rules_db(db_path: str, entities_db_path: str) -> dict:
-    """初始化规则库 - 使用 RulesExtractor 封装类"""
+    """初始化规则库 - 使用新的 RulesExtractor"""
     print("\n" + "=" * 60)
     print("3. 初始化规则库")
     print("=" * 60)
     
-    # 使用 RulesExtractor 封装类
-    extractor = RulesExtractor(db_path)
+    # 获取知识库路径
+    kb_path = Path(entities_db_path).parent
     
-    # ========== Layer 1: 从实体提取属性规则 ==========
-    print("提取 Layer 1 规则 (实体-stats关系)...")
-    
-    entities_conn = sqlite3.connect(entities_db_path)
-    entities_cursor = entities_conn.cursor()
-    
-    # 读取实体数据
-    entities_cursor.execute("SELECT id, name, type, skill_types, constant_stats, stats, data_json FROM entities")
-    entities = []
-    for row in entities_cursor.fetchall():
-        entity_id, name, entity_type, skill_types, constant_stats, stats, data_json = row
-        
-        entity = {
-            'id': entity_id,
-            'name': name or entity_id,
-            'type': entity_type,
-            'skill_types': json.loads(skill_types) if skill_types else [],
-            'constant_stats': json.loads(constant_stats) if constant_stats else [],
-            'stats': json.loads(stats) if stats else []
-        }
-        entities.append(entity)
-    
-    entities_conn.close()
-    
-    # 使用 RulesExtractor 提取 Layer 1 规则
-    layer1_rules = extractor.extract_layer1_stats(entities)
-    print(f"  Layer 1: {len(layer1_rules)} 条规则")
-    
-    # ========== Layer 2: 从 stat_mapping 提取属性映射规则 ==========
-    print("提取 Layer 2 规则 (属性映射)...")
-    
-    entities_conn = sqlite3.connect(entities_db_path)
-    entities_cursor = entities_conn.cursor()
-    
-    # 读取 stat_mapping 实体 (注意：实际数据类型是 stat_mapping，不是 mod_definition)
-    entities_cursor.execute("SELECT data_json FROM entities WHERE type='stat_mapping'")
-    stat_mappings = []
-    for row in entities_cursor.fetchall():
-        data = json.loads(row[0])
-        stat_mappings.append(data)
-    
-    entities_conn.close()
-    
-    # 使用 RulesExtractor 提取 Layer 2 规则
-    layer2_rules = extractor.extract_layer2_statmap(stat_mappings)
-    print(f"  Layer 2: {len(layer2_rules)} 条规则")
-    
-    # ========== Layer 3: 从计算模块提取公式和约束规则 ==========
-    print("提取 Layer 3 规则 (计算模块)...")
-    
-    entities_conn = sqlite3.connect(entities_db_path)
-    entities_cursor = entities_conn.cursor()
-    
-    # 读取 calculation_module 实体
-    entities_cursor.execute("SELECT data_json FROM entities WHERE type='calculation_module'")
-    functions = []
-    for row in entities_cursor.fetchall():
-        data = json.loads(row[0])
-        functions.append(data)
-    
-    entities_conn.close()
-    
-    # 使用 RulesExtractor 提取 Layer 3 规则
-    layer3_rules = extractor.extract_layer3_calccode(functions)
-    print(f"  Layer 3: {len(layer3_rules)} 条规则")
-    
-    # ========== 添加预置规则 ==========
-    print("添加预置规则...")
-    predefined_rules = [
-        {
-            'id': 'rule_triggered_energy_block',
-            'name': '触发技能能量限制',
-            'category': 'constraint',
-            'condition': 'skill has SkillType.Triggered',
-            'effect': 'energy generation = 0',
-            'description': '被触发的技能无法为元技能提供能量',
-            'source_layer': 3
-        },
-        {
-            'id': 'rule_hazard_bypass',
-            'name': 'Hazard区域绕过',
-            'category': 'bypass',
-            'condition': 'damage source = Hazard zone explosion',
-            'effect': 'bypasses Triggered energy limit',
-            'description': "Doedre's Undoing通过Hazard区域爆炸绕过触发限制",
-            'source_layer': 3
-        },
-        {
-            'id': 'rule_energy_formula',
-            'name': '能量获取公式',
-            'category': 'formula',
-            'formula': 'energy = base × (1 + Σinc) × Πmore',
-            'description': '能量获取公式: 基础值 × (1 + 加法叠加) × 乘法叠加',
-            'source_layer': 3
-        },
-        {
-            'id': 'rule_inc_stacking',
-            'name': 'INC加成叠加',
-            'category': 'formula',
-            'formula': 'total_inc = Σ(all_inc_modifiers)',
-            'description': '所有increased修饰符线性叠加',
-            'source_layer': 3
-        },
-        {
-            'id': 'rule_more_stacking',
-            'name': 'MORE加成叠加',
-            'category': 'formula',
-            'formula': 'total_more = Π(all_more_modifiers)',
-            'description': '所有more修饰符乘法叠加',
-            'source_layer': 3
-        }
-    ]
-    
-    # 直接插入预置规则
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    for rule in predefined_rules:
-        cursor.execute('''
-            INSERT OR REPLACE INTO rules
-            (id, name, category, condition, effect, formula, description, source_layer)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            rule['id'], rule['name'], rule['category'],
-            rule.get('condition'), rule.get('effect'), rule.get('formula'),
-            rule.get('description'), rule['source_layer']
-        ))
-    
-    conn.commit()
-    
-    # 保存所有提取的规则
-    extractor.save_rules_to_db()
+    # 使用新的 RulesExtractor
+    extractor = RulesExtractor(str(kb_path))
+    extractor.run()
     
     # 统计
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     cursor.execute("SELECT category, COUNT(*) FROM rules GROUP BY category")
     cat_counts = dict(cursor.fetchall())
     cursor.execute("SELECT COUNT(*) FROM rules")
     total = cursor.fetchone()[0]
-    
     conn.close()
-    extractor.close()
     
     print(f"[OK] 已创建 {total} 条规则")
     for c, count in cat_counts.items():
@@ -266,83 +137,159 @@ def init_rules_db(db_path: str, entities_db_path: str) -> dict:
 
 
 def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, predefined_edges_path: str = None) -> dict:
-    """初始化关联图 - 使用 AttributeGraph 封装类"""
+    """
+    初始化关联图 - 从规则库生成边
+    
+    数据流: rules.db → graph.db
+    边状态: verified (已验证)
+    """
     print("\n" + "=" * 60)
     print("4. 初始化关联图")
     print("=" * 60)
     
-    # 使用 AttributeGraph 封装类（传递预置边配置文件路径）
+    # Step 1: 创建图数据库（初始化表结构）
+    print("初始化图数据库结构...")
     graph = AttributeGraph(db_path, predefined_edges_path=predefined_edges_path)
     
-    # ========== 从实体索引创建节点和边 ==========
-    print("从实体索引构建关联图...")
-    
-    entities_conn = sqlite3.connect(entities_db_path)
-    entities_cursor = entities_conn.cursor()
-    
-    # 读取所有实体
-    entities_cursor.execute("SELECT id, name, type, skill_types, constant_stats, stats FROM entities")
-    entities = []
-    for row in entities_cursor.fetchall():
-        entity_id, name, entity_type, skill_types, constant_stats, stats = row
-        entities.append({
-            'id': entity_id,
-            'name': name or entity_id,
-            'type': entity_type,
-            'skill_types': json.loads(skill_types) if skill_types else [],
-            'constant_stats': json.loads(constant_stats) if constant_stats else [],
-            'stats': json.loads(stats) if stats else []
-        })
-    
-    entities_conn.close()
-    
-    # 使用 AttributeGraph.build_from_entities()
-    graph.build_from_entities(entities)
-    
-    # ========== 从规则创建约束节点 ==========
-    print("从规则构建约束节点...")
+    # Step 2: 从规则库生成边
+    print("从规则库生成边...")
     
     rules_conn = sqlite3.connect(rules_db_path)
     rules_cursor = rules_conn.cursor()
     
-    # 读取约束和绕过规则
-    rules_cursor.execute("SELECT id, name, category, condition, effect, description FROM rules WHERE category IN ('constraint', 'bypass', 'formula')")
-    rules = []
-    for row in rules_cursor.fetchall():
-        rules.append({
-            'id': row[0],
-            'name': row[1],
-            'category': row[2],
-            'condition': row[3],
-            'effect': row[4],
-            'description': row[5]
-        })
+    graph_conn = sqlite3.connect(db_path)
+    graph_cursor = graph_conn.cursor()
     
+    # 清理旧的规则边 (status = 'verified')
+    graph_cursor.execute("DELETE FROM graph_edges WHERE status = 'verified'")
+    deleted_count = graph_cursor.rowcount
+    if deleted_count > 0:
+        print(f"  清理 {deleted_count} 条旧边")
+    
+    # 查询所有规则
+    rules_cursor.execute('''
+        SELECT id, category, source_entity, target_entity, relation_type,
+               condition, effect, evidence, source_layer, source_formula,
+               heuristic_record_id, verified_at
+        FROM rules
+    ''')
+    rules = rules_cursor.fetchall()
+    print(f"  找到 {len(rules)} 条规则")
+    
+    # 生成边
+    edge_count = 0
+    node_set = set()
+    
+    for rule in rules:
+        (rule_id, category, source_entity, target_entity, relation_type,
+         condition, effect, evidence, source_layer, source_formula,
+         heuristic_record_id, verified_at) = rule
+        
+        # 跳过没有 source_entity 或 target_entity 的规则
+        if not source_entity or not target_entity:
+            continue
+        
+        # 记录节点
+        node_set.add(source_entity)
+        node_set.add(target_entity)
+        
+        # 确定边类型
+        edge_type = relation_type if relation_type else 'relates'
+        
+        # 生成边属性
+        attributes = {
+            'category': category,
+            'source_layer': source_layer
+        }
+        
+        # 插入边
+        try:
+            graph_cursor.execute('''
+                INSERT INTO graph_edges (
+                    source_node, target_node, edge_type, weight, attributes,
+                    status, source_rule, heuristic_record_id, verified_at,
+                    condition, effect, evidence, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                source_entity,
+                target_entity,
+                edge_type,
+                1.0,  # 权重
+                json.dumps(attributes, ensure_ascii=False),
+                'verified',
+                rule_id,
+                heuristic_record_id,
+                verified_at or datetime.now().isoformat(),
+                condition,
+                effect,
+                evidence,
+                datetime.now().isoformat()
+            ))
+            edge_count += 1
+        except Exception as e:
+            print(f"  ⚠ 插入边失败: {rule_id} - {e}")
+    
+    graph_conn.commit()
+    print(f"  生成 {edge_count} 条边")
+    
+    # Step 3: 确保节点存在
+    print("确保节点存在...")
+    for node_id in node_set:
+        graph_cursor.execute('SELECT id FROM graph_nodes WHERE id = ?', (node_id,))
+        if not graph_cursor.fetchone():
+            graph_cursor.execute('''
+                INSERT INTO graph_nodes (id, name, type, created_at)
+                VALUES (?, ?, ?, ?)
+            ''', (node_id, node_id, 'entity', datetime.now().isoformat()))
+    
+    graph_conn.commit()
+    print(f"  确保 {len(node_set)} 个节点存在")
+    
+    # 预置边已在 AttributeGraph 构造函数中加载
+    
+    # 关闭连接
     rules_conn.close()
+    graph_conn.close()
     
-    # 使用 AttributeGraph.build_from_rules()
-    graph.build_from_rules(rules)
+    # 统计
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     
-    # 预置边已在 AttributeGraph 构造函数中通过 predefined_edges_path 加载
+    cursor.execute('SELECT COUNT(*) FROM graph_nodes')
+    node_count = cursor.fetchone()[0]
     
-    # ========== 统计 ==========
-    stats = graph.get_stats()
+    cursor.execute('SELECT COUNT(*) FROM graph_edges')
+    edge_count = cursor.fetchone()[0]
     
-    graph.close()
+    cursor.execute('SELECT type, COUNT(*) FROM graph_nodes GROUP BY type')
+    node_types = {row[0]: row[1] for row in cursor.fetchall()}
     
-    print(f"[OK] 已创建 {stats['node_count']} 个节点")
-    for t, c in stats['node_types'].items():
+    cursor.execute('SELECT edge_type, COUNT(*) FROM graph_edges GROUP BY edge_type')
+    edge_types = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    cursor.execute('SELECT status, COUNT(*) FROM graph_edges GROUP BY status')
+    edge_status = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    conn.close()
+    
+    print(f"[OK] 已创建 {node_count} 个节点")
+    for t, c in node_types.items():
         print(f"  - {t}: {c}")
     
-    print(f"[OK] 已创建 {stats['edge_count']} 条边")
-    for t, c in stats['edge_types'].items():
+    print(f"[OK] 已创建 {edge_count} 条边")
+    for t, c in edge_types.items():
         print(f"  - {t}: {c}")
+    
+    print("边状态分布:")
+    for s, c in edge_status.items():
+        print(f"  - {s}: {c}")
     
     return {
-        'nodes': stats['node_count'],
-        'edges': stats['edge_count'],
-        'node_types': stats['node_types'],
-        'edge_types': stats['edge_types']
+        'nodes': node_count,
+        'edges': edge_count,
+        'node_types': node_types,
+        'edge_types': edge_types,
+        'edge_status': edge_status
     }
 
 

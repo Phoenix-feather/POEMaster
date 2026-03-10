@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Set, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from datetime import datetime
 
 # 尝试导入yaml
 try:
@@ -62,14 +63,20 @@ class GraphNode:
 
 @dataclass
 class GraphEdge:
-    """图边"""
+    """图边（v3: 支持启发式假设边）"""
     source: str
     target: str
     type: EdgeType
     weight: float = 1.0
     attributes: Dict[str, Any] = None
-    confirmed: bool = False
-    source_type: str = "auto"  # auto, predefined, user_confirmed
+    # v3 新字段
+    status: str = 'verified'  # verified, hypothesis, rejected
+    source_rule: str = None
+    heuristic_record_id: str = None
+    verified_at: str = None
+    condition: str = None
+    effect: str = None
+    evidence: str = None
     
     def __post_init__(self):
         if self.attributes is None:
@@ -107,7 +114,7 @@ class AttributeGraph:
         self._create_indexes()
     
     def _create_tables(self):
-        """创建表结构"""
+        """创建表结构（v3: 支持启发式假设边）"""
         cursor = self.conn.cursor()
         
         # 节点表
@@ -121,7 +128,7 @@ class AttributeGraph:
             )
         ''')
         
-        # 边表
+        # 边表（v3: 新增 status, source_rule, heuristic_record_id, verified_at 等字段）
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS graph_edges (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,9 +137,14 @@ class AttributeGraph:
                 edge_type TEXT NOT NULL,
                 weight REAL DEFAULT 1.0,
                 attributes TEXT,
-                confirmed BOOLEAN DEFAULT 0,
-                source_type TEXT DEFAULT 'auto',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'verified',
+                source_rule TEXT,
+                heuristic_record_id TEXT,
+                verified_at TIMESTAMP,
+                condition TEXT,
+                effect TEXT,
+                evidence TEXT,
                 FOREIGN KEY (source_node) REFERENCES graph_nodes(id),
                 FOREIGN KEY (target_node) REFERENCES graph_nodes(id)
             )
@@ -152,7 +164,8 @@ class AttributeGraph:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_source ON graph_edges(source_node)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_target ON graph_edges(target_node)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_type ON graph_edges(edge_type)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_confirmed ON graph_edges(confirmed)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_status ON graph_edges(status)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_source_rule ON graph_edges(source_rule)')
         
         self.conn.commit()
     
@@ -207,23 +220,50 @@ class AttributeGraph:
     
     # ========== 边操作 ==========
     
-    def create_edge(self, edge: GraphEdge) -> bool:
-        """创建边"""
+    def create_edge(self, edge: GraphEdge, 
+                     status: str = 'verified',
+                     source_rule: str = None,
+                     heuristic_record_id: str = None,
+                     verified_at: str = None,
+                     condition: str = None,
+                     effect: str = None,
+                     evidence: str = None) -> bool:
+        """
+        创建边（v3: 支持启发式假设边）
+        
+        Args:
+            edge: 边对象
+            status: 边状态 (verified, hypothesis, rejected)
+            source_rule: 来源规则ID
+            heuristic_record_id: 启发记录ID
+            verified_at: 验证时间
+            condition: 条件
+            effect: 效果
+            evidence: 证据
+        """
         cursor = self.conn.cursor()
         
         try:
             cursor.execute('''
                 INSERT INTO graph_edges 
-                (source_node, target_node, edge_type, weight, attributes, confirmed, source_type)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (source_node, target_node, edge_type, weight, attributes, 
+                 status, source_rule, heuristic_record_id, verified_at,
+                 condition, effect, evidence, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 edge.source,
                 edge.target,
                 edge.type.value,
                 edge.weight,
                 json.dumps(edge.attributes, ensure_ascii=False),
-                edge.confirmed,
-                edge.source_type
+                status,
+                source_rule,
+                heuristic_record_id,
+                verified_at,
+                condition,
+                effect,
+                evidence,
+                datetime.now().isoformat()
             ))
             self.conn.commit()
             self.edge_cache.append(edge)
@@ -231,56 +271,72 @@ class AttributeGraph:
         except sqlite3.IntegrityError:
             return False
     
-    def get_neighbors(self, node_id: str, edge_type: str = None) -> List[Dict[str, Any]]:
+    def get_neighbors(self, node_id: str, edge_type: str = None, status: str = None) -> List[Dict[str, Any]]:
         """
         获取节点的邻居
         
         Args:
             node_id: 节点ID
             edge_type: 边类型过滤（可选）
+            status: 边状态过滤（可选）
             
         Returns:
             邻居节点列表
         """
         cursor = self.conn.cursor()
         
-        if edge_type:
-            cursor.execute('''
-                SELECT n.*, e.edge_type, e.weight, e.confirmed, e.source_type
-                FROM graph_nodes n
-                JOIN graph_edges e ON n.id = e.target_node
-                WHERE e.source_node = ? AND e.edge_type = ?
-            ''', (node_id, edge_type))
-        else:
-            cursor.execute('''
-                SELECT n.*, e.edge_type, e.weight, e.confirmed, e.source_type
-                FROM graph_nodes n
-                JOIN graph_edges e ON n.id = e.target_node
-                WHERE e.source_node = ?
-            ''', (node_id,))
+        # 构建动态查询
+        query = '''
+            SELECT n.*, e.edge_type, e.weight, e.status, e.source_rule, 
+                   e.heuristic_record_id, e.verified_at, e.condition, e.effect, e.evidence
+            FROM graph_nodes n
+            JOIN graph_edges e ON n.id = e.target_node
+            WHERE e.source_node = ?
+        '''
+        params = [node_id]
         
+        if edge_type:
+            query += ' AND e.edge_type = ?'
+            params.append(edge_type)
+        
+        if status:
+            query += ' AND e.status = ?'
+            params.append(status)
+        
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         return [self._row_to_edge_dict(row) for row in rows]
     
-    def get_reverse_neighbors(self, node_id: str, edge_type: str = None) -> List[Dict[str, Any]]:
-        """获取反向邻居（谁指向这个节点）"""
+    def get_reverse_neighbors(self, node_id: str, edge_type: str = None, status: str = None) -> List[Dict[str, Any]]:
+        """
+        获取反向邻居（谁指向这个节点）
+        
+        Args:
+            node_id: 节点ID
+            edge_type: 边类型过滤（可选）
+            status: 边状态过滤（可选）
+        """
         cursor = self.conn.cursor()
         
-        if edge_type:
-            cursor.execute('''
-                SELECT n.*, e.edge_type, e.weight, e.confirmed, e.source_type
-                FROM graph_nodes n
-                JOIN graph_edges e ON n.id = e.source_node
-                WHERE e.target_node = ? AND e.edge_type = ?
-            ''', (node_id, edge_type))
-        else:
-            cursor.execute('''
-                SELECT n.*, e.edge_type, e.weight, e.confirmed, e.source_type
-                FROM graph_nodes n
-                JOIN graph_edges e ON n.id = e.source_node
-                WHERE e.target_node = ?
-            ''', (node_id,))
+        # 构建动态查询
+        query = '''
+            SELECT n.*, e.edge_type, e.weight, e.status, e.source_rule,
+                   e.heuristic_record_id, e.verified_at, e.condition, e.effect, e.evidence
+            FROM graph_nodes n
+            JOIN graph_edges e ON n.id = e.source_node
+            WHERE e.target_node = ?
+        '''
+        params = [node_id]
         
+        if edge_type:
+            query += ' AND e.edge_type = ?'
+            params.append(edge_type)
+        
+        if status:
+            query += ' AND e.status = ?'
+            params.append(status)
+        
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         return [self._row_to_edge_dict(row) for row in rows]
     
@@ -365,18 +421,20 @@ class AttributeGraph:
         
         return paths
     
-    def find_bypass_paths(self, constraint_node: str) -> List[Dict[str, Any]]:
+    def find_bypass_paths(self, constraint_node: str, include_hypothesis: bool = True) -> List[Dict[str, Any]]:
         """
         查找绕过某个约束的路径
         
         Args:
             constraint_node: 约束节点ID
+            include_hypothesis: 是否包含假设边
             
         Returns:
             绕过路径列表
         """
         # 查找所有 bypasses 类型的边指向这个约束
-        bypasses = self.get_reverse_neighbors(constraint_node, EdgeType.BYPASSES.value)
+        status_filter = None if include_hypothesis else 'verified'
+        bypasses = self.get_reverse_neighbors(constraint_node, EdgeType.BYPASSES.value, status=status_filter)
         
         paths = []
         for bypass in bypasses:
@@ -384,8 +442,10 @@ class AttributeGraph:
                 'bypass_source': bypass['id'],
                 'constraint': constraint_node,
                 'edge_type': 'bypasses',
-                'confirmed': bypass.get('confirmed', False),
-                'source_type': bypass.get('source_type', 'auto')
+                'status': bypass.get('status', 'verified'),
+                'source_rule': bypass.get('source_rule'),
+                'heuristic_record_id': bypass.get('heuristic_record_id'),
+                'evidence': bypass.get('evidence')
             }
             paths.append(path)
         
@@ -557,17 +617,19 @@ class AttributeGraph:
                     skipped_types.append(edge_type)
                 continue
             
-            self.create_edge(GraphEdge(
-                source=source,
-                target=target,
-                type=edge_type_enum,
-                attributes={
-                    'description': edge_config.get('description', ''),
-                    'applicable_skills': edge_config.get('applicable_skills', [])
-                },
-                confirmed=True,
-                source_type="predefined"
-            ))
+            self.create_edge(
+                GraphEdge(
+                    source=source,
+                    target=target,
+                    type=edge_type_enum,
+                    attributes={
+                        'description': edge_config.get('description', ''),
+                        'applicable_skills': edge_config.get('applicable_skills', [])
+                    }
+                ),
+                status='verified',  # 预置边默认为已验证
+                evidence=edge_config.get('description', '预置知识')
+            )
             loaded_count += 1
         
         # 输出加载结果
@@ -624,15 +686,20 @@ class AttributeGraph:
         return result
     
     def _row_to_edge_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
-        """转换边行（包含目标节点信息）"""
+        """转换边行（包含目标节点信息）- v3 支持新字段"""
         result = {
             'id': row['id'],
             'type': row['type'],
             'name': row['name'],
             'edge_type': row['edge_type'],
             'weight': row['weight'],
-            'confirmed': row['confirmed'],
-            'source_type': row['source_type']
+            'status': row['status'] if 'status' in row.keys() else 'verified',
+            'source_rule': row['source_rule'] if 'source_rule' in row.keys() else None,
+            'heuristic_record_id': row['heuristic_record_id'] if 'heuristic_record_id' in row.keys() else None,
+            'verified_at': row['verified_at'] if 'verified_at' in row.keys() else None,
+            'condition': row['condition'] if 'condition' in row.keys() else None,
+            'effect': row['effect'] if 'effect' in row.keys() else None,
+            'evidence': row['evidence'] if 'evidence' in row.keys() else None
         }
         return result
     
