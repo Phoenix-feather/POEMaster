@@ -91,28 +91,232 @@ class RulesExtractor:
         print(f"  总计: {sum(self.stats.values())}")
     
     def _extract_constraint_rules(self):
-        """从 S3 代码层提取 constraint 规则"""
+        """
+        从 S3 代码层提取 constraint 规则
         
-        # 核心 constraint: Triggered 技能能量为 0
-        # 来源: CalcTriggers.lua
+        双驱动方案:
+        1. 从 gap_formulas 的 entity_id 起点反向查找约束
+        2. 从 CalcModules 的代码模式直接提取约束
+        """
         
-        rule = Rule(
-            id='constraint_triggered_energy_zero',
-            category='constraint',
-            source_entity='Triggered',
-            target_entity='EnergyGeneration',
-            relation_type='blocks',
-            condition='skill.skillFlags.triggered == true',
-            effect='energy = 0',
-            evidence='CalcTriggers.lua:energy_triggered_zero',
-            source_layer=3
-        )
-        self.rules.append(rule)
-        self.stats['constraint'] += 1
-        print(f"  ✓ 提取 constraint 规则: {rule.id}")
+        # ===== 驱动1: 从 gap_formulas 的 entity_id 起点提取 =====
+        print("  [驱动1] 从 gap_formulas entity_id 提取...")
+        self._extract_constraints_from_gap_formulas()
         
-        # TODO: 从 CalcModules 提取更多 constraint 规则
-        # 需要解析 if 条件语句
+        # ===== 驱动2: 从 CalcModules 代码模式提取 =====
+        print("  [驱动2] 从 CalcModules 代码模式提取...")
+        self._extract_constraints_from_calc_modules()
+    
+    def _extract_constraints_from_gap_formulas(self):
+        """从 gap_formulas 的 entity_id 提取相关约束"""
+        
+        if not self.formulas_db.exists():
+            return
+        
+        conn = sqlite3.connect(str(self.formulas_db))
+        cursor = conn.cursor()
+        
+        # 查询所有 Meta 技能的 gap_formulas
+        cursor.execute('''
+            SELECT DISTINCT entity_id, entity_name, formula_type
+            FROM gap_formulas
+            WHERE entity_id IS NOT NULL
+        ''')
+        
+        meta_entities = cursor.fetchall()
+        conn.close()
+        
+        # 为每个 Meta 技能创建通用约束
+        for entity_id, entity_name, formula_type in meta_entities:
+            # 触发条件约束
+            if formula_type == 'trigger_condition':
+                rule = Rule(
+                    id=f'constraint_{entity_id}_requires_trigger_source',
+                    category='constraint',
+                    source_entity=entity_id,
+                    target_entity='TriggerSource',
+                    relation_type='requires',
+                    condition='skill must be linked to trigger source',
+                    effect='trigger behavior depends on source',
+                    evidence=f'gap_formulas:{entity_id}:trigger_condition',
+                    source_layer=3
+                )
+                self.rules.append(rule)
+                self.stats['constraint'] += 1
+            
+            # 能量增益约束
+            elif formula_type == 'energy_gain':
+                rule = Rule(
+                    id=f'constraint_{entity_id}_energy_limit',
+                    category='constraint',
+                    source_entity=entity_id,
+                    target_entity='EnergyCap',
+                    relation_type='limited_by',
+                    condition='energy gain limited by trigger rate',
+                    effect='max_energy determines trigger threshold',
+                    evidence=f'gap_formulas:{entity_id}:energy_gain',
+                    source_layer=3
+                )
+                self.rules.append(rule)
+                self.stats['constraint'] += 1
+            
+            # 最大能量约束
+            elif formula_type == 'max_energy':
+                rule = Rule(
+                    id=f'constraint_{entity_id}_max_energy_cap',
+                    category='constraint',
+                    source_entity=entity_id,
+                    target_entity='MaxEnergy',
+                    relation_type='defines',
+                    condition='max_energy from skill definition',
+                    effect='triggers when energy >= max_energy',
+                    evidence=f'gap_formulas:{entity_id}:max_energy',
+                    source_layer=3
+                )
+                self.rules.append(rule)
+                self.stats['constraint'] += 1
+    
+    def _extract_constraints_from_calc_modules(self):
+        """从 CalcModules 代码模式提取约束"""
+        
+        calc_triggers_path = self.pob_path / 'Modules' / 'CalcTriggers.lua'
+        if not calc_triggers_path.exists():
+            print(f"    ⚠ CalcTriggers.lua 不存在")
+            return
+        
+        with open(calc_triggers_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 提取约束模式
+        constraints = self._parse_constraint_patterns(content)
+        
+        for constraint in constraints:
+            rule = Rule(
+                id=f'constraint_{constraint["id"]}',
+                category='constraint',
+                source_entity=constraint['source'],
+                target_entity=constraint['target'],
+                relation_type=constraint['relation'],
+                condition=constraint['condition'],
+                effect=constraint['effect'],
+                evidence=f'CalcTriggers.lua:{constraint["evidence"]}',
+                source_layer=3
+            )
+            self.rules.append(rule)
+            self.stats['constraint'] += 1
+    
+    def _parse_constraint_patterns(self, content: str) -> List[Dict]:
+        """
+        解析 CalcTriggers.lua 中的约束模式
+        
+        模式识别:
+        1. skillFlags 约束: skillFlags.disable, skillFlags.minion
+        2. skillTypes 约束: SkillType.Triggered, SkillType.OtherThingUsesSkill
+        3. isTriggered 函数: 触发技能判断
+        """
+        
+        constraints = []
+        
+        # 模式1: skillFlags 约束
+        # "not skill.skillFlags.disable" → Disable 约束
+        if 'skillFlags.disable' in content or r'skillFlags\.disable' in content:
+            constraints.append({
+                'id': 'skillFlags_disable_blocks_trigger',
+                'source': 'Disabled',
+                'target': 'TriggerRate',
+                'relation': 'blocks',
+                'condition': 'skill.skillFlags.disable == true',
+                'effect': 'trigger rate = 0',
+                'evidence': 'skillFlags.disable check'
+            })
+        
+        # 模式2: Minion 约束
+        # "not skill.skillFlags.minion" → Minion 技能有特殊处理
+        if 'skillFlags.minion' in content or r'skillFlags\.minion' in content:
+            constraints.append({
+                'id': 'skillFlags_minion_special_handling',
+                'source': 'Minion',
+                'target': 'TriggerMechanism',
+                'relation': 'requires',
+                'condition': 'skill.skillFlags.minion == true',
+                'effect': 'uses minion trigger mechanics',
+                'evidence': 'skillFlags.minion check'
+            })
+        
+        # 模式3: Triggered 类型约束
+        # isTriggered() 函数检查多种触发条件
+        if 'isTriggered' in content:
+            constraints.append({
+                'id': 'isTriggered_multi_condition_check',
+                'source': 'Skill',
+                'target': 'TriggeredState',
+                'relation': 'requires',
+                'condition': 'triggeredByUnique OR triggered OR InbuiltTrigger OR Triggered type',
+                'effect': 'skill becomes triggered state',
+                'evidence': 'isTriggered function'
+            })
+        
+        # 模式4: OtherThingUsesSkill 约束
+        if 'SkillType.OtherThingUsesSkill' in content:
+            constraints.append({
+                'id': 'OtherThingUsesSkill_excludes_from_trigger',
+                'source': 'OtherThingUsesSkill',
+                'target': 'TriggerCandidate',
+                'relation': 'excludes',
+                'condition': 'skill.skillTypes[SkillType.OtherThingUsesSkill] == true',
+                'effect': 'not eligible as trigger source',
+                'evidence': 'OtherThingUsesSkill check'
+            })
+        
+        # 模式5: usedByMirage 约束
+        if 'usedByMirage' in content:
+            constraints.append({
+                'id': 'usedByMirage_excludes_from_trigger',
+                'source': 'MirageUse',
+                'target': 'TriggerCandidate',
+                'relation': 'excludes',
+                'condition': 'skill.skillCond["usedByMirage"] == true',
+                'effect': 'not eligible as trigger source',
+                'evidence': 'usedByMirage check'
+            })
+        
+        # 模式6: globalTrigger 约束
+        if 'skillFlags.globalTrigger' in content or 'skillFlags\.globalTrigger' in content:
+            constraints.append({
+                'id': 'globalTrigger_enables_triggered_skill',
+                'source': 'GlobalTrigger',
+                'target': 'TriggeredSkill',
+                'relation': 'enables',
+                'condition': 'skill.skillFlags.globalTrigger == true',
+                'effect': 'skill can be triggered by global triggers',
+                'evidence': 'globalTrigger flag'
+            })
+        
+        # 模式7: 冷却约束 (cooldown)
+        if 'skillData.cooldown' in content or r'skillData\.cooldown' in content:
+            constraints.append({
+                'id': 'cooldown_limits_trigger_rate',
+                'source': 'Cooldown',
+                'target': 'TriggerRate',
+                'relation': 'limits',
+                'condition': 'skill.skillData.cooldown > 0',
+                'effect': 'trigger rate <= 1 / cooldown',
+                'evidence': 'cooldown check'
+            })
+        
+        # 模式8: ignoresTickRate 约束
+        if 'ignoresTickRate' in content:
+            constraints.append({
+                'id': 'ignoresTickRate_bypasses_server_tick',
+                'source': 'IgnoreTickRate',
+                'target': 'ServerTickConstraint',
+                'relation': 'bypasses',
+                'condition': 'skill.skillData.ignoresTickRate == true',
+                'effect': 'trigger not limited by server tick',
+                'evidence': 'ignoresTickRate flag'
+            })
+        
+        return constraints
     
     def _extract_relation_rules_from_formulas(self):
         """从 S2 公式库提取 relation 规则"""
