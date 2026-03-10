@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Meta缺口公式提取器 (Gap Formula Extractor) v5
+Meta缺口公式提取器 (Gap Formula Extractor) v6
 
 从Meta技能的实体完整数据中提取POB未实现的公式:
 - 能量获取公式 (energy_gain)
@@ -12,11 +12,16 @@ Meta缺口公式提取器 (Gap Formula Extractor) v5
 - entities.db 中的 Meta 技能实体 (constantStats, stats, qualityStats, skill_types)
 - entities.db 中的 Support 辅助实体 (requireSkillTypes 含 GeneratesEnergy)
 - entities.db 中的 hidden Support 实体 (SupportMeta*, 如果存在)
-- entities.db 中的 passive_node / ascendancy_node 实体 (能量相关天赋描述文本)
+- entities.db 中的 passive_node / ascendancy_node 实体 (stat_descriptions 字段)
+- entities.db 中的 mod_affix 实体 (stat_descriptions 字段)
 - entities.db 中的非Meta技能实体 (active_skill_energy_generated_+%_final)
 - StatDescriptions/skill_stat_descriptions.lua 中的精确描述文本 (决定公式修正因子)
 - StatDescriptions/stat_descriptions.lua 中的能量stat分类谱 (INC/MORE/条件/特殊)
-- [v5新增] Data/Mod*.lua 装备词缀定义 (珠宝/腐化/符文/独占词缀)
+
+v6 核心变更 (相对于v5):
+- 统一数据访问模式: 天赋/装备/技能都从实体库查询
+- 修复实体库字段映射: 使用 stat_descriptions 统一字段
+- 移除文件扫描: 不再直接扫描 Mod*.lua 文件
 
 v5 核心变更 (相对于v4):
 - 新增装备词缀能量修饰符扫描: ModJewel/ModCorrupted/ModItemExclusive/ModRunes/ModScalability
@@ -189,7 +194,7 @@ PER_POWER_PHRASES = ["per Power of enemies", "per enemy Power"]
 
 
 class StatFormulaExtractor:
-    """缺口公式提取器 v5 - 完整覆盖天赋+辅助+装备+被触发法术"""
+    """缺口公式提取器 v6 - 统一数据访问模式（天赋+装备+技能从实体库查询）"""
 
     def __init__(self, entities_db_path: str, db_path: str, pob_path: str = None):
         self.entities_db_path = Path(entities_db_path)
@@ -206,7 +211,7 @@ class StatFormulaExtractor:
         self._triggered_spell_more_modifiers: Optional[List[EnergyModifier]] = None
         # v4缓存: 条件INC和特殊stat
         self._conditional_energy_modifiers: Optional[List[EnergyModifier]] = None
-        # v5缓存: 装备词缀中的能量修饰符
+        # v5缓存: 装备词缀中的能量修饰符 (v6改用实体库查询)
         self._equipment_energy_modifiers: Optional[List[EnergyModifier]] = None
 
     def extract_all(self) -> List[GapFormula]:
@@ -516,17 +521,17 @@ class StatFormulaExtractor:
 
         # 查询所有被动/升华节点的描述文本
         cursor.execute('''
-            SELECT id, name, type, stats_node, ascendancy_name
+            SELECT id, name, type, stat_descriptions, ascendancy_name
             FROM entities
             WHERE (type = 'passive_node' OR type = 'ascendancy_node')
-              AND stats_node IS NOT NULL
-              AND stats_node != '[]'
+              AND stat_descriptions IS NOT NULL
+              AND stat_descriptions != '[]'
         ''')
 
         for row in cursor.fetchall():
-            eid, name, etype, stats_node_json, ascendancy = row
+            eid, name, etype, stat_desc_json, ascendancy = row
             try:
-                stats_texts = json.loads(stats_node_json) if stats_node_json else []
+                stats_texts = json.loads(stat_desc_json) if stat_desc_json else []
             except (json.JSONDecodeError, TypeError):
                 continue
 
@@ -1430,41 +1435,36 @@ class StatFormulaExtractor:
 
     def _scan_equipment_energy_mods(self) -> List[EnergyModifier]:
         """
-        [v5] 扫描 POBData/Data/Mod*.lua 文件，提取装备词缀中的能量修饰符。
+        [v6优化] 从 entities.db 查询 mod_affix 实体，提取装备词缀中的能量修饰符。
 
-        装备词缀来源:
-        - ModJewel.lua: 珠宝词缀 (如 "Meta Skills gain (4-8)% increased Energy")
-        - ModCorrupted.lua: 腐化词缀 (如 "Meta Skills gain (20-30)% increased Energy")
-        - ModItemExclusive.lua: 独占词缀 (如 "Meta Skills gain (10-16)% increased Energy")
-        - ModRunes.lua: 符文词缀 (如 "Meta Skills gain 10% increased Energy")
-        - ModScalability.lua: 可扩展词缀 (各种范围值)
+        优化说明:
+        - v5 扫描 Mod*.lua 文件，与 data_scanner.py 重复工作
+        - v6 改用实体库查询，复用 data_scanner 已提取的数据
 
-        词缀格式:
-        ["ModName"] = {
-            type = "Suffix",
-            affix = "of Generation",
-            "Meta Skills gain (4-8)% increased Energy",
-            statOrder = { 5987 },
-            level = 1,
-            group = "EnergyGeneration",
-            ...
-        }
+        实体库中的 mod_affix 实体:
+        - type = 'mod_affix'
+        - stat_descriptions = JSON数组，存储描述文本
+        - 如 ['Meta Skills gain (4-8)% increased Energy']
 
-        返回: EnergyModifier 列表，每个代表一个装备词缀的能量修饰符
+        返回: EnergyModifier 列表
         """
         modifiers: List[EnergyModifier] = []
 
-        if not self.pob_path:
+        # 连接实体库
+        if not self.entities_db_path.exists():
             return modifiers
 
-        # 要扫描的文件列表
-        mod_files = [
-            'ModJewel.lua',
-            'ModCorrupted.lua',
-            'ModItemExclusive.lua',
-            'ModRunes.lua',
-            'ModScalability.lua',
-        ]
+        conn = sqlite3.connect(str(self.entities_db_path))
+        cursor = conn.cursor()
+
+        # 查询所有 mod_affix 实体
+        cursor.execute('''
+            SELECT id, name, stat_descriptions
+            FROM entities
+            WHERE type = 'mod_affix'
+              AND stat_descriptions IS NOT NULL
+              AND stat_descriptions != '[]'
+        ''')
 
         # 能量词缀文本模式
         energy_pattern = re.compile(
@@ -1473,31 +1473,23 @@ class StatFormulaExtractor:
             re.IGNORECASE
         )
 
-        for mod_file in mod_files:
-            filepath = self.pob_path / 'Data' / mod_file
-            if not filepath.exists():
-                continue
+        for row in cursor.fetchall():
+            mod_id, mod_name, stat_desc_json = row
 
             try:
-                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-            except Exception as e:
-                print(f"      警告: 无法读取 {mod_file}: {e}")
+                descriptions = json.loads(stat_desc_json) if stat_desc_json else []
+            except (json.JSONDecodeError, TypeError):
                 continue
 
-            # 提取所有词缀定义
-            # 格式: ["ModName"] = { ... "Meta Skills gain ..." ... }
-            mod_pattern = re.compile(
-                r'\["([^"]+)"\]\s*=\s*\{[^}]*?"([^"]*Meta Skills[^"]*Energy[^"]*)"',
-                re.DOTALL
-            )
+            if not isinstance(descriptions, list):
+                continue
 
-            for match in mod_pattern.finditer(content):
-                mod_name = match.group(1)
-                mod_text = match.group(2)
+            for text in descriptions:
+                if not isinstance(text, str):
+                    continue
 
-                # 解析修饰符类型和值
-                m = energy_pattern.search(mod_text)
+                # 解析描述文本
+                m = energy_pattern.search(text)
                 if not m:
                     continue
 
@@ -1534,7 +1526,7 @@ class StatFormulaExtractor:
                     continue
 
                 # 构建证据字符串
-                evidence = f"Equipment mod {mod_name} ({mod_file}): {mod_text}"
+                evidence = f"Equipment mod {mod_id} ({mod_name or 'unnamed'}): \"{text}\""
                 if condition_str:
                     evidence += f" [条件: {condition_str}]"
 
@@ -1542,13 +1534,14 @@ class StatFormulaExtractor:
                 modifiers.append(EnergyModifier(
                     stat_name='energy_generated_+%' if mod_type == 'INC' else 'ascendancy_energy_generated_+%_final',
                     mod_type=mod_type,
-                    source_field='equipment_mod',
-                    source_entity=mod_name,
+                    source_field='stat_descriptions',
+                    source_entity=mod_id,
                     value=value,
                     per_quality=False,
                     evidence=evidence
                 ))
 
+        conn.close()
         return modifiers
 
 

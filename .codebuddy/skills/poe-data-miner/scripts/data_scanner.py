@@ -1380,7 +1380,8 @@ class POBDataScanner:
                 'ascendancy_name': ascendancy,  # 修复：使用正确的字段名
                 'is_notable': is_notable,
                 'is_keystone': is_keystone,
-                'stats_node': stats  # 修复：使用正确的字段名
+                'stats_node': stats,  # 修复：使用正确的字段名
+                'stat_descriptions': stats  # [v2新增] 统一描述文本字段
             }
             
             nodes.append(node)
@@ -1986,6 +1987,7 @@ class POBDataScanner:
                 'type': 'mod_affix',
                 'affix_type': affix_type,  # Prefix/Suffix/Corrupted
                 'descriptions': descriptions[:3] if descriptions else [],  # 最多保留3个
+                'stat_descriptions': descriptions[:3] if descriptions else [],  # [v2新增] 统一描述文本字段
                 'stat_order': stat_order,
                 'level': level,
                 'group': group,

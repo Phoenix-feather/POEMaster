@@ -111,7 +111,10 @@ class EntityIndex:
                 is_notable INTEGER DEFAULT 0,
                 is_keystone INTEGER DEFAULT 0,
                 stats_node TEXT,
-                reminder_text TEXT
+                reminder_text TEXT,
+                
+                -- [v2新增] 统一描述文本字段（天赋节点和装备词缀共用）
+                stat_descriptions TEXT  -- JSON数组，存储描述文本
             )
         ''')
         
@@ -219,18 +222,26 @@ class EntityIndex:
         stats_node = json.dumps(entity.get('stats_node', []), ensure_ascii=False)
         reminder_text = json.dumps(entity.get('reminder_text', []), ensure_ascii=False)
         
+        # [v2新增] stat_descriptions: 统一存储天赋节点和装备词缀的描述文本
+        # 天赋节点使用 stats_node，装备词缀使用 descriptions
+        stat_descriptions = None
+        if entity.get('stat_descriptions'):
+            stat_descriptions = json.dumps(entity.get('stat_descriptions'), ensure_ascii=False)
+        elif entity.get('descriptions'):
+            stat_descriptions = json.dumps(entity.get('descriptions'), ensure_ascii=False)
+        
         cursor.execute('''
             INSERT OR REPLACE INTO entities 
             (id, name, type, skill_types, constant_stats, stats, description, reservation, mod_tags, weight_keys, affix_type, mod_data, data_json, source_file, updated_at,
              base_type_name, cast_time, quality_stats, levels, stat_sets, support, require_skill_types, add_skill_types, exclude_skill_types, is_trigger, hidden,
              game_id, variant_id, granted_effect_id, tags, gem_type, tag_string, req_str, req_dex, req_int, tier, natural_max_level, additional_stat_set1, additional_stat_set2, weapon_requirements, gem_family,
              requires_level, granted_skill, implicits, variant, source,
-             ascendancy_name, is_notable, is_keystone, stats_node, reminder_text)
+             ascendancy_name, is_notable, is_keystone, stats_node, reminder_text, stat_descriptions)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?)
+                    ?, ?, ?, ?, ?, ?)
         ''', (
             entity_id,
             name,
@@ -285,7 +296,9 @@ class EntityIndex:
             is_notable,
             is_keystone,
             stats_node,
-            reminder_text
+            reminder_text,
+            # v2新增字段
+            stat_descriptions
         ))
         
         self.conn.commit()
