@@ -6,7 +6,7 @@
 # 查询方式: 关键词匹配
 # ============================================================
 
-version: "2.0.0"  # Code audit v2: 18 cards fixed (2 wrong formula, 11 significant omissions, 5 minor)
+version: "2.1.0"  # v2.1: meta_energy_gain MORE sources corrected (ascendancy/triggered spell/passive tree)
 source_pob_version: "0.4"
 
 formulas:
@@ -769,7 +769,7 @@ formulas:
     domain: meta
     category: energy
     keywords: [能量, energy, 元技能, meta skill, 能量获取, energy generation, 能量生成]
-    formula: "energy = base_factor × (centienergy / 100) × INC_term × MORE_term"
+    formula: "energy = base_factor × (centienergy / 100) × INC_term × MORE_term [× SPECIAL]"
     parameters:
       centienergy: "constantStats中的centienergy值（÷100得到实际值）"
       base_factor: |
@@ -781,29 +781,50 @@ formulas:
         SubE: unit_measure                                      [连续型: per metre/second/charge]
         SubF: base_energy × minion_power_ratio                  [minion_death特殊型]
       INC_term: |
-        (1 + Σ(所有energy相关_+% stat) / 100)
-        数据来源（通过实体数据扫描动态收集）:
-        - 实体自身 stats[]: energy_generated_+% (14/17 Meta实体有)
-        - 实体自身 qualityStats[]: energy_generated_+% = 0.75/quality (11/17实体有)
-        - Support辅助 constantStats[]: energy_generated_+% = 35/45 (Boundless Energy)
-        判定规则: stat名含'energy'且以'_+%'结尾(不含_final)
+        (1 + Σ(所有energy相关INC stat) / 100)
+        已确认的INC来源（6层数据）:
+        ① Meta实体自身 stats[]: energy_generated_+% (14/17 Meta实体有)
+        ② Meta实体自身 qualityStats[]: energy_generated_+% = 0.75/quality (11/17实体有)
+        ③ Support辅助 constantStats[]: energy_generated_+% = 35/45 (Boundless Energy I/II)
+        ④ [v4] 被动天赋节点: "Meta Skills gain X% increased Energy" (如passive_3688=15%)
+        ⑤ [v4] 升华天赋节点(INC): "Meta Skills gain X% increased Energy" (如passive_4873=20%, Oracle)
+        ⑥ [v4] 条件INC(可选): energy_generated_+%_if_crit_recently, energy_generated_+%_on_full_mana
+        判定规则: stat名含'energy'且以'_+%'结尾(不含_final)，或被动文本含"increased Energy"
       MORE_term: |
-        Π(1 + 每个energy相关_+%_final stat / 100)
-        数据来源（通过实体数据扫描动态收集）:
-        - active_skill_energy_generated_+%_final (特定非Meta技能, 如Incinerate -98%)
-        - 注: 17个Meta技能实体中0个含此stat
-        判定规则: stat名含'energy'且以'_+%_final'结尾
+        Π(1 + 每个energy相关MORE stat / 100)
+        已确认的MORE来源（3层数据）:
+        ① [v4] 升华天赋节点: ascendancy_energy_generated_+%_final
+           → StatDescriptions: "Meta Skills gain X% more/less Energy"
+           → 此stat仅出现在升华天赋，不在Meta技能实体上（所以v3搜索Meta实体=MORE=0是范围错误）
+        ② [v4] 被触发法术 constantStats[]: active_skill_energy_generated_+%_final
+           → FlameWall(-50%), Incinerate(-98%), SolarOrb(-50%)
+           → 这些MORE惩罚在被触发法术上，不在Meta实体上
+           → 当法术作为Meta插槽法术时，此惩罚生效于该法术的能量贡献
+        ③ Meta实体自身: 无（17个Meta实体中0个含_+%_final stat — 这是正确的，因为MORE来自外部）
+        判定规则: stat名以'_+%_final'结尾，或被动文本含"more/less Energy"
+      SPECIAL_term: |
+        [可选] ×2 如果 energy_generation_is_doubled 为true
+        来源: 被动天赋节点中可能出现 "Energy Generation is doubled"
     notes: |
       ⚠️ POB未实现
-      INC和MORE是独立的乘法因子:
-      - INC: increased/reduced类型, 所有来源加法叠加后乘算
-      - MORE: more/less类型, 每个来源独立乘算
-      - StatDescriptions文本: energy_generated_+% = "{0}% reduced Energy gained" (确认INC)
-      - _+%_final后缀 = POB惯例的MORE修正
-      子类型判定依据: StatDescriptions精确文本 (是否含"per Power"/"Ailment Threshold")
-      INC/MORE收集依据: 实体完整数据扫描 (stats/constantStats/qualityStats + 关联Support)
-    source_file: "Data/Skills/act_int.lua 等 + entities.db动态扫描"
-    source_lines: "数据推导 + StatDescriptions驱动"
+      完整能量stat分类谱（6种stat，来自StatDescriptions stat_descriptions.lua）:
+      ┌─────────────────────────────────────────────┬────────┬─────────────────────────────────────────┐
+      │ Stat ID                                      │ 类型   │ 描述文本                                │
+      ├─────────────────────────────────────────────┼────────┼─────────────────────────────────────────┤
+      │ energy_generated_+%                          │ INC    │ Meta Skills gain X% increased Energy    │
+      │ ascendancy_energy_generated_+%_final         │ MORE   │ Meta Skills gain X% more Energy         │
+      │ active_skill_energy_generated_+%_final       │ MORE   │ 技能专属MORE惩罚(Incinerate等)          │
+      │ energy_generated_+%_if_crit_recently         │ 条件INC│ ...if dealt Crit Recently               │
+      │ energy_generated_+%_on_full_mana             │ 条件INC│ ...while on Full Mana                   │
+      │ energy_generation_is_doubled                 │ 特殊×2 │ Energy Generation is doubled            │
+      └─────────────────────────────────────────────┴────────┴─────────────────────────────────────────┘
+      v4修正: v3错误结论"MORE=0符合预期"的根因 —
+        v3只搜索Meta实体自身的4层数据（stats/constantStats/qualityStats/Support辅助），
+        从未搜索第5-9层: 被动天赋/升华节点/被触发法术/条件INC/特殊stat。
+        实际上ascendancy_energy_generated_+%_final (MORE)存在于升华天赋节点中，
+        active_skill_energy_generated_+%_final (MORE)存在于被触发法术(Incinerate等)的constantStats中。
+    source_file: "Data/Skills/act_int.lua 等 + entities.db动态扫描 + tree.lua被动天赋"
+    source_lines: "数据推导 + StatDescriptions驱动 + v4扩展搜索"
 
   - id: meta_max_energy
     name: 元技能最大能量

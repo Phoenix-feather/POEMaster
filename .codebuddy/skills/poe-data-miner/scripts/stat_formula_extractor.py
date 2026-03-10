@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Meta缺口公式提取器 (Gap Formula Extractor) v3
+Meta缺口公式提取器 (Gap Formula Extractor) v4
 
 从Meta技能的实体完整数据中提取POB未实现的公式:
 - 能量获取公式 (energy_gain)
@@ -12,7 +12,16 @@ Meta缺口公式提取器 (Gap Formula Extractor) v3
 - entities.db 中的 Meta 技能实体 (constantStats, stats, qualityStats, skill_types)
 - entities.db 中的 Support 辅助实体 (requireSkillTypes 含 GeneratesEnergy)
 - entities.db 中的 hidden Support 实体 (SupportMeta*, 如果存在)
+- entities.db 中的 passive_node / ascendancy_node 实体 (能量相关天赋描述文本)
+- entities.db 中的非Meta技能实体 (active_skill_energy_generated_+%_final)
 - StatDescriptions/skill_stat_descriptions.lua 中的精确描述文本 (决定公式修正因子)
+- StatDescriptions/stat_descriptions.lua 中的能量stat分类谱 (INC/MORE/条件/特殊)
+
+v4 核心变更 (相对于v3):
+- 扩展搜索范围: 被动天赋/升华节点中的能量INC/MORE文本模式
+- 扩展搜索范围: 被触发法术的 active_skill_energy_generated_+%_final (MORE惩罚)
+- 完整能量stat分类谱: 6种能量相关stat的INC/MORE/条件/特殊分类
+- 修正 "MORE=0 符合预期" 的错误结论
 
 v3 核心变更 (相对于v2):
 - 动态收集INC/MORE修饰符: 扫描实体的 stats/constantStats/qualityStats 全部字段
@@ -67,16 +76,31 @@ class EnergyModifier:
 #   stat_name_+%        → INC类型 (increased/reduced, 加法叠加)
 #   stat_name_+%_final  → MORE类型 (more/less, 乘法独立)
 #
-# 能量相关stat的INC/MORE判定:
-#   energy_generated_+%        → INC (StatDescriptions: "{0}% reduced Energy gained")
-#   active_skill_energy_generated_+%_final → MORE (_final后缀)
+# 完整能量stat分类谱 (来自StatDescriptions stat_descriptions.lua):
+#   ┌───────────────────────────────────────────────────────────────────────┐
+#   │ Stat ID                              │ 类型   │ 描述文本                                              │
+#   ├───────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤
+#   │ energy_generated_+%                   │ INC    │ "Meta Skills gain X% increased/reduced Energy"        │
+#   │ ascendancy_energy_generated_+%_final  │ MORE   │ "Meta Skills gain X% more/less Energy"                │
+#   │ energy_generated_+%_if_crit_recently  │ 条件INC│ "...increased Energy if dealt Crit Recently"          │
+#   │ energy_generated_+%_on_full_mana      │ 条件INC│ "...increased Energy while on Full Mana"              │
+#   │ energy_generation_is_doubled          │ 特殊×2 │ "Energy Generation is doubled"                        │
+#   │ active_skill_energy_generated_+%_final│ MORE   │ 技能专属MORE惩罚 (Incinerate -98%, FlameWall -50%等)  │
+#   └───────────────────────────────────────┴────────┴───────────────────────────────────────────────────────┘
 #
-# 数据来源层级:
-#   1. 实体自身 stats[] — 声明stat存在，值由levels表按等级插值
-#   2. 实体自身 constantStats[] — 固定值stat
-#   3. 实体自身 qualityStats[] — 按品质缩放的stat (如 0.75 per quality)
+# 数据来源层级 (v4扩展):
+#   1. Meta实体自身 stats[] — 声明stat存在，值由levels表按等级插值
+#   2. Meta实体自身 constantStats[] — 固定值stat
+#   3. Meta实体自身 qualityStats[] — 按品质缩放的stat (如 0.75 per quality)
 #   4. 外部Support辅助 constantStats[] — 来自辅助宝石的加成
 #      (通过 requireSkillTypes 含 GeneratesEnergy 关联)
+#   5. [v4新增] 被动天赋节点 (passive_node) — 描述文本含 "Meta Skills gain X% increased Energy"
+#   6. [v4新增] 升华天赋节点 (ascendancy_node) — 描述文本含 "Meta Skills gain X% more Energy"
+#      → 对应 ascendancy_energy_generated_+%_final (MORE)
+#   7. [v4新增] 被触发法术实体 constantStats[] — active_skill_energy_generated_+%_final
+#      → 如 Incinerate(-98%), FlameWall(-50%), SolarOrb(-50%)
+#   8. [v4新增] 条件INC: energy_generated_+%_if_crit_recently, energy_generated_+%_on_full_mana
+#   9. [v4新增] 特殊: energy_generation_is_doubled (×2)
 #
 # ────────────────────────────────────────────────────────
 
@@ -84,6 +108,40 @@ class EnergyModifier:
 # 匹配所有 energy 相关的 _+% 和 _+%_final 后缀 stat
 ENERGY_INC_PATTERN = re.compile(r'.*energy\w*_\+%$')          # INC: 以 _+% 结尾
 ENERGY_MORE_PATTERN = re.compile(r'.*energy\w*_\+%_final$')   # MORE: 以 _+%_final 结尾
+
+# v4新增: 条件INC stat模式
+ENERGY_CONDITIONAL_INC_STATS = {
+    'energy_generated_+%_if_crit_recently': 'INC_CONDITIONAL',
+    'energy_generated_+%_on_full_mana': 'INC_CONDITIONAL',
+}
+# v4新增: 特殊能量stat
+ENERGY_SPECIAL_STATS = {
+    'energy_generation_is_doubled': 'SPECIAL_DOUBLE',
+}
+
+# v4新增: 被动天赋节点描述文本中的能量模式 (tree.lua存储的是英文描述文本)
+PASSIVE_ENERGY_INC_PATTERN = re.compile(
+    r'Meta Skills gain (\d+)% (?:increased|reduced) Energy',
+    re.IGNORECASE
+)
+PASSIVE_ENERGY_MORE_PATTERN = re.compile(
+    r'Meta Skills gain (\d+)% (?:more|less) Energy',
+    re.IGNORECASE
+)
+PASSIVE_ENERGY_CONDITIONAL_PATTERNS = [
+    (re.compile(r'Meta Skills gain (\d+)% (?:increased|reduced) Energy if', re.IGNORECASE),
+     'INC_CONDITIONAL', 'energy_generated_+%_if_crit_recently'),
+    (re.compile(r'Meta Skills gain (\d+)% (?:increased|reduced) Energy while', re.IGNORECASE),
+     'INC_CONDITIONAL', 'energy_generated_+%_on_full_mana'),
+]
+PASSIVE_ENERGY_DOUBLED_PATTERN = re.compile(
+    r'Energy Generation is doubled',
+    re.IGNORECASE
+)
+PASSIVE_INVOCATION_ENERGY_PATTERN = re.compile(
+    r'Invocated skills have (\d+)% (?:increased|reduced) Maximum Energy',
+    re.IGNORECASE
+)
 
 # stat名称匹配模式 (用于识别能量获取事件的stat类别)
 STAT_PATTERN_MONSTER_POWER = re.compile(
@@ -123,7 +181,7 @@ PER_POWER_PHRASES = ["per Power of enemies", "per enemy Power"]
 
 
 class StatFormulaExtractor:
-    """缺口公式提取器 v3 - 完整实体数据扫描 + 动态INC/MORE收集"""
+    """缺口公式提取器 v4 - 扩展搜索到被动天赋/升华/被触发法术"""
 
     def __init__(self, entities_db_path: str, db_path: str, pob_path: str = None):
         self.entities_db_path = Path(entities_db_path)
@@ -134,6 +192,12 @@ class StatFormulaExtractor:
         self._stat_descriptions: Dict[str, str] = {}
         # 缓存: GeneratesEnergy 辅助宝石列表
         self._energy_support_gems: Optional[List[Dict]] = None
+        # v4缓存: 被动天赋/升华节点中的能量修饰符
+        self._passive_energy_modifiers: Optional[List[EnergyModifier]] = None
+        # v4缓存: 被触发法术的能量MORE惩罚
+        self._triggered_spell_more_modifiers: Optional[List[EnergyModifier]] = None
+        # v4缓存: 条件INC和特殊stat
+        self._conditional_energy_modifiers: Optional[List[EnergyModifier]] = None
 
     def extract_all(self) -> List[GapFormula]:
         """提取所有缺口公式"""
@@ -146,6 +210,19 @@ class StatFormulaExtractor:
         # Step 1: 预加载 GeneratesEnergy 辅助宝石
         self._energy_support_gems = self._query_energy_support_gems()
         print(f"    找到 {len(self._energy_support_gems)} 个GeneratesEnergy辅助宝石")
+
+        # Step 1.5 [v4]: 预加载被动/升华天赋节点中的能量修饰符
+        self._passive_energy_modifiers = self._query_passive_energy_modifiers()
+        passive_inc = sum(1 for m in self._passive_energy_modifiers if m.mod_type == 'INC')
+        passive_more = sum(1 for m in self._passive_energy_modifiers if m.mod_type == 'MORE')
+        passive_cond = sum(1 for m in self._passive_energy_modifiers if m.mod_type == 'INC_CONDITIONAL')
+        passive_special = sum(1 for m in self._passive_energy_modifiers if m.mod_type == 'SPECIAL')
+        print(f"    找到 {len(self._passive_energy_modifiers)} 个被动/升华能量修饰符 "
+              f"(INC={passive_inc}, MORE={passive_more}, COND={passive_cond}, SPECIAL={passive_special})")
+
+        # Step 1.6 [v4]: 预加载被触发法术的能量MORE惩罚
+        self._triggered_spell_more_modifiers = self._query_triggered_spell_energy_more()
+        print(f"    找到 {len(self._triggered_spell_more_modifiers)} 个被触发法术能量MORE惩罚")
 
         # Step 2: 获取所有Meta技能实体（含完整字段）
         meta_entities = self._get_meta_entities()
@@ -167,7 +244,7 @@ class StatFormulaExtractor:
             # 关联的SupportMeta数据
             support_data = meta_support_map.get(entity_id, {})
 
-            # ── v3核心: 动态收集实体的INC/MORE修饰符 ──
+            # ── v4核心: 动态收集实体的INC/MORE修饰符（含被动/升华/被触发法术） ──
             modifiers = self._collect_energy_modifiers(entity)
 
             # 提取能量获取公式（使用动态收集的修饰符）
@@ -193,15 +270,21 @@ class StatFormulaExtractor:
         """
         从实体完整数据中动态收集所有能量相关的INC/MORE修饰符。
 
-        扫描范围:
+        v4扩展搜索范围:
         1. entity['stats'] — 变量stat名列表 (值由levels表按等级插值)
         2. entity['constant_stats'] — 固定值stat [[name, value], ...]
         3. entity['quality_stats'] — 品质缩放stat [[name, value_per_quality], ...]
         4. 外部Support辅助宝石 — requireSkillTypes含GeneratesEnergy的辅助
+        5. [v4] 被动天赋节点 — 描述文本中的能量INC (如 "Meta Skills gain 15% increased Energy")
+        6. [v4] 升华天赋节点 — 描述文本中的能量MORE (如 "Meta Skills gain X% more Energy")
+        7. [v4] 被触发法术 — active_skill_energy_generated_+%_final (MORE惩罚)
+        8. [v4] 条件INC — energy_generated_+%_if_crit_recently 等
+        9. [v4] 特殊 — energy_generation_is_doubled
 
         判定规则:
         - stat名以 _+% 结尾且不含 _final → INC
         - stat名以 _+%_final 结尾 → MORE
+        - 被动描述文本 "increased" → INC, "more" → MORE
         """
         modifiers: List[EnergyModifier] = []
         entity_id = entity['id']
@@ -254,6 +337,16 @@ class StatFormulaExtractor:
                             f"{stat_name}={stat_value}"
                         )
                         modifiers.append(mod)
+
+        # ── 5. [v4] 被动天赋/升华节点中的能量修饰符 ──
+        if self._passive_energy_modifiers:
+            modifiers.extend(self._passive_energy_modifiers)
+
+        # ── 6. [v4] 被触发法术的能量MORE惩罚 ──
+        # 注意: 这些是技能专属的MORE惩罚(如Incinerate -98%)
+        # 它们不是全局修饰符，但记录在公式中以展示MORE项的存在
+        if self._triggered_spell_more_modifiers:
+            modifiers.extend(self._triggered_spell_more_modifiers)
 
         return modifiers
 
@@ -370,20 +463,250 @@ class StatFormulaExtractor:
         return gems
 
     # ================================================================
+    # v4新增: 被动天赋/升华节点能量修饰符查询
+    # ================================================================
+
+    def _query_passive_energy_modifiers(self) -> List[EnergyModifier]:
+        """
+        [v4] 查询 entities.db 中的被动天赋和升华节点，
+        从其描述文本中提取能量相关的INC/MORE/条件/特殊修饰符。
+
+        被动节点在tree.lua中存储的是英文描述文本（如 "Meta Skills gain 15% increased Energy"），
+        而非stat ID。需要通过文本模式匹配来识别。
+
+        数据格式:
+        - entities.type = 'passive_node' 或 'ascendancy_node'
+        - entities.stats_node = JSON数组，包含描述文本字符串
+        - 如: ["Meta Skills gain 15% increased Energy", "其他效果..."]
+
+        对应StatDescriptions中的stat:
+        - "Meta Skills gain X% increased Energy" → energy_generated_+% (INC)
+        - "Meta Skills gain X% more Energy" → ascendancy_energy_generated_+%_final (MORE)
+        - "Meta Skills gain X% increased Energy if..." → energy_generated_+%_if_crit_recently (条件INC)
+        - "Energy Generation is doubled" → energy_generation_is_doubled (特殊×2)
+        """
+        modifiers: List[EnergyModifier] = []
+
+        conn = sqlite3.connect(str(self.entities_db_path))
+        cursor = conn.cursor()
+
+        # 查询所有被动/升华节点的描述文本
+        cursor.execute('''
+            SELECT id, name, type, stats_node, ascendancy_name
+            FROM entities
+            WHERE (type = 'passive_node' OR type = 'ascendancy_node')
+              AND stats_node IS NOT NULL
+              AND stats_node != '[]'
+        ''')
+
+        for row in cursor.fetchall():
+            eid, name, etype, stats_node_json, ascendancy = row
+            try:
+                stats_texts = json.loads(stats_node_json) if stats_node_json else []
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            if not isinstance(stats_texts, list):
+                continue
+
+            for text in stats_texts:
+                if not isinstance(text, str):
+                    continue
+
+                # ── 检查 MORE 模式（优先于INC，因为"more"比"increased"更稀有） ──
+                m = PASSIVE_ENERGY_MORE_PATTERN.search(text)
+                if m:
+                    value = int(m.group(1))
+                    # "less" = 负值
+                    if 'less' in text.lower():
+                        value = -value
+                    modifiers.append(EnergyModifier(
+                        stat_name='ascendancy_energy_generated_+%_final',
+                        mod_type='MORE',
+                        source_field='stats_node (description text)',
+                        source_entity=eid,
+                        value=value,
+                        per_quality=False,
+                        evidence=(
+                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
+                            f"({name or 'unnamed'}"
+                            f"{', ascendancy=' + ascendancy if ascendancy else ''}): "
+                            f'"{text}"'
+                        )
+                    ))
+                    continue  # MORE已匹配，不再检查INC
+
+                # ── 检查条件INC模式 ──
+                matched_conditional = False
+                for pattern, mod_type, stat_id in PASSIVE_ENERGY_CONDITIONAL_PATTERNS:
+                    mc = pattern.search(text)
+                    if mc:
+                        value = int(mc.group(1))
+                        if 'reduced' in text.lower():
+                            value = -value
+                        modifiers.append(EnergyModifier(
+                            stat_name=stat_id,
+                            mod_type=mod_type,
+                            source_field='stats_node (description text)',
+                            source_entity=eid,
+                            value=value,
+                            per_quality=False,
+                            evidence=(
+                                f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
+                                f"({name or 'unnamed'}): \"{text}\""
+                            )
+                        ))
+                        matched_conditional = True
+                        break
+                if matched_conditional:
+                    continue
+
+                # ── 检查普通INC模式 ──
+                m = PASSIVE_ENERGY_INC_PATTERN.search(text)
+                if m:
+                    value = int(m.group(1))
+                    if 'reduced' in text.lower():
+                        value = -value
+                    modifiers.append(EnergyModifier(
+                        stat_name='energy_generated_+%',
+                        mod_type='INC',
+                        source_field='stats_node (description text)',
+                        source_entity=eid,
+                        value=value,
+                        per_quality=False,
+                        evidence=(
+                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
+                            f"({name or 'unnamed'}"
+                            f"{', ascendancy=' + ascendancy if ascendancy else ''}): "
+                            f'"{text}"'
+                        )
+                    ))
+                    continue
+
+                # ── 检查 Energy Generation is doubled ──
+                if PASSIVE_ENERGY_DOUBLED_PATTERN.search(text):
+                    modifiers.append(EnergyModifier(
+                        stat_name='energy_generation_is_doubled',
+                        mod_type='SPECIAL',
+                        source_field='stats_node (description text)',
+                        source_entity=eid,
+                        value=2,
+                        per_quality=False,
+                        evidence=(
+                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
+                            f"({name or 'unnamed'}): \"{text}\""
+                        )
+                    ))
+                    continue
+
+                # ── 检查 Invocated skills Maximum Energy ──
+                m = PASSIVE_INVOCATION_ENERGY_PATTERN.search(text)
+                if m:
+                    value = int(m.group(1))
+                    if 'reduced' in text.lower():
+                        value = -value
+                    modifiers.append(EnergyModifier(
+                        stat_name='invocation_maximum_energy_+%',
+                        mod_type='INC',
+                        source_field='stats_node (description text)',
+                        source_entity=eid,
+                        value=value,
+                        per_quality=False,
+                        evidence=(
+                            f"{'Ascendancy' if ascendancy else 'Passive'} node {eid} "
+                            f"({name or 'unnamed'}): \"{text}\" (Invocation专属)"
+                        )
+                    ))
+
+        conn.close()
+        return modifiers
+
+    def _query_triggered_spell_energy_more(self) -> List[EnergyModifier]:
+        """
+        [v4] 查询 entities.db 中非Meta技能的 active_skill_energy_generated_+%_final。
+
+        这些是被触发法术自身带有的能量MORE惩罚（通常为负值），例如:
+        - Incinerate (IncineratePlayer): active_skill_energy_generated_+%_final = -98
+        - Flame Wall (FlameWallPlayer): active_skill_energy_generated_+%_final = -50
+        - Solar Orb (SolarOrbPlayer): active_skill_energy_generated_+%_final = -50
+
+        这些MORE惩罚不在Meta技能实体上，而在被触发的法术实体上。
+        当这些法术作为Meta技能的插槽法术使用时，此MORE惩罚生效。
+        """
+        modifiers: List[EnergyModifier] = []
+
+        conn = sqlite3.connect(str(self.entities_db_path))
+        cursor = conn.cursor()
+
+        # 查找所有包含 active_skill_energy_generated_+%_final 的非Meta实体
+        # constant_stats 中以JSON格式存储: [["stat_name", value], ...]
+        cursor.execute('''
+            SELECT id, name, type, constant_stats, stat_sets
+            FROM entities
+            WHERE constant_stats LIKE '%active_skill_energy_generated%final%'
+              AND (skill_types NOT LIKE '%Meta%' OR skill_types IS NULL)
+        ''')
+
+        for row in cursor.fetchall():
+            eid, name, etype, constant_stats_json, stat_sets_json = row
+            try:
+                constant_stats = json.loads(constant_stats_json) if constant_stats_json else []
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            # 也检查stat_sets中的constantStats（多statSet技能可能只在非第一个statSet中有此stat）
+            stat_sets_constants = []
+            if stat_sets_json:
+                try:
+                    stat_sets = json.loads(stat_sets_json) if isinstance(stat_sets_json, str) else stat_sets_json
+                    if isinstance(stat_sets, dict):
+                        for set_key, set_data in stat_sets.items():
+                            if isinstance(set_data, dict):
+                                cs = set_data.get('constantStats', set_data.get('constant_stats', []))
+                                if isinstance(cs, list):
+                                    stat_sets_constants.extend(cs)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            # 合并所有constantStats来源
+            all_constants = self._normalize_stat_pairs(constant_stats) + self._normalize_stat_pairs(stat_sets_constants)
+
+            for stat_name, stat_value in all_constants:
+                if stat_name == 'active_skill_energy_generated_+%_final':
+                    modifiers.append(EnergyModifier(
+                        stat_name='active_skill_energy_generated_+%_final',
+                        mod_type='MORE',
+                        source_field='constantStats',
+                        source_entity=eid,
+                        value=stat_value,
+                        per_quality=False,
+                        evidence=(
+                            f"Triggered spell {eid} ({name or 'unnamed'}): "
+                            f"active_skill_energy_generated_+%_final={stat_value} "
+                            f"(当此法术被Meta技能触发时，能量生成受{stat_value}% MORE惩罚)"
+                        )
+                    ))
+
+        conn.close()
+        return modifiers
+
+    # ================================================================
     # 公式文本生成 (v3: 使用实际收集的stat名称)
     # ================================================================
 
     def _build_inc_term(self, modifiers: List[EnergyModifier]) -> Tuple[str, List[Dict]]:
         """
         从收集到的INC修饰符构建公式中的INC项。
+        v4: 同时包含条件INC (INC_CONDITIONAL)，标注为可选项
 
         返回:
         - formula_part: 公式文本片段, 如 "(1 + Σ(energy_generated_+%) / 100)"
         - evidence_list: 数据证据列表
         """
         inc_mods = [m for m in modifiers if m.mod_type == 'INC']
+        cond_inc_mods = [m for m in modifiers if m.mod_type == 'INC_CONDITIONAL']
 
-        if not inc_mods:
+        if not inc_mods and not cond_inc_mods:
             return '', []
 
         # 去重stat名（同名stat可能出现在多个字段中）
@@ -398,16 +721,27 @@ class StatFormulaExtractor:
         if len(unique_stats) == 1:
             stat = unique_stats[0]
             formula_part = f"(1 + Σ({stat.stat_name}) / 100)"
-        else:
+        elif len(unique_stats) > 1:
             stat_names = ' + '.join(m.stat_name for m in unique_stats)
             formula_part = f"(1 + Σ({stat_names}) / 100)"
+        else:
+            formula_part = ''
 
-        # 构建证据
+        # v4: 条件INC作为可选项附注
+        if cond_inc_mods:
+            cond_names = set(m.stat_name for m in cond_inc_mods)
+            cond_part = ' + '.join(cond_names)
+            if formula_part:
+                formula_part += f" [条件INC可选: {cond_part}]"
+            else:
+                formula_part = f"[条件INC: (1 + Σ({cond_part}) / 100)]"
+
+        # 构建证据 (合并INC + 条件INC)
         evidence = []
-        for m in inc_mods:
+        for m in inc_mods + cond_inc_mods:
             entry = {
                 'stat': m.stat_name,
-                'type': 'INC',
+                'type': m.mod_type,
                 'source_field': m.source_field,
                 'source_entity': m.source_entity,
             }
@@ -423,38 +757,49 @@ class StatFormulaExtractor:
     def _build_more_term(self, modifiers: List[EnergyModifier]) -> Tuple[str, List[Dict]]:
         """
         从收集到的MORE修饰符构建公式中的MORE项。
+        v4: 同时包含SPECIAL修饰符（如 energy_generation_is_doubled）
 
         返回:
         - formula_part: 公式文本片段, 如 "Π(1 + active_skill_energy_generated_+%_final / 100)"
         - evidence_list: 数据证据列表
         """
         more_mods = [m for m in modifiers if m.mod_type == 'MORE']
+        special_mods = [m for m in modifiers if m.mod_type == 'SPECIAL']
 
-        if not more_mods:
+        if not more_mods and not special_mods:
             return '', []
 
+        parts_list = []
+
         # 去重stat名
-        unique_stats = []
+        unique_more = []
         seen_names: Set[str] = set()
         for m in more_mods:
             if m.stat_name not in seen_names:
                 seen_names.add(m.stat_name)
-                unique_stats.append(m)
+                unique_more.append(m)
 
-        # 构建公式文本
-        if len(unique_stats) == 1:
-            stat = unique_stats[0]
-            formula_part = f"Π(1 + {stat.stat_name} / 100)"
-        else:
-            parts = [f"(1 + {m.stat_name}/100)" for m in unique_stats]
-            formula_part = " × ".join(parts)
+        # 构建MORE部分
+        if len(unique_more) == 1:
+            stat = unique_more[0]
+            parts_list.append(f"Π(1 + {stat.stat_name} / 100)")
+        elif len(unique_more) > 1:
+            more_parts = [f"(1 + {m.stat_name}/100)" for m in unique_more]
+            parts_list.append(" × ".join(more_parts))
 
-        # 构建证据
+        # v4: SPECIAL部分 (如 ×2 for energy_generation_is_doubled)
+        for m in special_mods:
+            if m.stat_name == 'energy_generation_is_doubled':
+                parts_list.append("[×2 if energy_generation_is_doubled]")
+
+        formula_part = " × ".join(parts_list) if parts_list else ''
+
+        # 构建证据 (合并MORE + SPECIAL)
         evidence = []
-        for m in more_mods:
+        for m in more_mods + special_mods:
             entry = {
                 'stat': m.stat_name,
-                'type': 'MORE',
+                'type': m.mod_type,
                 'source_field': m.source_field,
                 'source_entity': m.source_entity,
             }
@@ -704,7 +1049,7 @@ class StatFormulaExtractor:
 
     def _build_notes(self, subtype: str, base_note: str,
                      inc_evidence: List[Dict], more_evidence: List[Dict]) -> str:
-        """构建notes字符串，附带INC/MORE数据证据"""
+        """构建notes字符串，附带INC/MORE数据证据（v4: 含被动/升华/被触发法术来源）"""
         parts = [f'{subtype}: {base_note}']
 
         if inc_evidence:
@@ -715,7 +1060,7 @@ class StatFormulaExtractor:
                 f"(来源: {', '.join(set(inc_sources))})"
             )
         else:
-            parts.append('INC项: 未在实体/Support数据中发现')
+            parts.append('INC项: 未在实体/Support/被动天赋数据中发现')
 
         if more_evidence:
             more_stats = [e['stat'] for e in more_evidence]
@@ -725,7 +1070,7 @@ class StatFormulaExtractor:
                 f"(来源: {', '.join(set(more_sources))})"
             )
         else:
-            parts.append('MORE项: 未在实体/Support数据中发现')
+            parts.append('MORE项: 未在实体/Support/升华/被触发法术数据中发现')
 
         return '; '.join(parts)
 
@@ -1065,7 +1410,7 @@ def main():
     sys.path.insert(0, str(SCRIPTS_DIR))
     from pob_paths import get_knowledge_base_path, get_pob_path
 
-    parser = argparse.ArgumentParser(description='Meta缺口公式提取 v3')
+    parser = argparse.ArgumentParser(description='Meta缺口公式提取 v4')
     parser.add_argument('--entities-db', help='实体库路径')
     parser.add_argument('--db', help='输出数据库路径')
     parser.add_argument('--pob-path', help='POBData路径（用于读取StatDescriptions）')
@@ -1078,7 +1423,7 @@ def main():
     pob_path = args.pob_path or str(get_pob_path())
 
     print("=" * 60)
-    print("Meta缺口公式提取 v3 (完整实体数据扫描 + 动态INC/MORE)")
+    print("Meta缺口公式提取 v4 (扩展搜索: 被动天赋/升华/被触发法术)")
     print("=" * 60)
 
     extractor = StatFormulaExtractor(entities_db, db_path, pob_path)
