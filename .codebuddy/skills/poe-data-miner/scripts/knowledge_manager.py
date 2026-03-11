@@ -301,10 +301,84 @@ class IncrementalLearning:
         return 'unknown'
     
     def _apply_data_updates(self, updates: List[Dict[str, Any]]):
-        """应用数据更新"""
-        # 这里需要连接到实际的数据库
-        # 简化实现，实际应该调用attribute_graph等模块
-        pass
+        """
+        应用数据更新
+        
+        Args:
+            updates: 更新项列表，每项包含:
+                - type: 更新类型 (add_edge, update_rule, add_node)
+                - data: 更新数据
+        """
+        if not updates:
+            return
+        
+        import sqlite3
+        
+        # 连接图数据库
+        graph_db_path = self.kb_path / 'graph.db'
+        rules_db_path = self.kb_path / 'rules.db'
+        
+        for update in updates:
+            update_type = update.get('type')
+            data = update.get('data', {})
+            
+            if update_type == 'add_edge':
+                # 添加边到图
+                try:
+                    conn = sqlite3.connect(str(graph_db_path))
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO graph_edges (
+                            source_node, target_node, edge_type, weight, attributes,
+                            status, source_rule, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        data.get('source'),
+                        data.get('target'),
+                        data.get('edge_type', 'relates'),
+                        data.get('weight', 1.0),
+                        json.dumps(data.get('attributes', {}), ensure_ascii=False),
+                        'verified',
+                        data.get('source_rule'),
+                        datetime.now().isoformat()
+                    ))
+                    conn.commit()
+                    conn.close()
+                except Exception as e:
+                    print(f"[WARN] 添加边失败: {e}")
+            
+            elif update_type == 'update_rule':
+                # 更新规则
+                try:
+                    conn = sqlite3.connect(str(rules_db_path))
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        UPDATE rules SET verified_at = ? WHERE id = ?
+                    ''', (datetime.now().isoformat(), data.get('rule_id')))
+                    conn.commit()
+                    conn.close()
+                except Exception as e:
+                    print(f"[WARN] 更新规则失败: {e}")
+            
+            elif update_type == 'add_node':
+                # 添加节点到图
+                try:
+                    conn = sqlite3.connect(str(graph_db_path))
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO graph_nodes (id, name, type, attributes, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (
+                        data.get('id'),
+                        data.get('name', data.get('id')),
+                        data.get('node_type', 'entity'),
+                        json.dumps(data.get('attributes', {}), ensure_ascii=False),
+                        datetime.now().isoformat()
+                    ))
+                    conn.commit()
+                    conn.close()
+                except Exception as e:
+                    print(f"[WARN] 添加节点失败: {e}")
     
     def _log_learning_event(self, item: Dict[str, Any], confirmed: bool):
         """记录学习事件"""
@@ -481,6 +555,11 @@ class RecoveryMechanism:
         """
         从启发记录重建知识
         
+        流程:
+        1. 加载所有已确认的启发记录
+        2. 验证每条记录是否仍然有效（检查数据源是否存在）
+        3. 更新关联图中的边状态
+        
         Returns:
             重建结果
         """
@@ -490,16 +569,95 @@ class RecoveryMechanism:
             'total_records': len(records),
             'valid': 0,
             'invalid': 0,
-            'needs_verification': 0
+            'needs_verification': 0,
+            'details': []
         }
         
+        import sqlite3
+        graph_db_path = self.kb_path / 'graph.db'
+        
         for record in records:
-            # 这里应该重新执行探索流程
-            # 简化实现
-            if record.get('confirmation', {}).get('confirmed'):
-                results['valid'] += 1
-            else:
+            record_id = record.get('id', 'unknown')
+            confirmed = record.get('confirmation', {}).get('confirmed', False)
+            discovery = record.get('discovery', {})
+            
+            if not confirmed:
                 results['needs_verification'] += 1
+                results['details'].append({
+                    'id': record_id,
+                    'status': 'needs_verification',
+                    'reason': '未确认'
+                })
+                continue
+            
+            # 验证数据源
+            source_entities = discovery.get('source_entities', [])
+            target_entities = discovery.get('target_entities', [])
+            
+            # 检查实体是否存在
+            entities_db_path = self.kb_path / 'entities.db'
+            try:
+                conn = sqlite3.connect(str(entities_db_path))
+                cursor = conn.cursor()
+                
+                all_entities_exist = True
+                for entity_id in source_entities + target_entities:
+                    cursor.execute('SELECT id FROM entities WHERE id = ?', (entity_id,))
+                    if not cursor.fetchone():
+                        all_entities_exist = False
+                        break
+                
+                conn.close()
+                
+                if not all_entities_exist:
+                    results['invalid'] += 1
+                    results['details'].append({
+                        'id': record_id,
+                        'status': 'invalid',
+                        'reason': '数据源实体不存在'
+                    })
+                    continue
+                
+            except Exception as e:
+                results['needs_verification'] += 1
+                results['details'].append({
+                    'id': record_id,
+                    'status': 'needs_verification',
+                    'reason': f'验证失败: {e}'
+                })
+                continue
+            
+            # 更新图中的边状态为 verified
+            try:
+                conn = sqlite3.connect(str(graph_db_path))
+                cursor = conn.cursor()
+                
+                # 更新边状态
+                for source in source_entities:
+                    for target in target_entities:
+                        cursor.execute('''
+                            UPDATE graph_edges 
+                            SET status = 'verified', verified_at = ?
+                            WHERE source_node = ? AND target_node = ? AND source_rule = ?
+                        ''', (datetime.now().isoformat(), source, target, record_id))
+                
+                conn.commit()
+                conn.close()
+                
+                results['valid'] += 1
+                results['details'].append({
+                    'id': record_id,
+                    'status': 'valid',
+                    'reason': '验证成功'
+                })
+                
+            except Exception as e:
+                results['needs_verification'] += 1
+                results['details'].append({
+                    'id': record_id,
+                    'status': 'needs_verification',
+                    'reason': f'更新图失败: {e}'
+                })
         
         return results
     

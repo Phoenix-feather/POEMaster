@@ -264,7 +264,8 @@ skill = setmetatable({}, {__call = function() end})
                     if type_str.startswith('SkillType.'):
                         type_str = type_str[10:]
                     types.append(type_str)
-        except:
+        except (KeyError, TypeError, AttributeError) as e:
+            # Lua 表结构异常，返回已解析的内容
             pass
         return types
     
@@ -279,7 +280,7 @@ skill = setmetatable({}, {__call = function() end})
                 for idx, stat_text in s.items():
                     if stat_text and isinstance(stat_text, str):
                         stats.append(stat_text)
-        except:
+        except (KeyError, TypeError, AttributeError):
             pass
         return stats
     
@@ -294,7 +295,7 @@ skill = setmetatable({}, {__call = function() end})
                 for idx, stat_text in s.items():
                     if stat_text and isinstance(stat_text, str):
                         stats.append(stat_text)
-        except:
+        except (KeyError, TypeError, AttributeError):
             pass
         return stats
     
@@ -309,7 +310,7 @@ skill = setmetatable({}, {__call = function() end})
                 for idx, pair in qs.items():
                     if '1' in pair and '2' in pair:
                         stats.append((str(pair['1']), str(pair['2'])))
-        except:
+        except (KeyError, TypeError, AttributeError):
             pass
         return stats
     
@@ -328,7 +329,7 @@ skill = setmetatable({}, {__call = function() end})
                         'cost': self._extract_cost(lvl_data),
                     }
                     levels.append(level)
-        except:
+        except (KeyError, TypeError, AttributeError, ValueError):
             pass
         return levels
     
@@ -342,7 +343,7 @@ skill = setmetatable({}, {__call = function() end})
             if c:
                 for key, value in c.items():
                     cost[str(key)] = int(value)
-        except:
+        except (KeyError, TypeError, AttributeError, ValueError):
             pass
         return cost
     
@@ -357,6 +358,6 @@ skill = setmetatable({}, {__call = function() end})
                 for idx, stat_text in s.items():
                     if stat_text and isinstance(stat_text, str):
                         stats.append(stat_text)
-        except:
+        except (KeyError, TypeError, AttributeError):
             pass
         return stats
