@@ -1,0 +1,258 @@
+# 边语义配置文件
+# 定义所有边类型的语义、传递性和推理规则
+
+edge_types:
+  # === 实例层边 ===
+  has_type:
+    direction: forward
+    description: "实体拥有某个类型"
+    transitive: false
+    layer: "instance"
+    
+  has_stat:
+    direction: forward
+    description: "实体拥有某个属性（stat）"
+    transitive: false
+    layer: "instance"
+    
+  requires:
+    direction: forward
+    description: "需要某个类型"
+    transitive: false
+    layer: "instance"
+    
+  excludes:
+    direction: forward
+    description: "排除某个类型"
+    transitive: false
+    layer: "instance"
+    
+  provides:
+    direction: forward
+    description: "提供某个类型"
+    transitive: false
+    layer: "instance"
+    
+  grants:
+    direction: forward
+    description: "授予某个机制"
+    transitive: false
+    layer: "instance"
+    
+  # === 类型层边（启发式推理扩展）===
+  implies:
+    direction: forward
+    description: "隐含关系（A 隐含 B）"
+    transitive: true  # 可传递：A implies B, B implies C => A implies C
+    inference: true   # 可用于推理
+    layer: "type"
+    
+  incompatible_with:
+    direction: bidirectional
+    description: "互斥关系（A 和 B 不能同时存在）"
+    transitive: false
+    layer: "type"
+    
+  # === 触发层边（新增）===
+  triggers_via:
+    direction: forward
+    description: "通过...触发（实体通过某种触发机制触发）"
+    transitive: false
+    layer: "trigger"
+    
+  produces:
+    direction: forward
+    description: "产生（触发机制产生标签）"
+    transitive: false
+    inference: true
+    layer: "trigger"
+    
+  creates:
+    direction: forward
+    description: "创建（创建效果而非触发，不会产生 Triggered 标签）"
+    transitive: false
+    layer: "trigger"
+    
+  # === 功能层边（新增）===
+  prevents:
+    direction: forward
+    description: "阻止（A 阻止 B）"
+    transitive: false
+    inference: true
+    layer: "function"
+    
+  bypasses:
+    direction: forward
+    description: "绕过（A 绕过 B 的限制）"
+    transitive: false
+    inference: true
+    layer: "function"
+    
+  constrained_by:
+    direction: forward
+    description: "受...约束"
+    transitive: false
+    layer: "function"
+    
+  enables:
+    direction: forward
+    description: "启用（A 启用 B）"
+    transitive: false
+    layer: "function"
+    
+  # === 其他边类型 ===
+  causes:
+    direction: forward
+    description: "导致（A 导致 B）"
+    transitive: true
+    layer: "function"
+    
+  blocks:
+    direction: forward
+    description: "阻挡（A 阻挡 B）"
+    transitive: false
+    layer: "function"
+    
+  modifies:
+    direction: forward
+    description: "修改（A 修改 B）"
+    transitive: false
+    layer: "function"
+    
+  enhances:
+    direction: forward
+    description: "增强（A 增强 B）"
+    transitive: false
+    layer: "function"
+    
+  reduces:
+    direction: forward
+    description: "减少（A 减少 B）"
+    transitive: false
+    layer: "function"
+    
+  triggers:
+    direction: forward
+    description: "触发（A 触发 B）"
+    transitive: false
+    layer: "trigger"
+    
+  consumes:
+    direction: forward
+    description: "消耗（A 消耗 B）"
+    transitive: false
+    layer: "function"
+    
+  # === 预置边 ===
+  uses_formula:
+    direction: forward
+    description: "使用公式"
+    transitive: false
+    layer: "instance"
+    
+  applies:
+    direction: forward
+    description: "应用"
+    transitive: false
+    layer: "instance"
+    
+  reserves:
+    direction: forward
+    description: "预留"
+    transitive: false
+    layer: "instance"
+
+# 推理规则（边组合产生新知识）
+inference_rules:
+  # === 隐含链推理 ===
+  - name: "implies chain"
+    description: "隐含关系可传递"
+    pattern:
+      - A --[implies]--> B
+      - B --[implies]--> C
+    conclusion:
+      - A --[implies]--> C
+    confidence: 1.0
+    
+  # === 因果链推理 ===
+  - name: "produces prevents"
+    description: "产生阻止关系（MetaTrigger 产生 Triggered，Triggered 阻止能量生成）"
+    pattern:
+      - A --[produces]--> B
+      - B --[prevents]--> C
+    conclusion:
+      - A --[blocks]--> C
+    confidence: 0.9
+    
+  - name: "bypasses constrained"
+    description: "绕过约束链（找到能够绕过某个约束的实体）"
+    pattern:
+      - A --[bypasses]--> B
+      - C --[constrained_by]--> B
+    conclusion:
+      - A --[bypasses_constraint_of]--> C
+    confidence: 0.85
+    
+  # === 类型推理 ===
+  - name: "has_type implies property"
+    description: "拥有类型隐含属性"
+    pattern:
+      - entity --[has_type]--> type
+      - type --[implies]--> property
+    conclusion:
+      - entity --[has_property]--> property
+    confidence: 0.95
+    
+  # === 触发机制推理 ===
+  - name: "triggers_via produces"
+    description: "通过触发机制产生标签"
+    pattern:
+      - entity --[triggers_via]--> trigger_mechanism
+      - trigger_mechanism --[produces]--> label
+    conclusion:
+      - entity --[has_type]--> label
+    confidence: 0.9
+    
+  - name: "triggers_via no label"
+    description: "通过不产生标签的触发机制触发"
+    pattern:
+      - entity --[triggers_via]--> trigger_mechanism
+      - not exists: trigger_mechanism --[produces]--> _
+    conclusion:
+      - entity --[bypasses]--> TriggeredLabelConstraint
+    confidence: 0.8
+
+# 边层级定义
+edge_layers:
+  instance:
+    description: "实例层边（连接具体实体）"
+    priority: 1
+    
+  type:
+    description: "类型层边（连接类型节点）"
+    priority: 2
+    
+  trigger:
+    description: "触发层边（描述触发机制）"
+    priority: 3
+    
+  function:
+    description: "功能层边（描述功能关系）"
+    priority: 4
+
+# 推理配置
+reasoning_config:
+  # 最大推理深度
+  max_inference_depth: 5
+  
+  # 置信度阈值
+  confidence_threshold: 0.7
+  
+  # 是否启用假设边生成
+  enable_hypothesis_generation: true
+  
+  # 假设边状态
+  hypothesis_status:
+    - "hypothesis"  # 待验证
+    - "verified"    # 已验证
+    - "rejected"    # 已拒绝

@@ -22,14 +22,22 @@ except ImportError:
 
 class NodeType(Enum):
     """节点类型"""
+    # === 现有类型 ===
     ENTITY = "entity"        # 实体节点（技能、物品等）
     MECHANISM = "mechanism"  # 机制节点（skillTypes、效果等）
     ATTRIBUTE = "attribute"  # 属性节点（stats）
     CONSTRAINT = "constraint"  # 约束节点
+    HEURISTIC = "heuristic"  # 启发节点
+    
+    # === 新增类型（启发式推理扩展）===
+    TYPE_NODE = "type_node"        # 类型节点（如 Meta, Hazard, Triggered）
+    PROPERTY_NODE = "property_node" # 属性节点（如 UsesEnergy, DoesNotUseEnergy）
+    TRIGGER_MECHANISM = "trigger_mechanism"  # 触发机制节点（如 MetaTrigger, HazardTrigger）
 
 
 class EdgeType(Enum):
     """边类型"""
+    # === 实例层（现有）===
     HAS_TYPE = "has_type"
     HAS_STAT = "has_stat"
     CAUSES = "causes"
@@ -46,6 +54,24 @@ class EdgeType(Enum):
     USES_FORMULA = "uses_formula"
     APPLIES = "applies"
     RESERVES = "reserves"
+    
+    # === 类型层（新增 - 启发式推理扩展）===
+    IMPLIES = "implies"            # 隐含关系（A 隐含 B）
+    INCOMPATIBLE_WITH = "incompatible_with"  # 互斥关系
+    
+    # === 触发层（新增）===
+    TRIGGERS_VIA = "triggers_via"  # 通过...触发
+    PRODUCES = "produces"          # 产生（触发机制产生标签）
+    CREATES = "creates"            # 创建（创建效果而非触发）
+    
+    # === 功能层（新增）===
+    PREVENTS = "prevents"          # 阻止
+    CONSTRAINED_BY = "constrained_by"  # 受...约束
+    ENABLES = "enables"            # 启用
+    
+    # === 因果链推理（新增）===
+    PROVIDES = "provides"          # 提供（实体提供标签）
+    EXCLUDES = "excludes"          # 排除（实体排除标签）
 
 
 @dataclass
@@ -487,8 +513,7 @@ class AttributeGraph:
                 self.create_edge(GraphEdge(
                     source=entity_id,
                     target=mech_id,
-                    type=EdgeType.HAS_TYPE,
-                    source_type="auto"
+                    type=EdgeType.HAS_TYPE
                 ))
             
             # 创建stats关联边
@@ -528,13 +553,12 @@ class AttributeGraph:
                     self.create_edge(GraphEdge(
                         source=entity_id,
                         target=attr_id,
-                        type=EdgeType.HAS_STAT,
-                        source_type="auto"
+                        type=EdgeType.HAS_STAT
                     ))
     
     def build_from_rules(self, rules: List[Dict[str, Any]]):
         """
-        从规则构建关联图
+        从规则构建关联图（v4: 支持 constraint + relation + formula_application）
         
         Args:
             rules: 规则列表
@@ -567,9 +591,45 @@ class AttributeGraph:
                     self.create_edge(GraphEdge(
                         source=mech_id,
                         target=constraint_id,
-                        type=EdgeType.CAUSES,
-                        source_type="auto"
+                        type=EdgeType.CAUSES
+                    ), source_rule=rule.get('id'), effect=effect)
+            
+            elif category == 'relation':
+                # 处理 relation 类型规则（因果链推理核心）
+                relation_type = rule.get('relation_type', '')
+                source_entity = rule.get('source_entity', '')
+                target_entity = rule.get('target_entity', '')
+                
+                if relation_type == 'provides' and source_entity and target_entity:
+                    # 创建机制节点
+                    mech_id = f"mech_{target_entity}"
+                    self.create_node(GraphNode(
+                        id=mech_id,
+                        type=NodeType.MECHANISM,
+                        name=target_entity
                     ))
+                    
+                    # 创建 GRANTS 边：source_entity -> mechanism
+                    # 表示"某个技能提供某个机制/标签"
+                    self.create_edge(GraphEdge(
+                        source=source_entity,
+                        target=mech_id,
+                        type=EdgeType.GRANTS
+                    ), source_rule=rule.get('id'), effect=effect,
+                       evidence=rule.get('evidence'))
+            
+            elif category == 'formula_application':
+                # 处理公式应用规则
+                source_entity = rule.get('source_entity', '')
+                source_formula = rule.get('source_formula', '')
+                
+                if source_entity and source_formula:
+                    # 创建 USES_FORMULA 边
+                    self.create_edge(GraphEdge(
+                        source=source_entity,
+                        target=source_formula,
+                        type=EdgeType.USES_FORMULA
+                    ), source_rule=rule.get('id'), effect=effect)
     
     # ========== 预置边加载 ==========
     

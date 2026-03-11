@@ -138,33 +138,76 @@ def init_rules_db(db_path: str, entities_db_path: str) -> dict:
 
 def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, predefined_edges_path: str = None) -> dict:
     """
-    初始化关联图 - 从规则库生成边
+    初始化关联图 - 从实体和规则库构建完整图
     
-    数据流: rules.db → graph.db
-    边状态: verified (已验证)
+    数据流:
+    1. entities.db → graph_nodes (entity, mechanism, attribute) + graph_edges (has_type, has_stat)
+    2. rules.db → graph_edges (requires, excludes, provides 等)
+    3. predefined_edges.yaml → 预置边
     """
     print("\n" + "=" * 60)
     print("4. 初始化关联图")
     print("=" * 60)
     
-    # Step 1: 创建图数据库（初始化表结构）
+    # Step 1: 创建图数据库（初始化表结构并加载预置边）
     print("初始化图数据库结构...")
     graph = AttributeGraph(db_path, predefined_edges_path=predefined_edges_path)
     
-    # Step 2: 从规则库生成边
-    print("从规则库生成边...")
+    # Step 2: 清理旧的规则边 (status = 'verified')，保留预置边
+    print("\n清理旧数据...")
+    graph_conn = sqlite3.connect(db_path)
+    graph_cursor = graph_conn.cursor()
+    
+    graph_cursor.execute("DELETE FROM graph_edges WHERE status = 'verified'")
+    deleted_edges = graph_cursor.rowcount
+    graph_cursor.execute("DELETE FROM graph_nodes WHERE type IN ('entity', 'mechanism', 'attribute')")
+    deleted_nodes = graph_cursor.rowcount
+    graph_conn.commit()
+    print(f"  清理 {deleted_nodes} 个旧节点, {deleted_edges} 条旧边")
+    graph_conn.close()
+    
+    # Step 3: 从实体库构建节点和属性边
+    print("\n从实体库构建节点和属性边...")
+    entities_conn = sqlite3.connect(entities_db_path)
+    entities_cursor = entities_conn.cursor()
+    
+    # 查询所有实体
+    entities_cursor.execute('''
+        SELECT id, name, type, skill_types, stats, constant_stats, quality_stats, data_json
+        FROM entities
+    ''')
+    rows = entities_cursor.fetchall()
+    print(f"  找到 {len(rows)} 个实体")
+    
+    # 转换为字典列表
+    entities = []
+    for row in rows:
+        eid, name, etype, skill_types_json, stats_json, constant_stats_json, quality_stats_json, data_json = row
+        entities.append({
+            'id': eid,
+            'name': name or eid,
+            'type': etype,
+            'skill_types': json.loads(skill_types_json) if skill_types_json else [],
+            'stats': json.loads(stats_json) if stats_json else [],
+            'constant_stats': json.loads(constant_stats_json) if constant_stats_json else [],
+            'quality_stats': json.loads(quality_stats_json) if quality_stats_json else [],
+            'data': json.loads(data_json) if data_json else {}
+        })
+    
+    entities_conn.close()
+    
+    # 调用 build_from_entities 创建节点和 has_type/has_stat 边
+    graph.build_from_entities(entities)
+    print(f"  已创建实体节点和属性边")
+    
+    # Step 4: 从规则库生成规则边
+    print("\n从规则库生成规则边...")
     
     rules_conn = sqlite3.connect(rules_db_path)
     rules_cursor = rules_conn.cursor()
     
     graph_conn = sqlite3.connect(db_path)
     graph_cursor = graph_conn.cursor()
-    
-    # 清理旧的规则边 (status = 'verified')
-    graph_cursor.execute("DELETE FROM graph_edges WHERE status = 'verified'")
-    deleted_count = graph_cursor.rowcount
-    if deleted_count > 0:
-        print(f"  清理 {deleted_count} 条旧边")
     
     # 查询所有规则
     rules_cursor.execute('''
@@ -179,77 +222,249 @@ def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str
     # 生成边
     edge_count = 0
     node_set = set()
+    mechanism_nodes = set()  # 记录机制节点
     
     for rule in rules:
         (rule_id, category, source_entity, target_entity, relation_type,
          condition, effect, evidence, source_layer, source_formula,
          heuristic_record_id, verified_at) = rule
         
-        # 跳过没有 source_entity 或 target_entity 的规则
-        if not source_entity or not target_entity:
+        # 跳过没有 source_entity 的规则
+        if not source_entity:
             continue
         
-        # 记录节点
-        node_set.add(source_entity)
-        node_set.add(target_entity)
+        # 根据规则类型处理
+        if category == 'constraint':
+            # constraint 规则：从 condition 字段提取真正的目标节点
+            import re
+            
+            # 提取 requireSkillTypes
+            req_match = re.search(r'requireSkillTypes:\s*([^\n]+)', condition or '')
+            if req_match:
+                types_str = req_match.group(1).strip()
+                # 分割多个类型（逗号分隔）
+                skill_types = [t.strip() for t in types_str.split(',') if t.strip() and t.strip() not in ('AND', 'OR', 'NOT')]
+                
+                for skill_type in skill_types:
+                    node_set.add(skill_type)
+                    mechanism_nodes.add(skill_type)
+                    
+                    try:
+                        graph_cursor.execute('''
+                            INSERT INTO graph_edges (
+                                source_node, target_node, edge_type, weight, attributes,
+                                status, source_rule, heuristic_record_id, verified_at,
+                                condition, effect, evidence, created_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            source_entity,
+                            skill_type,
+                            'requires',
+                            1.0,
+                            json.dumps({'category': category, 'source_layer': source_layer}, ensure_ascii=False),
+                            'verified',
+                            rule_id,
+                            heuristic_record_id,
+                            verified_at or datetime.now().isoformat(),
+                            condition,
+                            effect,
+                            evidence,
+                            datetime.now().isoformat()
+                        ))
+                        edge_count += 1
+                    except Exception as e:
+                        pass  # 忽略重复边
+            
+            # 提取 excludeSkillTypes
+            exc_match = re.search(r'excludeSkillTypes:\s*([^\n]+)', condition or '')
+            if exc_match:
+                types_str = exc_match.group(1).strip()
+                skill_types = [t.strip() for t in types_str.split(',') if t.strip() and t.strip() not in ('AND', 'OR', 'NOT')]
+                
+                for skill_type in skill_types:
+                    node_set.add(skill_type)
+                    mechanism_nodes.add(skill_type)
+                    
+                    try:
+                        graph_cursor.execute('''
+                            INSERT INTO graph_edges (
+                                source_node, target_node, edge_type, weight, attributes,
+                                status, source_rule, heuristic_record_id, verified_at,
+                                condition, effect, evidence, created_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            source_entity,
+                            skill_type,
+                            'excludes',
+                            1.0,
+                            json.dumps({'category': category, 'source_layer': source_layer}, ensure_ascii=False),
+                            'verified',
+                            rule_id,
+                            heuristic_record_id,
+                            verified_at or datetime.now().isoformat(),
+                            condition,
+                            effect,
+                            evidence,
+                            datetime.now().isoformat()
+                        ))
+                        edge_count += 1
+                    except Exception as e:
+                        pass
+            
+            # 提取 effect 字段中的 addSkillTypes（因果链关键！）
+            add_match = re.search(r'addSkillTypes:\s*([^\n]+)', effect or '')
+            if add_match:
+                types_str = add_match.group(1).strip()
+                skill_types = [t.strip() for t in types_str.split(',') if t.strip()]
+                
+                for skill_type in skill_types:
+                    node_set.add(skill_type)
+                    mechanism_nodes.add(skill_type)
+                    
+                    try:
+                        graph_cursor.execute('''
+                            INSERT INTO graph_edges (
+                                source_node, target_node, edge_type, weight, attributes,
+                                status, source_rule, heuristic_record_id, verified_at,
+                                condition, effect, evidence, created_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            source_entity,
+                            skill_type,
+                            'provides',
+                            1.0,
+                            json.dumps({'category': category, 'source_layer': source_layer}, ensure_ascii=False),
+                            'verified',
+                            rule_id,
+                            heuristic_record_id,
+                            verified_at or datetime.now().isoformat(),
+                            condition,
+                            effect,
+                            evidence,
+                            datetime.now().isoformat()
+                        ))
+                        edge_count += 1
+                    except Exception as e:
+                        pass
         
-        # 确定边类型
-        edge_type = relation_type if relation_type else 'relates'
+        elif category == 'relation':
+            # relation 规则：直接使用 target_entity，但标记为机制节点
+            if not target_entity:
+                continue
+            
+            node_set.add(source_entity)
+            node_set.add(target_entity)
+            mechanism_nodes.add(target_entity)
+            
+            edge_type = relation_type if relation_type else 'relates'
+            
+            try:
+                graph_cursor.execute('''
+                    INSERT INTO graph_edges (
+                        source_node, target_node, edge_type, weight, attributes,
+                        status, source_rule, heuristic_record_id, verified_at,
+                        condition, effect, evidence, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    source_entity,
+                    target_entity,
+                    edge_type,
+                    1.0,
+                    json.dumps({'category': category, 'source_layer': source_layer}, ensure_ascii=False),
+                    'verified',
+                    rule_id,
+                    heuristic_record_id,
+                    verified_at or datetime.now().isoformat(),
+                    condition,
+                    effect,
+                    evidence,
+                    datetime.now().isoformat()
+                ))
+                edge_count += 1
+            except Exception as e:
+                print(f"  ⚠ 插入边失败: {rule_id} - {e}")
         
-        # 生成边属性
-        attributes = {
-            'category': category,
-            'source_layer': source_layer
-        }
-        
-        # 插入边
-        try:
-            graph_cursor.execute('''
-                INSERT INTO graph_edges (
-                    source_node, target_node, edge_type, weight, attributes,
-                    status, source_rule, heuristic_record_id, verified_at,
-                    condition, effect, evidence, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                source_entity,
-                target_entity,
-                edge_type,
-                1.0,  # 权重
-                json.dumps(attributes, ensure_ascii=False),
-                'verified',
-                rule_id,
-                heuristic_record_id,
-                verified_at or datetime.now().isoformat(),
-                condition,
-                effect,
-                evidence,
-                datetime.now().isoformat()
-            ))
-            edge_count += 1
-        except Exception as e:
-            print(f"  ⚠ 插入边失败: {rule_id} - {e}")
+        elif category == 'formula_application':
+            # formula_application 规则：使用 uses_formula 边类型
+            if not source_formula:
+                continue
+            
+            node_set.add(source_entity)
+            node_set.add(source_formula)
+            
+            try:
+                graph_cursor.execute('''
+                    INSERT INTO graph_edges (
+                        source_node, target_node, edge_type, weight, attributes,
+                        status, source_rule, heuristic_record_id, verified_at,
+                        condition, effect, evidence, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    source_entity,
+                    source_formula,
+                    'uses_formula',
+                    1.0,
+                    json.dumps({'category': category, 'source_layer': source_layer}, ensure_ascii=False),
+                    'verified',
+                    rule_id,
+                    heuristic_record_id,
+                    verified_at or datetime.now().isoformat(),
+                    condition,
+                    effect,
+                    evidence,
+                    datetime.now().isoformat()
+                ))
+                edge_count += 1
+            except Exception as e:
+                pass
     
     graph_conn.commit()
-    print(f"  生成 {edge_count} 条边")
+    print(f"  生成 {edge_count} 条规则边")
     
-    # Step 3: 确保节点存在
-    print("确保节点存在...")
+    # Step 5: 确保规则涉及的节点存在（部分可能已在build_from_entities中创建）
+    print("确保规则节点存在...")
+    new_nodes = 0
+    new_mechanisms = 0
     for node_id in node_set:
         graph_cursor.execute('SELECT id FROM graph_nodes WHERE id = ?', (node_id,))
         if not graph_cursor.fetchone():
+            # 判断节点类型
+            node_type = 'mechanism' if node_id in mechanism_nodes else 'entity'
             graph_cursor.execute('''
                 INSERT INTO graph_nodes (id, name, type, created_at)
                 VALUES (?, ?, ?, ?)
-            ''', (node_id, node_id, 'entity', datetime.now().isoformat()))
+            ''', (node_id, node_id, node_type, datetime.now().isoformat()))
+            new_nodes += 1
+            if node_type == 'mechanism':
+                new_mechanisms += 1
     
     graph_conn.commit()
-    print(f"  确保 {len(node_set)} 个节点存在")
+    print(f"  新增 {new_nodes} 个规则节点 ({new_mechanisms} 个机制节点)")
     
     # 预置边已在 AttributeGraph 构造函数中加载
     
     # 关闭连接
     rules_conn.close()
     graph_conn.close()
+    
+    # Step 6: 构建类型层（启发式推理扩展）
+    print("\n构建类型层节点...")
+    type_stats = build_type_layer(db_path, entities_db_path)
+    print(f"  类型节点: {type_stats['type_nodes']}")
+    print(f"  has_type 边: {type_stats['has_type_edges']}")
+    
+    # Step 7: 构建属性层
+    print("\n构建属性层节点...")
+    property_stats = build_property_layer(db_path)
+    print(f"  属性节点: {property_stats['property_nodes']}")
+    print(f"  implies 边: {property_stats['implies_edges']}")
+    
+    # Step 8: 构建触发机制层
+    print("\n构建触发机制层节点...")
+    trigger_stats = build_trigger_layer(db_path, entities_db_path)
+    print(f"  触发机制节点: {trigger_stats['trigger_mechanisms']}")
+    print(f"  produces 边: {trigger_stats['produces_edges']}")
+    print(f"  triggers_via 边: {trigger_stats['triggers_via_edges']}")
     
     # 统计
     conn = sqlite3.connect(db_path)
@@ -434,6 +649,333 @@ def extract_mechanisms(modcache_path: str, db_path: str, entities_db_path: str =
         print(f"[错误] 机制提取失败: {e}")
         print("[提示] 知识库仍可正常使用，但缺少机制数据\n")
         return {'mechanisms': 0, 'sources': 0}
+
+
+def build_type_layer(graph_db_path: str, entities_db_path: str) -> dict:
+    """
+    构建类型层节点（启发式推理扩展 Phase 2）
+    
+    从 entities.db 提取所有唯一的 skill_types，创建 type_node 节点
+    
+    Returns:
+        {'type_nodes': int, 'has_type_edges': int}
+    """
+    # 连接数据库
+    graph_conn = sqlite3.connect(graph_db_path)
+    graph_cursor = graph_conn.cursor()
+    
+    entities_conn = sqlite3.connect(entities_db_path)
+    entities_cursor = entities_conn.cursor()
+    
+    # 提取所有唯一的 skill_types
+    entities_cursor.execute('''
+        SELECT DISTINCT json_each.value
+        FROM entities, json_each(skill_types)
+        WHERE skill_types IS NOT NULL AND skill_types != '[]'
+    ''')
+    
+    skill_types = [row[0] for row in entities_cursor.fetchall()]
+    print(f"  发现 {len(skill_types)} 个唯一类型")
+    
+    # 创建 type_node 节点
+    type_nodes = 0
+    has_type_edges = 0
+    
+    for skill_type in skill_types:
+        # 创建类型节点（如果不存在）
+        node_id = f"type_{skill_type.lower().replace(' ', '_')}"
+        
+        try:
+            graph_cursor.execute('''
+                INSERT OR IGNORE INTO graph_nodes (id, type, name, attributes, created_at)
+                VALUES (?, 'type_node', ?, ?, ?)
+            ''', (
+                node_id,
+                skill_type,
+                json.dumps({'original_type': skill_type}, ensure_ascii=False),
+                datetime.now().isoformat()
+            ))
+            
+            if graph_cursor.rowcount > 0:
+                type_nodes += 1
+        except Exception as e:
+            pass
+    
+    graph_conn.commit()
+    entities_conn.close()
+    
+    # 统计 has_type 边（已由 build_from_entities 创建）
+    graph_cursor.execute('''
+        SELECT COUNT(*) FROM graph_edges WHERE edge_type = 'has_type'
+    ''')
+    has_type_edges = graph_cursor.fetchone()[0]
+    
+    graph_conn.close()
+    
+    return {
+        'type_nodes': type_nodes,
+        'has_type_edges': has_type_edges
+    }
+
+
+def build_property_layer(graph_db_path: str) -> dict:
+    """
+    构建属性层节点（启发式推理扩展 Phase 2）
+    
+    定义类型到属性的映射规则，创建 property_node 节点和 implies 边
+    
+    Returns:
+        {'property_nodes': int, 'implies_edges': int}
+    """
+    # 定义类型到属性的映射规则
+    type_property_mappings = {
+        # Meta 技能相关
+        'Meta': {
+            'properties': ['UsesTriggerMechanism'],
+            'description': 'Meta技能使用触发机制'
+        },
+        'Meta + GeneratesEnergy': {
+            'properties': ['UsesEnergySystem'],
+            'description': 'Meta技能生成能量时使用能量系统'
+        },
+        
+        # Hazard 相关
+        'Hazard': {
+            'properties': ['DoesNotUseEnergy', 'DoesNotProduceTriggered'],
+            'description': 'Hazard不使用能量系统，不产生Triggered标签'
+        },
+        
+        # Triggered 标签相关
+        'Triggered': {
+            'properties': ['CannotGenerateEnergyForMeta'],
+            'description': 'Triggered标签的技能无法为Meta技能生成能量'
+        },
+        
+        # Duration 相关
+        'Duration': {
+            'properties': ['HasDuration'],
+            'description': '持续时间技能'
+        },
+        
+        # Triggers 相关
+        'Triggers': {
+            'properties': ['CanTriggerOtherSkills'],
+            'description': '可触发其他技能'
+        }
+    }
+    
+    # 连接数据库
+    graph_conn = sqlite3.connect(graph_db_path)
+    graph_cursor = graph_conn.cursor()
+    
+    property_nodes = 0
+    implies_edges = 0
+    
+    # 收集所有属性
+    all_properties = set()
+    for mapping in type_property_mappings.values():
+        all_properties.update(mapping['properties'])
+    
+    # 创建 property_node 节点
+    for prop in all_properties:
+        node_id = f"prop_{prop.lower().replace(' ', '_')}"
+        
+        try:
+            graph_cursor.execute('''
+                INSERT OR IGNORE INTO graph_nodes (id, type, name, attributes, created_at)
+                VALUES (?, 'property_node', ?, ?, ?)
+            ''', (
+                node_id,
+                prop,
+                json.dumps({'description': prop}, ensure_ascii=False),
+                datetime.now().isoformat()
+            ))
+            
+            if graph_cursor.rowcount > 0:
+                property_nodes += 1
+        except Exception as e:
+            pass
+    
+    # 创建 implies 边（从 type_node 到 property_node）
+    for type_combo, mapping in type_property_mappings.items():
+        # 解析组合类型
+        types = [t.strip() for t in type_combo.split('+')]
+        
+        # 为每个属性创建 implies 边
+        for prop in mapping['properties']:
+            # 对于组合类型，我们需要更复杂的逻辑
+            # 这里简化处理：为第一个类型创建 implies 边
+            if len(types) == 1:
+                type_node_id = f"type_{types[0].lower().replace(' ', '_')}"
+                prop_node_id = f"prop_{prop.lower().replace(' ', '_')}"
+                
+                try:
+                    graph_cursor.execute('''
+                        INSERT OR IGNORE INTO graph_edges (
+                            source_node, target_node, edge_type, weight, attributes,
+                            status, evidence, created_at
+                        ) VALUES (?, ?, 'implies', 1.0, ?, 'verified', ?, ?)
+                    ''', (
+                        type_node_id,
+                        prop_node_id,
+                        json.dumps({'description': mapping['description']}, ensure_ascii=False),
+                        mapping['description'],
+                        datetime.now().isoformat()
+                    ))
+                    
+                    if graph_cursor.rowcount > 0:
+                        implies_edges += 1
+                except Exception as e:
+                    pass
+    
+    graph_conn.commit()
+    graph_conn.close()
+    
+    return {
+        'property_nodes': property_nodes,
+        'implies_edges': implies_edges
+    }
+
+
+def build_trigger_layer(graph_db_path: str, entities_db_path: str) -> dict:
+    """
+    构建触发机制层节点（启发式推理扩展 Phase 2）
+    
+    定义触发机制类型，创建 trigger_mechanism 节点、produces 边和 triggers_via 边
+    
+    Returns:
+        {'trigger_mechanisms': int, 'produces_edges': int, 'triggers_via_edges': int}
+    """
+    # 定义触发机制类型
+    trigger_mechanisms = {
+        'MetaTrigger': {
+            'produces': ['Triggered'],
+            'description': 'Meta触发机制，产生Triggered标签'
+        },
+        'HazardTrigger': {
+            'produces': [],
+            'description': 'Hazard触发机制，不产生Triggered标签'
+        },
+        'CreationTrigger': {
+            'produces': [],
+            'description': 'Creation触发机制（如Doedre），不产生Triggered标签'
+        }
+    }
+    
+    # 定义实体到触发机制的映射
+    # 从 entities.db 中识别哪些实体使用哪种触发机制
+    entity_trigger_mapping = {
+        # Meta 技能使用 MetaTrigger
+        'MetaCastOnCritPlayer': 'MetaTrigger',
+        'MetaCastOnMeleeKillPlayer': 'MetaTrigger',
+        'MetaCastOnDeathPlayer': 'MetaTrigger',
+        
+        # Hazard 技能使用 HazardTrigger
+        'SpearfieldPlayer': 'HazardTrigger',
+        'TrailOfCaltropsPlayer': 'HazardTrigger',
+        
+        # Creation 技能使用 CreationTrigger
+        'SupportDoedresUndoingPlayer': 'CreationTrigger'
+    }
+    
+    # 连接数据库
+    graph_conn = sqlite3.connect(graph_db_path)
+    graph_cursor = graph_conn.cursor()
+    
+    trigger_mech_count = 0
+    produces_edges = 0
+    triggers_via_edges = 0
+    
+    # 创建 trigger_mechanism 节点
+    for mech_name, mech_info in trigger_mechanisms.items():
+        node_id = f"trigger_{mech_name.lower()}"
+        
+        try:
+            graph_cursor.execute('''
+                INSERT OR IGNORE INTO graph_nodes (id, type, name, attributes, created_at)
+                VALUES (?, 'trigger_mechanism', ?, ?, ?)
+            ''', (
+                node_id,
+                mech_name,
+                json.dumps({
+                    'description': mech_info['description'],
+                    'produces': mech_info['produces']
+                }, ensure_ascii=False),
+                datetime.now().isoformat()
+            ))
+            
+            if graph_cursor.rowcount > 0:
+                trigger_mech_count += 1
+        except Exception as e:
+            pass
+        
+        # 创建 produces 边
+        for label in mech_info['produces']:
+            label_node_id = f"type_{label.lower()}"
+            
+            # 确保标签节点存在
+            try:
+                graph_cursor.execute('''
+                    INSERT OR IGNORE INTO graph_nodes (id, type, name, created_at)
+                    VALUES (?, 'type_node', ?, ?)
+                ''', (label_node_id, label, datetime.now().isoformat()))
+            except:
+                pass
+            
+            # 创建 produces 边
+            try:
+                graph_cursor.execute('''
+                    INSERT OR IGNORE INTO graph_edges (
+                        source_node, target_node, edge_type, weight, attributes,
+                        status, evidence, created_at
+                    ) VALUES (?, ?, 'produces', 1.0, ?, 'verified', ?, ?)
+                ''', (
+                    node_id,
+                    label_node_id,
+                    json.dumps({'description': f'{mech_name}产生{label}标签'}, ensure_ascii=False),
+                    f'{mech_name} produces {label}',
+                    datetime.now().isoformat()
+                ))
+                
+                if graph_cursor.rowcount > 0:
+                    produces_edges += 1
+            except Exception as e:
+                pass
+    
+    # 创建 triggers_via 边（从实体到触发机制）
+    for entity_id, trigger_mech in entity_trigger_mapping.items():
+        trigger_node_id = f"trigger_{trigger_mech.lower()}"
+        
+        # 检查实体节点是否存在
+        graph_cursor.execute('SELECT id FROM graph_nodes WHERE id = ?', (entity_id,))
+        if graph_cursor.fetchone():
+            try:
+                graph_cursor.execute('''
+                    INSERT OR IGNORE INTO graph_edges (
+                        source_node, target_node, edge_type, weight, attributes,
+                        status, evidence, created_at
+                    ) VALUES (?, ?, 'triggers_via', 1.0, ?, 'verified', ?, ?)
+                ''', (
+                    entity_id,
+                    trigger_node_id,
+                    json.dumps({'description': f'{entity_id}通过{trigger_mech}触发'}, ensure_ascii=False),
+                    f'{entity_id} triggers via {trigger_mech}',
+                    datetime.now().isoformat()
+                ))
+                
+                if graph_cursor.rowcount > 0:
+                    triggers_via_edges += 1
+            except Exception as e:
+                pass
+    
+    graph_conn.commit()
+    graph_conn.close()
+    
+    return {
+        'trigger_mechanisms': trigger_mech_count,
+        'produces_edges': produces_edges,
+        'triggers_via_edges': triggers_via_edges
+    }
 
 
 def main():
