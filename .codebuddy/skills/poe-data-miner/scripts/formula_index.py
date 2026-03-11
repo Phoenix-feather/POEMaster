@@ -146,7 +146,7 @@ def init_formula_index(
         统计信息字典
     """
     from stat_map_index import StatMapIndex
-    from stat_formula_extractor import StatFormulaExtractor
+    from formula_extractor import FormulaExtractor
     
     config_dir = Path(config_path) if config_path else _get_config_path()
     stats = {}
@@ -190,11 +190,11 @@ def init_formula_index(
     print("\n  Phase 3: 缺口公式 (类型C)")
     
     if entities_db_path and Path(entities_db_path).exists():
-        extractor = StatFormulaExtractor(entities_db_path, db_path, pob_path)
-        extractor.extract_all()
-        extractor.save_to_db()
+        extractor = FormulaExtractor(pob_path, db_path, entities_db_path)
+        extractor.extract_gap_formulas()
+        extractor.save_gap_formulas()
         
-        gf_stats = extractor.get_stats()
+        gf_stats = extractor.get_gap_formulas_stats()
         stats['gap_formulas'] = gf_stats
         print(f"    缺口公式: {gf_stats['total']} 个, 覆盖 {gf_stats['entities_covered']} 个实体")
     else:

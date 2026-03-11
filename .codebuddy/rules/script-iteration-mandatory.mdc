@@ -1,0 +1,128 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-11T03:23:04.574Z
+provider: 
+---
+
+# POEMaster 脚本迭代规则
+
+## 核心原则
+
+**禁止新增脚本文件替代旧文件。迭代功能必须在原脚本文件上直接更新。**
+
+## 原因
+
+1. **避免混乱**：新旧文件并存会导致调用混乱
+2. **DB一致性**：多个脚本可能操作同一数据库，分离导致数据结构不一致
+3. **维护成本**：需要同时维护多个文件
+4. **调用链断裂**：其他模块可能仍在引用旧文件
+
+## 反面案例
+
+### 案例1: formula_extractor 分离
+
+```
+❌ 错误做法:
+  formula_extractor.py          (旧版，存储Lua函数代码)
+  stat_formula_extractor.py     (新版，提取缺口公式)
+  init_formula_library.py       (调用旧版)
+  formula_index.py              (调用新版)
+
+结果:
+  - 公式库DB结构混乱
+  - init_knowledge_base.py 需要选择调用哪个
+  - 后续功能不知道依赖哪个
+```
+
+### 正确做法
+
+```
+✅ 正确做法:
+  formula_extractor.py          (直接在此文件更新功能)
+  
+  更新方式:
+  - 保持向后兼容的函数签名
+  - 添加新功能时在原类中扩展
+  - 废弃的函数标记 @deprecated
+  - 提供迁移文档
+```
+
+## 执行流程
+
+### 修改前检查
+
+```python
+# 1. 检查是否需要新增文件
+if 需要新增脚本文件:
+    # 2. 检查是否有功能相似的同名文件
+    similar_files = find_similar_files(new_function_name)
+    
+    if similar_files:
+        # 3. 在原文件上更新
+        update_original_file(similar_files[0])
+        return
+    
+# 4. 只有在完全新功能时才创建新文件
+create_new_file()
+```
+
+### 更新原则
+
+1. **保持文件名稳定**：不随意改名
+2. **函数签名兼容**：新增参数设默认值
+3. **废弃标记**：不直接删除，标记 `@deprecated`
+4. **迁移文档**：在 docstring 中说明迁移路径
+
+## 验证清单
+
+每次脚本修改后验证：
+
+- [ ] 是否创建了新文件替代旧文件？ → 应该在原文件更新
+- [ ] 旧文件是否仍被引用？ → 检查并更新所有引用
+- [ ] DB操作是否分散在多个文件？ → 集中到一处
+- [ ] 入口脚本是否指向正确？ → 更新 init_knowledge_base.py
+
+## 已完成的清理
+
+| 文件 | 状态 | 完成日期 |
+|------|------|----------|
+| `formula_extractor.py` | ✅ 已更新 v7 | 2026-03-11 |
+| `stat_formula_extractor.py` | ✅ 已删除（合并到 formula_extractor） | 2026-03-11 |
+
+## 当前需要清理的文件
+
+| 文件 | 状态 | 建议 |
+|------|------|------|
+| `init_formula_library.py` | 调用旧版 | 废弃，使用 init_knowledge_base.py |
+| `call_chain_analyzer.py` | 依赖旧版 | 检查依赖，必要时更新 |
+| `_deprecated_rules_extractor.py` | 已废弃 | 删除或移到归档目录 |
+
+## 示例：正确的功能迭代
+
+```python
+# formula_extractor.py
+
+class FormulaExtractor:
+    """公式提取器
+    
+    v1: 提取Lua函数代码
+    v2: 添加调用链分析
+    v3: 添加stat特征提取
+    v7: 添加缺口公式提取 (原 stat_formula_extractor 功能)
+    """
+    
+    def __init__(self, pob_path, db_path, entities_db_path=None):
+        # 保持向后兼容
+        ...
+    
+    def extract_all_functions(self):
+        """提取所有Lua函数"""
+        # v1-v6 功能
+        ...
+    
+    def extract_gap_formulas(self):
+        """提取缺口公式 (v7新增，原 stat_formula_extractor)"""
+        ...
+```

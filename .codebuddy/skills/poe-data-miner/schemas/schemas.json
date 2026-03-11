@@ -351,7 +351,7 @@
       "hash": null,
       "last_modified": null,
       "definition": {
-        "file": "stat_formula_extractor.py",
+        "file": "formula_extractor.py",
         "type": "sqlite_table",
         "table_name": "gap_formulas"
       },
@@ -380,7 +380,7 @@
       "hash": null,
       "last_modified": null,
       "definition": {
-        "file": "stat_formula_extractor.py",
+        "file": "formula_extractor.py",
         "type": "dataclass",
         "class_name": "GapFormula"
       },
