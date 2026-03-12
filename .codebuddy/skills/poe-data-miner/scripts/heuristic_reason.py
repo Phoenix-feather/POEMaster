@@ -13,12 +13,14 @@ try:
     from heuristic_query import HeuristicQuery
     from heuristic_discovery import HeuristicDiscovery
     from heuristic_diffuse import HeuristicDiffuse
+    from heuristic_config_loader import get_config
 except ImportError:
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
     from heuristic_query import HeuristicQuery
     from heuristic_discovery import HeuristicDiscovery
     from heuristic_diffuse import HeuristicDiffuse
+    from heuristic_config_loader import get_config
 
 
 class HeuristicReason:
@@ -36,6 +38,10 @@ class HeuristicReason:
         self.discovery = HeuristicDiscovery(graph_db_path)
         self.diffuse = HeuristicDiffuse(graph_db_path)
         
+        # 加载配置
+        self.default_threshold = get_config('defaults.similarity_threshold', 0.7)
+        self.max_diffuse_results = get_config('defaults.max_diffuse_results', 10)
+        
         # 结果缓存
         self._cache: Dict[str, Any] = {}
     
@@ -49,8 +55,8 @@ class HeuristicReason:
     
     def query_bypass(self, constraint: str, mode: str = 'auto', 
                      include_hypothesis: bool = True,
-                     similarity_threshold: float = 0.7,
-                     max_diffuse_results: int = 10) -> Dict[str, Any]:
+                     similarity_threshold: float = None,
+                     max_diffuse_results: int = None) -> Dict[str, Any]:
         """
         查询绕过路径（三层能力统一接口）
         
@@ -62,8 +68,8 @@ class HeuristicReason:
                 - 'diffuse': 从已知边扩散
                 - 'auto': 自动选择（有已知边→扩散，无已知边→发现）
             include_hypothesis: 是否包含假设边
-            similarity_threshold: 扩散时的相似度阈值
-            max_diffuse_results: 扩散时的最大结果数
+            similarity_threshold: 扩散时的相似度阈值（None则使用配置）
+            max_diffuse_results: 扩散时的最大结果数（None则使用配置）
             
         Returns:
             {
@@ -75,6 +81,12 @@ class HeuristicReason:
                 'reasoning_chain': [...]      # 推理链
             }
         """
+        # 使用配置中的默认值（如果未提供参数）
+        if similarity_threshold is None:
+            similarity_threshold = self.default_threshold
+        if max_diffuse_results is None:
+            max_diffuse_results = self.max_diffuse_results
+        
         result = {
             'constraint': constraint,
             'mode': mode,

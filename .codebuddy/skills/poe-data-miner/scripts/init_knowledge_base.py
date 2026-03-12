@@ -136,14 +136,19 @@ def init_rules_db(db_path: str, entities_db_path: str) -> dict:
     return {'total': total, 'by_category': cat_counts}
 
 
-def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, predefined_edges_path: str = None) -> dict:
+def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, 
+                         predefined_edges_path: str = None, pob_path: str = None,
+                         use_verified_mappings: bool = True) -> dict:
     """
     初始化关联图 - 从实体和规则库构建完整图
+    
+    Phase 4: 添加验证系统支持
     
     数据流:
     1. entities.db → graph_nodes (entity, mechanism, attribute) + graph_edges (has_type, has_stat)
     2. rules.db → graph_edges (requires, excludes, provides 等)
     3. predefined_edges.yaml → 预置边
+    4. 验证系统 → 自动验证类型-属性映射和触发机制映射
     """
     print("\n" + "=" * 60)
     print("4. 初始化关联图")
@@ -453,15 +458,15 @@ def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str
     print(f"  类型节点: {type_stats['type_nodes']}")
     print(f"  has_type 边: {type_stats['has_type_edges']}")
     
-    # Step 7: 构建属性层
+    # Step 7: 构建属性层（Phase 4: 使用验证系统）
     print("\n构建属性层节点...")
-    property_stats = build_property_layer(db_path)
+    property_stats = build_property_layer(db_path, pob_path, use_verified_mappings)
     print(f"  属性节点: {property_stats['property_nodes']}")
     print(f"  implies 边: {property_stats['implies_edges']}")
     
-    # Step 8: 构建触发机制层
+    # Step 8: 构建触发机制层（Phase 4: 使用验证系统）
     print("\n构建触发机制层节点...")
-    trigger_stats = build_trigger_layer(db_path, entities_db_path)
+    trigger_stats = build_trigger_layer(db_path, entities_db_path, pob_path, use_verified_mappings)
     print(f"  触发机制节点: {trigger_stats['trigger_mechanisms']}")
     print(f"  produces 边: {trigger_stats['produces_edges']}")
     print(f"  triggers_via 边: {trigger_stats['triggers_via_edges']}")
@@ -718,51 +723,50 @@ def build_type_layer(graph_db_path: str, entities_db_path: str) -> dict:
     }
 
 
-def build_property_layer(graph_db_path: str) -> dict:
+def build_property_layer(graph_db_path: str, pob_data_path: str = None, 
+                         use_verified_mappings: bool = True) -> dict:
     """
-    构建属性层节点（启发式推理扩展 Phase 2）
+    构建属性层节点（Phase 4: 使用验证系统替换硬编码）
     
-    定义类型到属性的映射规则，创建 property_node 节点和 implies 边
+    使用种子知识验证器自动验证类型-属性映射
+    
+    Args:
+        graph_db_path: 图数据库路径
+        pob_data_path: POB数据路径（用于验证）
+        use_verified_mappings: 是否使用验证后的映射（True）或硬编码映射（False）
     
     Returns:
         {'property_nodes': int, 'implies_edges': int}
     """
-    # 定义类型到属性的映射规则
-    type_property_mappings = {
-        # Meta 技能相关
-        'Meta': {
-            'properties': ['UsesTriggerMechanism'],
-            'description': 'Meta技能使用触发机制'
-        },
-        'Meta + GeneratesEnergy': {
-            'properties': ['UsesEnergySystem'],
-            'description': 'Meta技能生成能量时使用能量系统'
-        },
+    # 获取类型到属性的映射规则
+    if use_verified_mappings and pob_data_path:
+        # Phase 4: 使用验证系统
+        from seed_knowledge_verifier import verify_and_get_property_mappings
         
-        # Hazard 相关
-        'Hazard': {
-            'properties': ['DoesNotUseEnergy', 'DoesNotProduceTriggered'],
-            'description': 'Hazard不使用能量系统，不产生Triggered标签'
-        },
+        try:
+            verified_mappings = verify_and_get_property_mappings(
+                pob_data_path, graph_db_path, min_confidence=0.5
+            )
+            
+            # 转换为兼容格式
+            type_property_mappings = {}
+            for type_combo, mapping in verified_mappings.items():
+                type_property_mappings[type_combo] = {
+                    'properties': mapping['properties'],
+                    'description': mapping['description'],
+                    'confidence': mapping.get('confidence', 1.0),
+                    'status': mapping.get('status', 'verified')
+                }
+            
+            print(f"  使用验证后的映射: {len(type_property_mappings)} 条")
         
-        # Triggered 标签相关
-        'Triggered': {
-            'properties': ['CannotGenerateEnergyForMeta'],
-            'description': 'Triggered标签的技能无法为Meta技能生成能量'
-        },
-        
-        # Duration 相关
-        'Duration': {
-            'properties': ['HasDuration'],
-            'description': '持续时间技能'
-        },
-        
-        # Triggers 相关
-        'Triggers': {
-            'properties': ['CanTriggerOtherSkills'],
-            'description': '可触发其他技能'
-        }
-    }
+        except Exception as e:
+            print(f"  ⚠ 验证系统失败，使用硬编码映射: {e}")
+            type_property_mappings = _get_fallback_property_mappings()
+    
+    else:
+        # 使用硬编码映射（向后兼容）
+        type_property_mappings = _get_fallback_property_mappings()
     
     # 连接数据库
     graph_conn = sqlite3.connect(graph_db_path)
@@ -803,11 +807,11 @@ def build_property_layer(graph_db_path: str) -> dict:
         
         # 为每个属性创建 implies 边
         for prop in mapping['properties']:
-            # 对于组合类型，我们需要更复杂的逻辑
-            # 这里简化处理：为第一个类型创建 implies 边
+            prop_node_id = f"prop_{prop.lower().replace(' ', '_')}"
+            
             if len(types) == 1:
+                # 单类型：直接从 type_node 到 property_node
                 type_node_id = f"type_{types[0].lower().replace(' ', '_')}"
-                prop_node_id = f"prop_{prop.lower().replace(' ', '_')}"
                 
                 try:
                     graph_cursor.execute('''
@@ -817,6 +821,47 @@ def build_property_layer(graph_db_path: str) -> dict:
                         ) VALUES (?, ?, 'implies', 1.0, ?, 'verified', ?, ?)
                     ''', (
                         type_node_id,
+                        prop_node_id,
+                        json.dumps({'description': mapping['description']}, ensure_ascii=False),
+                        mapping['description'],
+                        datetime.now().isoformat()
+                    ))
+                    
+                    if graph_cursor.rowcount > 0:
+                        implies_edges += 1
+                except Exception as e:
+                    pass
+            
+            elif len(types) > 1:
+                # 组合类型：创建组合类型节点，然后创建 implies 边
+                combo_node_id = f"type_combo_{'_'.join([t.lower().replace(' ', '_') for t in types])}"
+                
+                # 创建组合类型节点
+                try:
+                    graph_cursor.execute('''
+                        INSERT OR IGNORE INTO graph_nodes (id, type, name, attributes, created_at)
+                        VALUES (?, 'type_node', ?, ?, ?)
+                    ''', (
+                        combo_node_id,
+                        type_combo,
+                        json.dumps({
+                            'description': f'组合类型: {" + ".join(types)}',
+                            'component_types': types
+                        }, ensure_ascii=False),
+                        datetime.now().isoformat()
+                    ))
+                except Exception as e:
+                    pass
+                
+                # 创建 implies 边
+                try:
+                    graph_cursor.execute('''
+                        INSERT OR IGNORE INTO graph_edges (
+                            source_node, target_node, edge_type, weight, attributes,
+                            status, evidence, created_at
+                        ) VALUES (?, ?, 'implies', 1.0, ?, 'verified', ?, ?)
+                    ''', (
+                        combo_node_id,
                         prop_node_id,
                         json.dumps({'description': mapping['description']}, ensure_ascii=False),
                         mapping['description'],
@@ -837,50 +882,146 @@ def build_property_layer(graph_db_path: str) -> dict:
     }
 
 
-def build_trigger_layer(graph_db_path: str, entities_db_path: str) -> dict:
+def _get_fallback_property_mappings() -> dict:
     """
-    构建触发机制层节点（启发式推理扩展 Phase 2）
+    后备硬编码映射（当验证系统不可用时使用）
     
-    定义触发机制类型，创建 trigger_mechanism 节点、produces 边和 triggers_via 边
+    Returns:
+        硬编码的类型-属性映射
+    """
+    return {
+        # Meta 技能相关
+        'Meta': {
+            'properties': ['UsesTriggerMechanism'],
+            'description': 'Meta技能使用触发机制'
+        },
+        'Meta + GeneratesEnergy': {
+            'properties': ['UsesEnergySystem'],
+            'description': 'Meta技能生成能量时使用能量系统'
+        },
+        
+        # Hazard 相关
+        'Hazard': {
+            'properties': ['DoesNotUseEnergy', 'DoesNotProduceTriggered'],
+            'description': 'Hazard不使用能量系统，不产生Triggered标签'
+        },
+        
+        # Triggered 标签相关
+        'Triggered': {
+            'properties': ['CannotGenerateEnergyForMeta'],
+            'description': 'Triggered标签的技能无法为Meta技能生成能量'
+        },
+        
+        # Duration 相关
+        'Duration': {
+            'properties': ['HasDuration'],
+            'description': '持续时间技能'
+        },
+        
+        # Triggers 相关
+        'Triggers': {
+            'properties': ['CanTriggerOtherSkills'],
+            'description': '可触发其他技能'
+        }
+    }
+
+
+def build_trigger_layer(graph_db_path: str, entities_db_path: str, 
+                        pob_data_path: str = None,
+                        use_verified_mappings: bool = True) -> dict:
+    """
+    构建触发机制层节点（Phase 4: 使用验证系统替换硬编码）
+    
+    使用种子知识验证器自动验证触发机制映射
+    
+    Args:
+        graph_db_path: 图数据库路径
+        entities_db_path: 实体数据库路径
+        pob_data_path: POB数据路径（用于验证）
+        use_verified_mappings: 是否使用验证后的映射（True）或硬编码映射（False）
     
     Returns:
         {'trigger_mechanisms': int, 'produces_edges': int, 'triggers_via_edges': int}
     """
-    # 定义触发机制类型
-    trigger_mechanisms = {
-        'MetaTrigger': {
-            'produces': ['Triggered'],
-            'description': 'Meta触发机制，产生Triggered标签'
-        },
-        'HazardTrigger': {
-            'produces': [],
-            'description': 'Hazard触发机制，不产生Triggered标签'
-        },
-        'CreationTrigger': {
-            'produces': [],
-            'description': 'Creation触发机制（如Doedre），不产生Triggered标签'
-        }
-    }
     
-    # 定义实体到触发机制的映射
-    # 从 entities.db 中识别哪些实体使用哪种触发机制
-    entity_trigger_mapping = {
-        # Meta 技能使用 MetaTrigger
-        'MetaCastOnCritPlayer': 'MetaTrigger',
-        'MetaCastOnMeleeKillPlayer': 'MetaTrigger',
-        'MetaCastOnDeathPlayer': 'MetaTrigger',
+    def detect_trigger_mechanism(entity_data: dict) -> str:
+        """
+        从实体数据自动识别触发机制类型
         
-        # Hazard 技能使用 HazardTrigger
-        'SpearfieldPlayer': 'HazardTrigger',
-        'TrailOfCaltropsPlayer': 'HazardTrigger',
+        Args:
+            entity_data: 实体数据字典，包含 skill_types 和 stats
+            
+        Returns:
+            触发机制类型: 'MetaTrigger', 'HazardTrigger', 'CreationTrigger', 'Unknown'
+        """
+        skill_types = entity_data.get('skill_types', [])
+        stats = entity_data.get('stats', [])
+        name = entity_data.get('name', '').lower()
         
-        # Creation 技能使用 CreationTrigger
-        'SupportDoedresUndoingPlayer': 'CreationTrigger'
-    }
+        # Meta 技能特征：Meta标签 + GeneratesEnergy 或能量相关stat
+        if 'Meta' in skill_types:
+            # 检查是否有能量生成相关特征
+            energy_indicators = [
+                any('Energy' in str(s) for s in stats),
+                any('energy' in str(s).lower() for s in stats),
+                'GeneratesEnergy' in skill_types,
+                any('meta' in str(s).lower() and 'trigger' in str(s).lower() for s in stats)
+            ]
+            if any(energy_indicators):
+                return 'MetaTrigger'
+        
+        # Hazard 技能特征：Hazard标签
+        if 'Hazard' in skill_types:
+            return 'HazardTrigger'
+        
+        # Creation 技能特征：创建效果（通过名称或特定stat识别）
+        creation_indicators = [
+            'undoing' in name,  # Doedre's Undoing
+            'creation' in name,
+            any('does_not_use_energy' in str(s).lower() for s in stats),
+            any('creates' in str(s).lower() and 'trigger' not in str(s).lower() for s in stats)
+        ]
+        if any(creation_indicators):
+            return 'CreationTrigger'
+        
+        return 'Unknown'
+    
+    # 获取触发机制映射
+    if use_verified_mappings and pob_data_path:
+        # Phase 4: 使用验证系统
+        from seed_knowledge_verifier import verify_and_get_trigger_mechanisms
+        
+        try:
+            verified_mechanisms = verify_and_get_trigger_mechanisms(
+                pob_data_path, graph_db_path, min_confidence=0.5
+            )
+            
+            # 转换为兼容格式
+            trigger_mechanisms = {}
+            for mech_name, mech in verified_mechanisms.items():
+                trigger_mechanisms[mech_name] = {
+                    'produces': mech['produces'],
+                    'description': mech['description'],
+                    'confidence': mech.get('confidence', 1.0),
+                    'status': mech.get('status', 'verified')
+                }
+            
+            print(f"  使用验证后的触发机制映射: {len(trigger_mechanisms)} 条")
+        
+        except Exception as e:
+            print(f"  ⚠ 验证系统失败，使用硬编码映射: {e}")
+            trigger_mechanisms = _get_fallback_trigger_mechanisms()
+    
+    else:
+        # 使用硬编码映射（向后兼容）
+        trigger_mechanisms = _get_fallback_trigger_mechanisms()
     
     # 连接数据库
     graph_conn = sqlite3.connect(graph_db_path)
     graph_cursor = graph_conn.cursor()
+    
+    entities_conn = sqlite3.connect(entities_db_path)
+    entities_cursor = entities_conn.cursor()
     
     trigger_mech_count = 0
     produces_edges = 0
@@ -942,39 +1083,95 @@ def build_trigger_layer(graph_db_path: str, entities_db_path: str) -> dict:
             except Exception as e:
                 pass
     
-    # 创建 triggers_via 边（从实体到触发机制）
-    for entity_id, trigger_mech in entity_trigger_mapping.items():
-        trigger_node_id = f"trigger_{trigger_mech.lower()}"
+    # 自动识别实体的触发机制并创建 triggers_via 边
+    # 查询所有实体
+    entities_cursor.execute('''
+        SELECT id, name, skill_types, stats, constant_stats
+        FROM entities
+    ''')
+    
+    entities = entities_cursor.fetchall()
+    auto_detected_count = 0
+    
+    for entity in entities:
+        entity_id = entity[0]
+        entity_name = entity[1] or entity_id
+        skill_types_json = entity[2]
+        stats_json = entity[3]
+        constant_stats_json = entity[4]
         
-        # 检查实体节点是否存在
-        graph_cursor.execute('SELECT id FROM graph_nodes WHERE id = ?', (entity_id,))
-        if graph_cursor.fetchone():
-            try:
-                graph_cursor.execute('''
-                    INSERT OR IGNORE INTO graph_edges (
-                        source_node, target_node, edge_type, weight, attributes,
-                        status, evidence, created_at
-                    ) VALUES (?, ?, 'triggers_via', 1.0, ?, 'verified', ?, ?)
-                ''', (
-                    entity_id,
-                    trigger_node_id,
-                    json.dumps({'description': f'{entity_id}通过{trigger_mech}触发'}, ensure_ascii=False),
-                    f'{entity_id} triggers via {trigger_mech}',
-                    datetime.now().isoformat()
-                ))
-                
-                if graph_cursor.rowcount > 0:
-                    triggers_via_edges += 1
-            except Exception as e:
-                pass
+        # 解析实体数据
+        entity_data = {
+            'name': entity_name,
+            'skill_types': json.loads(skill_types_json) if skill_types_json else [],
+            'stats': json.loads(stats_json) if stats_json else [],
+            'constant_stats': json.loads(constant_stats_json) if constant_stats_json else []
+        }
+        
+        # 自动识别触发机制
+        trigger_mech = detect_trigger_mechanism(entity_data)
+        
+        if trigger_mech != 'Unknown':
+            trigger_node_id = f"trigger_{trigger_mech.lower()}"
+            
+            # 检查实体节点是否存在
+            graph_cursor.execute('SELECT id FROM graph_nodes WHERE id = ?', (entity_id,))
+            if graph_cursor.fetchone():
+                try:
+                    graph_cursor.execute('''
+                        INSERT OR IGNORE INTO graph_edges (
+                            source_node, target_node, edge_type, weight, attributes,
+                            status, evidence, created_at
+                        ) VALUES (?, ?, 'triggers_via', 1.0, ?, 'verified', ?, ?)
+                    ''', (
+                        entity_id,
+                        trigger_node_id,
+                        json.dumps({
+                            'description': f'{entity_name}通过{trigger_mech}触发',
+                            'auto_detected': True
+                        }, ensure_ascii=False),
+                        f'{entity_id} triggers via {trigger_mech}',
+                        datetime.now().isoformat()
+                    ))
+                    
+                    if graph_cursor.rowcount > 0:
+                        triggers_via_edges += 1
+                        auto_detected_count += 1
+                except Exception as e:
+                    pass
     
     graph_conn.commit()
+    entities_conn.close()
     graph_conn.close()
     
     return {
         'trigger_mechanisms': trigger_mech_count,
         'produces_edges': produces_edges,
-        'triggers_via_edges': triggers_via_edges
+        'triggers_via_edges': triggers_via_edges,
+        'auto_detected_count': auto_detected_count
+    }
+
+
+def _get_fallback_trigger_mechanisms() -> dict:
+    """
+    后备硬编码触发机制映射（当验证系统不可用时使用）
+    
+    Returns:
+        硬编码的触发机制映射
+    """
+    return {
+        'MetaTrigger': {
+            'produces': ['Triggered'],
+            'description': 'Meta触发机制，产生Triggered标签'
+        },
+        'HazardTrigger': {
+            'produces': [],
+            'description': 'Hazard触发机制，不产生Triggered标签'
+        },
+        'CreationTrigger': {
+            'produces': [],
+            'description': 'Creation触发机制（如Doedre），不产生Triggered标签'
+        }
     }
 
 
@@ -1052,7 +1249,9 @@ def main():
         str(graph_db), 
         str(entities_db), 
         str(rules_db),
-        predefined_edges_path=str(predefined_edges_path) if predefined_edges_path.exists() else None
+        predefined_edges_path=str(predefined_edges_path) if predefined_edges_path.exists() else None,
+        pob_path=str(pob_path),  # Phase 4: 传递pob_path用于验证
+        use_verified_mappings=True  # 使用验证系统
     )
     
     # 提取机制

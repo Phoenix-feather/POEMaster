@@ -1,0 +1,59 @@
+# 启发式推理系统配置文件
+# 存储所有魔法数字、阈值和权重配置
+
+# 相似度计算权重
+similarity_weights:
+  types: 0.3
+  properties: 0.4          # 属性权重最高（最能体现绕过能力）
+  trigger_mechanisms: 0.2
+  stats: 0.05
+  constraints: 0.05
+
+# 默认阈值
+defaults:
+  similarity_threshold: 0.7
+  confidence_threshold: 0.8
+  max_diffuse_results: 10
+  max_inference_depth: 5
+  
+  # 反常检测阈值
+  anomaly_threshold: 0.5   # 低于此比例视为反常
+  
+  # 性能限制
+  max_path_depth: 5
+  max_neighbors: 100
+
+# 类型-属性映射配置
+# 这个配置应该被提取到单独的文件，这里只是占位
+type_property_mappings_file: "type_property_mappings.yaml"
+
+# 触发机制识别规则
+trigger_detection:
+  meta_indicators:
+    - "Meta"
+    - "GeneratesEnergy"
+    - "energy"
+  
+  hazard_indicators:
+    - "Hazard"
+  
+  creation_indicators:
+    - "undoing"
+    - "creation"
+    - "does_not_use_energy"
+
+# 推理链配置
+reasoning:
+  # 最大推理深度
+  max_reasoning_depth: 5
+  
+  # 置信度衰减因子
+  confidence_decay: 0.9
+  
+  # 最小置信度
+  min_confidence: 0.5
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

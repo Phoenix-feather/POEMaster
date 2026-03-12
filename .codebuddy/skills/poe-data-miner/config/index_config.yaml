@@ -1,0 +1,89 @@
+# 索引系统配置
+
+# 索引数据库路径
+index_paths:
+  stat_index: "indexes/stat_index.db"
+  skilltype_index: "indexes/skilltype_index.db"
+  function_index: "indexes/function_index.db"
+  semantic_index: "indexes/semantic_index.db"
+
+# 索引构建配置
+build_config:
+  # 并行构建线程数
+  max_workers: 4
+  
+  # 批量提交大小
+  batch_size: 1000
+  
+  # 是否启用缓存
+  enable_cache: true
+  
+  # 缓存过期时间（秒）
+  cache_ttl: 3600
+
+# 性能配置
+performance:
+  # 查询超时（秒）
+  query_timeout: 5.0
+  
+  # 最大返回结果数
+  max_results: 1000
+  
+  # 是否启用查询缓存
+  enable_query_cache: true
+  
+  # 查询缓存大小
+  query_cache_size: 100
+
+# Stat索引配置
+stat_index:
+  # 模糊搜索最小匹配长度
+  min_fuzzy_length: 3
+  
+  # 上下文行数
+  context_lines: 5
+  
+  # 是否索引描述文本
+  index_descriptions: true
+
+# SkillType索引配置
+skilltype_index:
+  # 是否提取约束条件
+  extract_conditions: true
+  
+  # 是否分析约束关系
+  analyze_relationships: true
+
+# 函数索引配置
+function_index:
+  # 是否构建调用图
+  build_call_graph: true
+  
+  # 最大调用深度
+  max_call_depth: 10
+  
+  # 是否提取参数信息
+  extract_parameters: true
+
+# 语义索引配置
+semantic_index:
+  # 特征向量维度
+  feature_dim: 128
+  
+  # 相似度计算方法
+  similarity_method: "cosine"
+  
+  # 相似度阈值
+  similarity_threshold: 0.7
+  
+  # 是否预计算相似度
+  precompute_similarity: true
+  
+  # 预计算TopK
+  precompute_topk: 100
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/index_builder.log"

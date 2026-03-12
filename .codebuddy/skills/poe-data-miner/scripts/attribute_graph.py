@@ -74,6 +74,34 @@ class EdgeType(Enum):
     EXCLUDES = "excludes"          # 排除（实体排除标签）
 
 
+class VerificationStatus(Enum):
+    """验证状态（v4新增）"""
+    VERIFIED = "verified"          # 已验证（置信度100%）
+    PENDING = "pending"            # 待确认（置信度50%）
+    HYPOTHESIS = "hypothesis"      # 假设（置信度30%）
+    REJECTED = "rejected"          # 已拒绝（置信度0%）
+
+
+class EvidenceType(Enum):
+    """证据类型（v4新增）"""
+    STAT = "stat"                          # Stat定义（强度1.0）
+    CODE = "code"                          # 代码逻辑（强度0.8）
+    PATTERN = "pattern"                    # 模式匹配（强度0.7）
+    ANALOGY = "analogy"                    # 类比推理（强度0.5）
+    USER_INPUT = "user_input"              # 用户输入（强度1.0）
+    DATA_EXTRACTION = "data_extraction"    # 数据提取（强度1.0）
+
+
+class DiscoveryMethod(Enum):
+    """发现方法（v4新增）"""
+    DATA_EXTRACTION = "data_extraction"    # 数据提取
+    PATTERN = "pattern"                    # 模式发现
+    ANALOGY = "analogy"                    # 类比推理
+    DIFFUSION = "diffusion"                # 扩散推理
+    USER_INPUT = "user_input"              # 用户输入
+    HEURISTIC = "heuristic"                # 启发式推理
+
+
 @dataclass
 class GraphNode:
     """图节点"""
@@ -89,20 +117,30 @@ class GraphNode:
 
 @dataclass
 class GraphEdge:
-    """图边（v3: 支持启发式假设边）"""
+    """图边（v4: 完整的验证支持）"""
     source: str
     target: str
     type: EdgeType
     weight: float = 1.0
     attributes: Dict[str, Any] = None
-    # v3 新字段
-    status: str = 'verified'  # verified, hypothesis, rejected
+    
+    # === v3 字段 ===
+    status: str = 'verified'  # verified, pending, hypothesis, rejected
     source_rule: str = None
     heuristic_record_id: str = None
     verified_at: str = None
     condition: str = None
     effect: str = None
     evidence: str = None
+    
+    # === v4 新增验证字段 ===
+    confidence: float = 1.0          # 置信度 (0.0-1.0)
+    evidence_type: str = None        # 证据类型 (stat/code/pattern/analogy/user_input)
+    evidence_source: str = None      # 证据来源文件
+    evidence_content: str = None     # 证据内容详细
+    discovery_method: str = None     # 发现方法 (data_extraction/pattern/analogy/diffusion/user_input)
+    last_verified: str = None        # 最后验证时间
+    verified_by: str = None          # 验证者 (system/auto/user:xxx)
     
     def __post_init__(self):
         if self.attributes is None:
@@ -140,7 +178,7 @@ class AttributeGraph:
         self._create_indexes()
     
     def _create_tables(self):
-        """创建表结构（v3: 支持启发式假设边）"""
+        """创建表结构（v4: 完整的验证支持）"""
         cursor = self.conn.cursor()
         
         # 节点表
@@ -154,7 +192,7 @@ class AttributeGraph:
             )
         ''')
         
-        # 边表（v3: 新增 status, source_rule, heuristic_record_id, verified_at 等字段）
+        # 边表（v4: 完整的验证字段）
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS graph_edges (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,8 +209,34 @@ class AttributeGraph:
                 condition TEXT,
                 effect TEXT,
                 evidence TEXT,
+                confidence REAL DEFAULT 1.0,
+                evidence_type TEXT,
+                evidence_source TEXT,
+                evidence_content TEXT,
+                discovery_method TEXT,
+                last_verified TIMESTAMP,
+                verified_by TEXT,
                 FOREIGN KEY (source_node) REFERENCES graph_nodes(id),
                 FOREIGN KEY (target_node) REFERENCES graph_nodes(id)
+            )
+        ''')
+        
+        # 验证历史表（v4新增）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS verification_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                edge_id INTEGER NOT NULL,
+                old_status TEXT NOT NULL,
+                new_status TEXT NOT NULL,
+                old_confidence REAL,
+                new_confidence REAL,
+                evidence_type TEXT,
+                evidence_source TEXT,
+                evidence_content TEXT,
+                reason TEXT,
+                verified_by TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (edge_id) REFERENCES graph_edges(id)
             )
         ''')
         
@@ -192,6 +256,17 @@ class AttributeGraph:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_type ON graph_edges(edge_type)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_status ON graph_edges(status)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_source_rule ON graph_edges(source_rule)')
+        
+        # 验证相关索引（v4新增）
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_confidence ON graph_edges(confidence)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_evidence_type ON graph_edges(evidence_type)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_last_verified ON graph_edges(last_verified)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_edges_discovery_method ON graph_edges(discovery_method)')
+        
+        # 验证历史表索引（v4新增）
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_verification_edge_id ON verification_history(edge_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_verification_verified_by ON verification_history(verified_by)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_verification_created_at ON verification_history(created_at)')
         
         self.conn.commit()
     
