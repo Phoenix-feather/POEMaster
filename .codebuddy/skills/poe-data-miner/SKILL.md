@@ -193,6 +193,50 @@ knowledge_base/
 
 ## Query Workflow
 
+**⚠️ CRITICAL: Before processing ANY user question, MUST follow the Query Strategy Guide!**
+
+详见: `QUERY_STRATEGY.md` - 查询策略指南
+
+### Step 0: Query Strategy Decision (MANDATORY)
+
+**三问法** - 在处理用户问题前，必须先问自己三个问题：
+
+1. **这是"是什么"问题还是"如何关联"问题？**
+   - "是什么" → 数据查询 (entities/rules/formulas)
+   - "如何关联" → 关联图查询 (graph)
+
+2. **是否需要发现隐含关系？**
+   - 显式信息 → 数据查询
+   - 隐式关系 → 关联图
+
+3. **是否存在绕过或异常的可能？**
+   - 常规机制 → 数据查询
+   - 绕过机制 → **必须用关联图**
+
+### Query Method Selection Matrix
+
+| 问题类型 | 关键词 | 数据查询 | 关联图 | 优先级 |
+|---------|--------|---------|--------|--------|
+| 属性查询 | "是什么"、"有多少" | ✅ | ❌ | 数据查询 |
+| 规则查询 | "需要什么条件" | ✅ | ❌ | 数据查询 |
+| 关系查询 | "如何影响"、"有什么关系" | ⚠️ | ✅ | 关联图 |
+| 绕过查询 | "能否绕过"、"是否有例外" | ❌ | ✅ | **关联图优先** |
+| 综合分析 | "如何实现"、"为什么" | ✅ | ✅ | **混合查询** |
+
+### Mandatory Checklist Before Answering
+
+每次回答问题前，必须检查：
+
+- [ ] 是否使用了三问法判断问题类型？
+- [ ] 是否查询了所有相关数据源？
+  - [ ] entities.db - 实体属性
+  - [ ] rules.db - 规则约束
+  - [ ] formulas.db - 公式定义
+  - [ ] graph.db - 关联关系
+- [ ] 是否使用了关联图发现隐含关系？
+- [ ] 如果涉及限制或约束，是否探索了绕过路径？
+- [ ] 是否综合了所有信息得出结论？
+
 ### Example: "Doedre's Undoing如何绕过能量限制？"
 
 ```
