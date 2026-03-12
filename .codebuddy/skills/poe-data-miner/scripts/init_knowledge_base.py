@@ -1243,16 +1243,33 @@ def main():
         print(f"[WARN] 预置边配置文件不存在: {predefined_edges_path}")
     
     entity_stats = init_entity_index(str(pob_path), str(entities_db))
-    formula_stats = init_formula_library(str(pob_path), str(formulas_db), str(entities_db))
+    
+    # 公式库初始化（添加异常处理）
+    try:
+        formula_stats = init_formula_library(str(pob_path), str(formulas_db), str(entities_db))
+    except Exception as e:
+        print(f"\n[ERROR] 公式库初始化失败: {e}")
+        import traceback
+        traceback.print_exc()
+        formula_stats = {'universal_formulas': 0, 'stat_mappings': {'total': 0}, 'gap_formulas': {'total': 0}, 'total': 0}
+    
     rules_stats = init_rules_db(str(rules_db), str(entities_db))
-    graph_stats = init_attribute_graph(
-        str(graph_db), 
-        str(entities_db), 
-        str(rules_db),
-        predefined_edges_path=str(predefined_edges_path) if predefined_edges_path.exists() else None,
-        pob_path=str(pob_path),  # Phase 4: 传递pob_path用于验证
-        use_verified_mappings=True  # 使用验证系统
-    )
+    
+    # 关联图初始化（添加异常处理）
+    try:
+        graph_stats = init_attribute_graph(
+            str(graph_db), 
+            str(entities_db), 
+            str(rules_db),
+            predefined_edges_path=str(predefined_edges_path) if predefined_edges_path.exists() else None,
+            pob_path=str(pob_path),  # Phase 4: 传递pob_path用于验证
+            use_verified_mappings=True  # 使用验证系统
+        )
+    except Exception as e:
+        print(f"\n[ERROR] 关联图初始化失败: {e}")
+        import traceback
+        traceback.print_exc()
+        graph_stats = {'nodes': 0, 'edges': 0}
     
     # 提取机制
     modcache_path = pob_path / 'Data' / 'ModCache.lua'
@@ -1274,11 +1291,43 @@ def main():
     uf = formula_stats.get('universal_formulas', 0)
     sm_total = formula_stats.get('stat_mappings', {}).get('total', 0)
     gf_total = formula_stats.get('gap_formulas', {}).get('total', 0)
-    print(f"公式索引: 通用{uf} + 映射{sm_total} + 缺口{gf_total} = {formula_stats.get('total', 0)} 条")
+    formula_total = formula_stats.get('total', 0)
+    print(f"公式索引: 通用{uf} + 映射{sm_total} + 缺口{gf_total} = {formula_total} 条")
     print(f"规则库:   {rules_stats['total']} 条规则")
     print(f"关联图:   {graph_stats['nodes']} 个节点, {graph_stats['edges']} 条边")
     print(f"机制库:   {mechanism_stats['mechanisms']} 个机制, {mechanism_stats.get('sources', 0)} 个来源")
     print(f"启发记录: {heuristic_stats['imported']} 条已导入")
+    
+    # 验证检查
+    print("\n" + "=" * 60)
+    print("数据完整性验证")
+    print("=" * 60)
+    
+    issues = []
+    
+    # 检查实体数量
+    if entity_stats['total'] < 1000:
+        issues.append(f"实体数量过少: {entity_stats['total']}")
+    
+    # 检查公式库
+    if formula_total == 0:
+        issues.append("公式库为空，请检查 init_formula_library 是否执行成功")
+    
+    # 检查规则库
+    if rules_stats['total'] == 0:
+        issues.append("规则库为空")
+    
+    # 检查关联图
+    if graph_stats['edges'] == 0:
+        issues.append("关联图无边数据")
+    
+    if issues:
+        print("⚠ 发现以下问题:")
+        for issue in issues:
+            print(f"  - {issue}")
+        print("\n建议: 重新运行初始化或单独初始化失败的模块")
+    else:
+        print("✅ 所有数据已正确初始化")
 
 
 if __name__ == '__main__':
