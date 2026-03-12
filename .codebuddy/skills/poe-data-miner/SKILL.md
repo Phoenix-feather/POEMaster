@@ -5,6 +5,116 @@ description: Extract and analyze Path of Exile game data from Lua and JSON files
 
 # POE Data Miner
 
+**⚠️ CRITICAL: 必须遵守以下强制规则（违反将导致工作流程错误）**
+
+## 强制规则 1：查询策略（每次回答问题前必须执行）
+
+**必须先运行查询路由器**：
+```bash
+python scripts/query_router.py "用户问题"
+```
+
+**根据输出选择查询方法**：
+- priority="data" → 数据查询优先
+- priority="graph" → **关联图优先**（绕过类问题）
+- priority="mixed" → 混合查询
+
+**检查清单**（回答前必须确认）：
+- [ ] 是否使用了query_router分析问题类型？
+- [ ] 是否按照推荐优先级查询数据源？
+- [ ] 是否查询了所有相关数据源？
+- [ ] 是否使用了关联图发现隐含关系？
+
+详见：`QUERY_STRATEGY.md`
+
+---
+
+## 强制规则 2：验证流程（发现潜在绕过/新知识时必须执行）
+
+**验证步骤**（不可跳过）：
+```
+1. 发现潜在机制
+   ↓
+2. 代码验证（搜索POB原始代码）
+   ↓
+3. 根据验证结果更新知识状态
+   ├─ VERIFIED（已验证）
+   ├─ PENDING（待验证）
+   └─ REJECTED（已拒绝）
+   ↓
+4. 保存验证结果到知识库
+   └─ knowledge_base/verification_records.yaml
+   ↓
+5. 指出下一步验证方向
+```
+
+**禁止行为**：
+- ❌ 发现潜在绕过后直接得出结论
+- ❌ 不验证代码就假设机制有效
+- ❌ 验证结果只保存在临时脚本中
+
+---
+
+## 强制规则 3：临时文件管理（创建脚本前必须检查）
+
+**决策树**：
+```
+需要执行操作
+    ↓
+是长期工具吗？
+    ↓          ↓
+   是         否
+    ↓          ↓
+创建并保留  能否直接执行？
+              ↓          ↓
+             能         否
+              ↓          ↓
+        execute_command  创建→执行→删除
+                              ↓
+                      结果保存到知识库
+```
+
+**必须检查**：
+- [ ] 这个脚本会长期使用吗？
+  - 是 → 创建并保留
+  - 否 → 能否用execute_command直接执行？
+- [ ] 这是临时探索/验证吗？
+  - 是 → 执行后立即删除，结果保存到knowledge_base/
+- [ ] 结果应该保存在哪里？
+  - 验证结果 → knowledge_base/verification_records.yaml
+  - 分析结果 → knowledge_base/analysis_records.yaml
+  - 不是 → scripts/temp_xxx.py
+
+**禁止行为**：
+- ❌ 为一次性操作创建脚本并保留
+- ❌ 在scripts/中积累临时脚本
+- ❌ 验证结果只保存在脚本注释中
+
+---
+
+## 强制规则 4：知识状态管理（发现新知识时必须执行）
+
+**四级状态系统**：
+```
+HYPOTHESIS（假设）
+    ↓ 发现潜在机制
+PENDING（待验证）
+    ↓ 代码验证
+VERIFIED（已验证）或 REJECTED（已拒绝）
+```
+
+**状态转换规则**：
+- 发现潜在机制 → 状态设为HYPOTHESIS
+- 开始代码验证 → 状态更新为PENDING
+- 验证通过 → 状态更新为VERIFIED，记录证据
+- 验证失败 → 状态更新为REJECTED，记录原因
+
+**保存位置**：
+- 知识记录 → knowledge_base/verification_records.yaml
+- 验证证据 → 记录在verification_records.yaml的evidence字段
+
+---
+
 Extract and analyze Path of Exile game data from POB (Path of Building) files. Features intelligent Q&A, incremental learning, and knowledge persistence.
 
 ## Architecture Overview
