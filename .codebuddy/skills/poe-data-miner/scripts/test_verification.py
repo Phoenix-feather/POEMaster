@@ -39,8 +39,11 @@ class TestVerificationSystem:
         # 创建临时数据库
         self.graph_db_path = self.test_dir / 'test_graph.db'
         
-        # 初始化关联图
+        # 初始化关联图（v2: 使用 GraphBuilder）
         self.graph = AttributeGraph(str(self.graph_db_path))
+        
+        # v2: 手动创建符合 v2 schema 的测试数据库
+        self._init_v2_test_db()
         
         # 创建测试数据
         self._create_test_data()
@@ -51,6 +54,48 @@ class TestVerificationSystem:
         
         print(f"✅ 测试环境已设置: {self.test_dir}")
     
+    def _init_v2_test_db(self):
+        """初始化 v2 schema 的测试数据库"""
+        conn = sqlite3.connect(str(self.graph_db_path))
+        cursor = conn.cursor()
+        
+        # v2 schema
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS graph_nodes (
+                node_id TEXT PRIMARY KEY,
+                node_type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                properties TEXT,
+                source TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS graph_edges (
+                edge_id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                edge_type TEXT NOT NULL,
+                properties TEXT,
+                confidence REAL DEFAULT 1.0,
+                source TEXT,
+                status TEXT DEFAULT 'verified'
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS anomaly_paths (
+                anomaly_id TEXT PRIMARY KEY,
+                constraint_id TEXT NOT NULL,
+                modifier_id TEXT NOT NULL,
+                mechanism TEXT NOT NULL,
+                path_description TEXT,
+                value_score INTEGER,
+                source TEXT,
+                verified BOOLEAN DEFAULT 0
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    
     def teardown(self):
         """清理测试环境"""
         if self.test_dir and self.test_dir.exists():
@@ -59,48 +104,51 @@ class TestVerificationSystem:
         print(f"✅ 测试环境已清理")
     
     def _create_test_data(self):
-        """创建测试数据"""
+        """创建测试数据（v2 schema）"""
         cursor = self.graph.conn.cursor()
         
-        # 创建测试节点
+        # 创建测试节点（v2: node_id, node_type, name）
         test_nodes = [
             ('Fireball', 'entity', 'Fireball'),
-            ('FireSpell', 'type_node', 'FireSpell'),
-            ('fire_damage', 'property_node', 'fire_damage'),
+            ('FireSpell', 'category', 'FireSpell'),
+            ('fire_damage', 'constraint', 'fire_damage'),
             ('CoC', 'entity', 'CastOnCrit'),
-            ('Triggered', 'type_node', 'Triggered'),
-            ('Energy', 'property_node', 'Energy')
+            ('Triggered', 'category', 'Triggered'),
+            ('Energy', 'constraint', 'Energy')
         ]
         
         for node_id, node_type, name in test_nodes:
             cursor.execute('''
-                INSERT OR IGNORE INTO graph_nodes (id, type, name)
+                INSERT OR IGNORE INTO graph_nodes (node_id, node_type, name)
                 VALUES (?, ?, ?)
             ''', (node_id, node_type, name))
         
-        # 创建测试边
+        # 创建测试边（v2: edge_id, source_id, target_id, edge_type, status）
         test_edges = [
             # verified边
             {
+                'id': 'edge_1',
                 'source': 'Fireball',
                 'target': 'FireSpell',
-                'type': 'has_type',
+                'type': 'belongs_to',
                 'status': VerificationStatus.VERIFIED.value,
                 'confidence': 1.0
             },
             # pending边
             {
+                'id': 'edge_2',
                 'source': 'FireSpell',
                 'target': 'fire_damage',
-                'type': 'implies',
+                'type': 'blocks_when',
                 'status': VerificationStatus.PENDING.value,
                 'confidence': 0.5
             },
             # hypothesis边
             {
+                'id': 'edge_3',
                 'source': 'CoC',
                 'target': 'Triggered',
-                'type': 'provides',
+                'type': 'triggers',
                 'status': VerificationStatus.HYPOTHESIS.value,
                 'confidence': 0.3
             }
@@ -109,9 +157,10 @@ class TestVerificationSystem:
         for edge in test_edges:
             cursor.execute('''
                 INSERT INTO graph_edges 
-                (source_node, target_node, edge_type, status, confidence)
-                VALUES (?, ?, ?, ?, ?)
+                (edge_id, source_id, target_id, edge_type, status, confidence)
+                VALUES (?, ?, ?, ?, ?, ?)
             ''', (
+                edge['id'],
                 edge['source'],
                 edge['target'],
                 edge['type'],

@@ -1,0 +1,90 @@
+﻿============================================================
+POE知识库初始化
+============================================================
+POB数据: G:\POEMaster\POBData
+知识库: G:\POEMaster\.codebuddy\skills\poe-data-miner\knowledge_base
+
+============================================================
+0. Schema 验证
+============================================================
+============================================================
+Schema 验证报告
+生成时间: 2026-03-17T19:21:07.983101
+============================================================
+
+一、队列状态
+----------------------------------------
+  待处理记录: 0
+  当前迭代: 0
+
+
+二、循环检测
+----------------------------------------
+  无循环引用
+[INFO] 预置边配置: G:\POEMaster\.codebuddy\skills\poe-data-miner\config\predefined_edges.yaml
+
+============================================================
+1. 初始化实体索引
+============================================================
+扫描 G:\POEMaster\POBData...
+  Data/: 776 个文件
+  Modules/: 24 个文件
+  TreeData/0_4/: tree.lua
+  GameVersions.lua: 已包含
+
+符合POB数据提取范围规则的Lua文件: 802 个
+
+=== 扫描日志摘要 ===
+总文件数: 802
+已解析: 89
+已跳过: 713
+错误: 0
+
+按类型解析:
+  item_base: 30
+  unique_item: 29
+  skill_definition: 9
+  mod_affix: 8
+  calculation_module: 7
+  minion_definition: 2
+  stat_mapping: 2
+  gem_definition: 1
+  passive_node: 1
+
+跳过原因:
+  no_matching_patterns: 709
+  game_irrelevant_ui_data: 2
+  game_irrelevant_config: 2
+导入实体...
+python : Traceback (most recent call last):
+所在位置 行:1 字符: 59
++ ... er\scripts; python -u init_knowledge_bas
+e.py g:\POEMaster\POBData 2>& ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   Traceback (most recent call last)::String  
+  ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+  File "G:\POEMaster\.codebuddy\skills\poe-dat
+a-miner\scripts\init_knowledge_base.py", line 
+431, in <module>
+    main()
+  File "G:\POEMaster\.codebuddy\skills\poe-dat
+a-miner\scripts\init_knowledge_base.py", line 
+347, in main
+    entity_stats = init_entity_index(str(pob_p
+ath), str(entities_db))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\POEMaster\.codebuddy\skills\poe-dat
+a-miner\scripts\init_knowledge_base.py", line 
+63, in init_entity_index
+    index.insert_entity(entity, source_file)
+  File "G:\POEMaster\.codebuddy\skills\poe-dat
+a-miner\scripts\entity_index.py", line 260, in
+ insert_entity
+    cursor.execute('''
+sqlite3.OperationalError: database is locked

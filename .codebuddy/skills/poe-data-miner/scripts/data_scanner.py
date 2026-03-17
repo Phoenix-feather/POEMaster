@@ -870,9 +870,11 @@ class POBDataScanner:
             skill['stats'] = stat_sets['stats']
             skill['stat_sets'] = stat_sets.get('stat_sets', {})
             
-            # 检查hidden字段，跳过隐藏的技能/辅助宝石
-            if skill.get('hidden'):
-                continue
+            # 检查hidden字段
+            # 注意：不再跳过隐藏技能！隐藏技能对绕过检测至关重要
+            # （如 TriggeredCurseZoneHazardExplosionPlayer 自带 InbuiltTrigger 标签，
+            #   被 SupportMeta* 的 excludeSkillTypes 排除 → 绕过 Triggered 约束）
+            # hidden=true 的技能仍然入库，通过 hidden=1 字段标记
             
             # 验证必要字段
             if not skill['id']:
@@ -1196,6 +1198,15 @@ class POBDataScanner:
             additional_set2 = self._extract_field(table_content, 'additionalStatSet2')
             if additional_set2:
                 gem['additional_stat_set2'] = additional_set2
+            
+            # additionalGrantedEffectId — Support→隐藏技能链的关键数据
+            additional_effects = []
+            for i in range(1, 4):  # 最多3个
+                effect_id = self._extract_field(table_content, f'additionalGrantedEffectId{i}')
+                if effect_id:
+                    additional_effects.append(effect_id)
+            if additional_effects:
+                gem['additional_granted_effect_ids'] = additional_effects
             
             gems.append(gem)
         

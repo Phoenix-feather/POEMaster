@@ -35,11 +35,56 @@ class ExtendedVerificationTests:
         """设置测试环境"""
         self.test_dir = Path(tempfile.mkdtemp())
         self.graph_db_path = self.test_dir / 'test_graph.db'
+        
+        # v2: 先创建数据库 schema，再创建 GraphBuilder
+        self._init_v2_test_db()
         self.graph = AttributeGraph(str(self.graph_db_path))
         self._create_test_data()
+        
         self.pob_data_path = self.test_dir / 'POBData'
         self.pob_data_path.mkdir(parents=True, exist_ok=True)
         print(f"✅ 测试环境已设置")
+    
+    def _init_v2_test_db(self):
+        """初始化 v2 schema 的测试数据库"""
+        conn = sqlite3.connect(str(self.graph_db_path))
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS graph_nodes (
+                node_id TEXT PRIMARY KEY,
+                node_type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                properties TEXT,
+                source TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS graph_edges (
+                edge_id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                edge_type TEXT NOT NULL,
+                properties TEXT,
+                confidence REAL DEFAULT 1.0,
+                source TEXT,
+                status TEXT DEFAULT 'verified'
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS anomaly_paths (
+                anomaly_id TEXT PRIMARY KEY,
+                constraint_id TEXT NOT NULL,
+                modifier_id TEXT NOT NULL,
+                mechanism TEXT NOT NULL,
+                path_description TEXT,
+                value_score INTEGER,
+                source TEXT,
+                verified BOOLEAN DEFAULT 0
+            )
+        ''')
+        conn.commit()
+        conn.close()
     
     def teardown(self):
         """清理测试环境"""
@@ -48,47 +93,47 @@ class ExtendedVerificationTests:
         print(f"✅ 测试环境已清理")
     
     def _create_test_data(self):
-        """创建测试数据"""
+        """创建测试数据（v2 schema）"""
         cursor = self.graph.conn.cursor()
         
-        # 创建多样化的测试节点
+        # 创建多样化的测试节点（v2: node_id, node_type, name）
         test_nodes = [
             ('Entity1', 'entity', 'Entity1'),
             ('Entity2', 'entity', 'Entity2'),
-            ('Type1', 'type_node', 'Type1'),
-            ('Type2', 'type_node', 'Type2'),
-            ('Prop1', 'property_node', 'Prop1'),
-            ('Prop2', 'property_node', 'Prop2'),
+            ('Type1', 'category', 'Type1'),
+            ('Type2', 'category', 'Type2'),
+            ('Prop1', 'constraint', 'Prop1'),
+            ('Prop2', 'constraint', 'Prop2'),
         ]
         
         for node_id, node_type, name in test_nodes:
             cursor.execute('''
-                INSERT OR IGNORE INTO graph_nodes (id, type, name)
+                INSERT OR IGNORE INTO graph_nodes (node_id, node_type, name)
                 VALUES (?, ?, ?)
             ''', (node_id, node_type, name))
         
-        # 创建不同状态的边
+        # 创建不同状态的边（v2: edge_id, source_id, target_id）
         test_edges = [
             # verified
-            {'source': 'Entity1', 'target': 'Type1', 'type': 'has_type',
+            {'id': 'edge_1', 'source': 'Entity1', 'target': 'Type1', 'type': 'belongs_to',
              'status': VerificationStatus.VERIFIED.value, 'confidence': 1.0},
             # pending
-            {'source': 'Type1', 'target': 'Prop1', 'type': 'implies',
+            {'id': 'edge_2', 'source': 'Type1', 'target': 'Prop1', 'type': 'blocks_when',
              'status': VerificationStatus.PENDING.value, 'confidence': 0.5},
             # hypothesis
-            {'source': 'Entity2', 'target': 'Type2', 'type': 'has_type',
+            {'id': 'edge_3', 'source': 'Entity2', 'target': 'Type2', 'type': 'belongs_to',
              'status': VerificationStatus.HYPOTHESIS.value, 'confidence': 0.3},
             # rejected
-            {'source': 'Type2', 'target': 'Prop2', 'type': 'implies',
+            {'id': 'edge_4', 'source': 'Type2', 'target': 'Prop2', 'type': 'blocks_when',
              'status': VerificationStatus.REJECTED.value, 'confidence': 0.0},
         ]
         
         for edge in test_edges:
             cursor.execute('''
                 INSERT INTO graph_edges 
-                (source_node, target_node, edge_type, status, confidence)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (edge['source'], edge['target'], edge['type'],
+                (edge_id, source_id, target_id, edge_type, status, confidence)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (edge['id'], edge['source'], edge['target'], edge['type'],
                   edge['status'], edge['confidence']))
         
         self.graph.conn.commit()

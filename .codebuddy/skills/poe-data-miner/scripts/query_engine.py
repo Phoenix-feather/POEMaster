@@ -190,13 +190,16 @@ class QueryEngine:
         初始化问答引擎
         
         Args:
-            db_path: SQLite数据库路径
-            predefined_edges_path: 预置边配置路径
+            db_path: SQLite数据库路径（知识库目录，如 knowledge_base/）
+            predefined_edges_path: 预置边配置路径（v2中已废弃，保留参数兼容性）
         """
         self.db_path = db_path
         self.entity_index = EntityIndex(db_path)
         self.rules_extractor = RulesExtractor(db_path)
-        self.attribute_graph = AttributeGraph(db_path, predefined_edges_path)
+        # v2: AttributeGraph 现在是 GraphBuilder 的别名，查询模式只需要 graph.db 路径
+        # predefined_edges_path 在 v2 中不再需要（异常存档由 GraphBuilder.build() 处理）
+        graph_db_path = f"{db_path}/graph.db" if not db_path.endswith('.db') else db_path
+        self.attribute_graph = AttributeGraph(graph_db_path)
         self.analyzer = QuestionAnalyzer()
     
     def query(self, question: str) -> QueryResult:
@@ -289,7 +292,9 @@ class QueryEngine:
         for keyword in analysis.keywords:
             nodes = self.attribute_graph.search_nodes(keyword)
             for node in nodes:
-                neighbors = self.attribute_graph.get_neighbors(node['id'])
+                # v2: 使用 node_id 而非 id
+                node_id = node.get('node_id') or node.get('id')
+                neighbors = self.attribute_graph.get_neighbors(node_id)
                 graph_data.append({
                     'node': node,
                     'neighbors': neighbors
@@ -325,14 +330,16 @@ class QueryEngine:
             constraint_nodes = self.attribute_graph.get_nodes_by_type(NodeType.CONSTRAINT)
             
             for constraint in constraint_nodes:
+                # v2: 使用 node_id 而非 id
+                constraint_id = constraint.get('node_id') or constraint.get('id')
                 # 查找绕过路径
-                bypass_paths = self.attribute_graph.find_bypass_paths(constraint['id'])
+                bypass_paths = self.attribute_graph.find_bypass_paths(constraint_id)
                 
                 if bypass_paths:
                     for bp in bypass_paths:
                         discoveries.append({
                             'type': 'bypass',
-                            'constraint': constraint['name'],
+                            'constraint': constraint.get('name', ''),
                             'method': bp['bypass_source'],
                             'confirmed': bp.get('confirmed', False)
                         })
@@ -371,7 +378,9 @@ class QueryEngine:
         for keyword in analysis.keywords:
             nodes = self.attribute_graph.search_nodes(keyword)
             for node in nodes[:5]:  # 限制数量
-                neighbors = self.attribute_graph.get_neighbors(node['id'])
+                # v2: 使用 node_id 而非 id
+                node_id = node.get('node_id') or node.get('id')
+                neighbors = self.attribute_graph.get_neighbors(node_id)
                 graph_data.append({
                     'node': node,
                     'neighbors': neighbors

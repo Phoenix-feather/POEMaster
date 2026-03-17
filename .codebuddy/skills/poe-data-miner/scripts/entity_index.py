@@ -43,6 +43,7 @@ class EntityIndex:
         
         # 创建表
         self._create_tables()
+        self._migrate_schema()
         self._create_indexes()
     
     def _create_tables(self):
@@ -114,7 +115,10 @@ class EntityIndex:
                 reminder_text TEXT,
                 
                 -- [v2新增] 统一描述文本字段（天赋节点和装备词缀共用）
-                stat_descriptions TEXT  -- JSON数组，存储描述文本
+                stat_descriptions TEXT,  -- JSON数组，存储描述文本
+                
+                -- [v3新增] 宝石→隐藏技能关联
+                additional_granted_effect_ids TEXT  -- JSON数组，additionalGrantedEffectId1/2/3
             )
         ''')
         
@@ -131,6 +135,21 @@ class EntityIndex:
         ''')
         
         self.conn.commit()
+    
+    def _migrate_schema(self):
+        """Schema 迁移：向已有表添加新列（如果缺失）"""
+        cursor = self.conn.cursor()
+        
+        # 获取当前表的列名
+        cursor.execute('PRAGMA table_info(entities)')
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        
+        # v3 迁移: additional_granted_effect_ids
+        if 'additional_granted_effect_ids' not in existing_columns:
+            cursor.execute('''
+                ALTER TABLE entities ADD COLUMN additional_granted_effect_ids TEXT
+            ''')
+            self.conn.commit()
     
     def _create_indexes(self):
         """创建索引"""
@@ -230,18 +249,28 @@ class EntityIndex:
         elif entity.get('descriptions'):
             stat_descriptions = json.dumps(entity.get('descriptions'), ensure_ascii=False)
         
+        # [v3新增] additional_granted_effect_ids: 宝石→隐藏技能关联
+        # 从 Gems.lua 的 additionalGrantedEffectId1/2/3 提取
+        additional_granted_effect_ids = None
+        if entity.get('additional_granted_effect_ids'):
+            additional_granted_effect_ids = json.dumps(
+                entity.get('additional_granted_effect_ids'), ensure_ascii=False
+            )
+        
         cursor.execute('''
             INSERT OR REPLACE INTO entities 
             (id, name, type, skill_types, constant_stats, stats, description, reservation, mod_tags, weight_keys, affix_type, mod_data, data_json, source_file, updated_at,
              base_type_name, cast_time, quality_stats, levels, stat_sets, support, require_skill_types, add_skill_types, exclude_skill_types, is_trigger, hidden,
              game_id, variant_id, granted_effect_id, tags, gem_type, tag_string, req_str, req_dex, req_int, tier, natural_max_level, additional_stat_set1, additional_stat_set2, weapon_requirements, gem_family,
              requires_level, granted_skill, implicits, variant, source,
-             ascendancy_name, is_notable, is_keystone, stats_node, reminder_text, stat_descriptions)
+             ascendancy_name, is_notable, is_keystone, stats_node, reminder_text, stat_descriptions,
+             additional_granted_effect_ids)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?)
+                    ?, ?, ?, ?, ?, ?,
+                    ?)
         ''', (
             entity_id,
             name,
@@ -298,7 +327,9 @@ class EntityIndex:
             stats_node,
             reminder_text,
             # v2新增字段
-            stat_descriptions
+            stat_descriptions,
+            # v3新增字段
+            additional_granted_effect_ids,
         ))
         
         self.conn.commit()

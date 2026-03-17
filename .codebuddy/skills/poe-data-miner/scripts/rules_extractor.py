@@ -13,11 +13,19 @@
 - evidence 字段记录验证来源
 """
 
+import sys
 import sqlite3
 import json
 import re
 from pathlib import Path
 from dataclasses import dataclass
+
+# Windows GBK 终端编码兼容
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
@@ -35,7 +43,8 @@ class Rule:
     evidence: str
     source_layer: int
     source_formula: Optional[str] = None
-    heuristic_record_id: Optional[str] = None
+    # 已弃用: heuristic系统已移除，此字段保留仅为数据库兼容性，始终为None
+    heuristic_record_id: Optional[str] = None  # @deprecated
 
 
 class RulesExtractor:
@@ -833,7 +842,7 @@ class RulesExtractor:
         
         conn.commit()
         conn.close()
-        print(f"  ✓ 已保存 {inserted_count} 条规则到数据库")
+        print(f"  [OK] 已保存 {inserted_count} 条规则到数据库")
 
 
 def main():
