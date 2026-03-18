@@ -1,82 +1,8 @@
 {
-  "$schema": "schema-management-system-v1",
-  "version": "1.0.0",
-  "description": "数据结构定义中心 - 自动生成",
+  "$schema": "schema-management-system-v2",
+  "version": "2.0.0",
+  "description": "POEMaster v2 数据结构定义中心",
   "schemas": {
-    "graph_nodes": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "sqlite_table",
-        "table_name": "graph_nodes"
-      },
-      "consumers": [
-        {
-          "file": "init_knowledge_base.py",
-          "last_adapted": null
-        },
-        {
-          "file": "kb_query.py",
-          "last_adapted": null
-        }
-      ]
-    },
-    "graph_edges": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "sqlite_table",
-        "table_name": "graph_edges"
-      },
-      "consumers": [
-        {
-          "file": "kb_query.py",
-          "last_adapted": null
-        }
-      ]
-    },
-    "GraphNode": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "dataclass",
-        "class_name": "GraphNode"
-      },
-      "consumers": []
-    },
-    "GraphEdge": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "dataclass",
-        "class_name": "GraphEdge"
-      },
-      "consumers": []
-    },
-    "NodeType": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "enum",
-        "class_name": "NodeType"
-      },
-      "consumers": []
-    },
-    "EdgeType": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "attribute_graph.py",
-        "type": "enum",
-        "class_name": "EdgeType"
-      },
-      "consumers": []
-    },
     "ScanResult": {
       "hash": null,
       "last_modified": null,
@@ -170,36 +96,6 @@
       },
       "consumers": []
     },
-    "HeuristicRecord": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "knowledge_manager.py",
-        "type": "dataclass",
-        "class_name": "HeuristicRecord"
-      },
-      "consumers": []
-    },
-    "PendingConfirmation": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "knowledge_manager.py",
-        "type": "dataclass",
-        "class_name": "PendingConfirmation"
-      },
-      "consumers": []
-    },
-    "UnverifiedItem": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "knowledge_manager.py",
-        "type": "dataclass",
-        "class_name": "UnverifiedItem"
-      },
-      "consumers": []
-    },
     "mechanisms": {
       "hash": null,
       "last_modified": null,
@@ -217,65 +113,6 @@
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
         "table_name": "mechanism_sources"
-      },
-      "consumers": []
-    },
-    "QueryAnalysis": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "query_engine.py",
-        "type": "dataclass",
-        "class_name": "QueryAnalysis"
-      },
-      "consumers": []
-    },
-    "QueryResult": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "query_engine.py",
-        "type": "dataclass",
-        "class_name": "QueryResult"
-      },
-      "consumers": []
-    },
-    "QueryType": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "query_engine.py",
-        "type": "enum",
-        "class_name": "QueryType"
-      },
-      "consumers": []
-    },
-    "rules": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "rules_extractor.py",
-        "type": "sqlite_table",
-        "table_name": "rules"
-      },
-      "consumers": [
-        {
-          "file": "init_knowledge_base.py",
-          "last_adapted": null
-        },
-        {
-          "file": "kb_query.py",
-          "last_adapted": null
-        }
-      ]
-    },
-    "Rule": {
-      "hash": null,
-      "last_modified": null,
-      "definition": {
-        "file": "rules_extractor.py",
-        "type": "dataclass",
-        "class_name": "Rule"
       },
       "consumers": []
     },

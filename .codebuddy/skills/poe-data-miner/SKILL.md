@@ -1,1019 +1,464 @@
 ---
 name: poe-data-miner
-description: Extract and analyze Path of Exile game data from Lua and JSON files. Use when working with POB data, extracting skill/item information, analyzing skill mechanics, or calculating formulas from game data files.
+description: POB数据问答服务 - 提供Path of Exile游戏数据的查询和分析能力。支持实体查询、公式查询、机制查询。
 ---
 
-# POE Data Miner
+# POE Data Miner v2
 
-**⚠️ CRITICAL: 必须遵守以下强制规则（违反将导致工作流程错误）**
+**POB数据问答服务**
 
-## 强制规则 1：查询策略（每次回答问题前必须执行）
+从POB（Path of Building）数据文件中提取和分析Path of Exile游戏数据，提供快速的数据查询服务。
 
-**必须先运行查询路由器**：
+---
+
+## ⚠️ 重要说明：能力边界
+
+### ✅ 能做什么
+
+- **实体查询**：查询技能、宝石、物品、天赋节点的属性和定义
+- **公式查询**：查询stat的计算公式和映射关系
+- **机制查询**：查询游戏机制（如触发机制、能量机制）的定义和来源
+- **数据统计**：获取知识库的数据统计信息
+
+### ❌ 不能做什么
+
+- **机制绕过推理**：无法推断某个技能是否能绕过游戏限制
+- **隐含关系发现**：无法发现实体之间的隐含关系或组合效果
+- **组合效果预测**：无法预测多个技能/物品组合后的效果
+- **游戏逻辑验证**：无法验证某个机制在游戏中是否真实有效
+
+**核心原则**：提供静态数据查询，不提供逻辑推理。
+
+---
+
+## 快速开始
+
+### 查询知识库统计信息
+
 ```bash
-python scripts/query_router.py "用户问题"
-```
-
-**根据输出选择查询方法**：
-- priority="data" → 数据查询优先
-- priority="graph" → **关联图优先**（绕过类问题）
-- priority="mixed" → 混合查询
-
-**检查清单**（回答前必须确认）：
-- [ ] 是否使用了query_router分析问题类型？
-- [ ] 是否按照推荐优先级查询数据源？
-- [ ] 是否查询了所有相关数据源？
-- [ ] 是否使用了关联图发现隐含关系？
-
-详见：`QUERY_STRATEGY.md`
-
----
-
-## 强制规则 2：验证流程（发现潜在绕过/新知识时必须执行）
-
-**验证步骤**（不可跳过）：
-```
-1. 发现潜在机制
-   ↓
-2. 代码验证（搜索POB原始代码）
-   ↓
-3. 根据验证结果更新知识状态
-   ├─ VERIFIED（已验证）
-   ├─ PENDING（待验证）
-   └─ REJECTED（已拒绝）
-   ↓
-4. 保存验证结果到知识库
-   └─ knowledge_base/verification_records.yaml
-   ↓
-5. 指出下一步验证方向
-```
-
-**禁止行为**：
-- ❌ 发现潜在绕过后直接得出结论
-- ❌ 不验证代码就假设机制有效
-- ❌ 验证结果只保存在临时脚本中
-
----
-
-## 强制规则 3：临时文件管理（创建脚本前必须检查）
-
-**决策树**：
-```
-需要执行操作
-    ↓
-是长期工具吗？
-    ↓          ↓
-   是         否
-    ↓          ↓
-创建并保留  能否直接执行？
-              ↓          ↓
-             能         否
-              ↓          ↓
-        execute_command  创建→执行→删除
-                              ↓
-                      结果保存到知识库
-```
-
-**必须检查**：
-- [ ] 这个脚本会长期使用吗？
-  - 是 → 创建并保留
-  - 否 → 能否用execute_command直接执行？
-- [ ] 这是临时探索/验证吗？
-  - 是 → 执行后立即删除，结果保存到knowledge_base/
-- [ ] 结果应该保存在哪里？
-  - 验证结果 → knowledge_base/verification_records.yaml
-  - 分析结果 → knowledge_base/analysis_records.yaml
-  - 不是 → scripts/temp_xxx.py
-
-**禁止行为**：
-- ❌ 为一次性操作创建脚本并保留
-- ❌ 在scripts/中积累临时脚本
-- ❌ 验证结果只保存在脚本注释中
-
----
-
-## 强制规则 4：知识状态管理（发现新知识时必须执行）
-
-**四级状态系统**：
-```
-HYPOTHESIS（假设）
-    ↓ 发现潜在机制
-PENDING（待验证）
-    ↓ 代码验证
-VERIFIED（已验证）或 REJECTED（已拒绝）
-```
-
-**状态转换规则**：
-- 发现潜在机制 → 状态设为HYPOTHESIS
-- 开始代码验证 → 状态更新为PENDING
-- 验证通过 → 状态更新为VERIFIED，记录证据
-- 验证失败 → 状态更新为REJECTED，记录原因
-
-**保存位置**：
-- 知识记录 → knowledge_base/verification_records.yaml
-- 验证证据 → 记录在verification_records.yaml的evidence字段
-
----
-
-Extract and analyze Path of Exile game data from POB (Path of Building) files. Features intelligent Q&A, incremental learning, and knowledge persistence.
-
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      User Question                               │
-└─────────────────────────┬───────────────────────────────────────┘
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Query Engine                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │ 1. Question Analyzer (intent, entities, constraints)        ││
-│  │ 2. Query Mode Selection (entity/rule/graph)                 ││
-│  │ 3. Result Integrator                                        ││
-│  └─────────────────────────────────────────────────────────────┘│
-└────────────┬─────────────────────────────────────┬──────────────┘
-             │                                     │
-    ┌────────▼────────┐                   ┌────────▼────────┐
-    │  Entity Index   │                   │  Rules Library  │
-    │  (SQLite)       │                   │  (SQLite)       │
-    └────────┬────────┘                   └────────┬────────┘
-             │                                     │
-             └──────────────────┬──────────────────┘
-                                ▼
-             ┌─────────────────────────────────────┐
-             │      Attribute Graph (SQLite)       │
-             │  Nodes: Entity, Mechanism, Stat     │
-             │  Edges: has_type, modifies, bypasses│
-             └─────────────────────────────────────┘
-                                │
-             ┌──────────────────┼──────────────────┐
-             ▼                  ▼                  ▼
-      ┌────────────┐     ┌────────────┐     ┌────────────┐
-      │ Predefined │     │ Knowledge  │     │ Extraction │
-      │   Edges    │     │   Base     │     │ Patterns   │
-      │  (config)  │     │ (learning) │     │  (config)  │
-      └────────────┘     └────────────┘     └────────────┘
-```
-
-## Quick Start
-
-### Query Knowledge Base (Recommended)
-```bash
-# 统计信息
 python scripts/kb_query.py stats
-
-# 实体查询
-python scripts/kb_query.py entity --meta           # 所有元技能
-python scripts/kb_query.py entity --search "Cast"  # 搜索
-python scripts/kb_query.py entity MetaCastOnCritPlayer  # 详情
-
-# 规则查询
-python scripts/kb_query.py rule --formula      # 公式规则
-python scripts/kb_query.py rule --constraint   # 约束规则
-python scripts/kb_query.py rule --bypass       # 绕过规则
-
-# 图查询
-python scripts/kb_query.py graph --neighbors MetaCastOnCritPlayer
-python scripts/kb_query.py graph --path source target
 ```
 
-### Initialize Knowledge Base
-```bash
-python scripts/data_scanner.py <pob_data_dir> --output <cache_dir>
-python scripts/entity_index.py <cache_dir> --db <knowledge_base>/entities.db
-python scripts/rules_extractor.py <cache_dir> --db <knowledge_base>/rules.db
-python scripts/attribute_graph.py <knowledge_base> --init
-```
-
-### Query Skills
-```bash
-python scripts/query_engine.py "Cast on Critical如何获得能量？" --kb <knowledge_base>
-```
-
-### Analyze Mechanics
-```bash
-python scripts/analyze_mechanics.py "Cast on Critical" --data <pob_data_dir>
-```
-
-## Data Sources
-
-### Lua Files (POB Data)
-POB stores game data in Lua format under directories like:
-- `Data/Skills/act_*.lua` - Active skills by attribute
-- `Data/Skills/sup_*.lua` - Support skills
-- `Data/Uniques/*.lua` - Unique items
-- `Data/Gems.lua` - Gem definitions
-- `Data/SkillStatMap.lua` - Stat to modifier mappings
-- `TreeData/{version}/tree.lua` - Passive tree data
-
-### JSON Files
-For structured data exports or API responses.
-
-### Version-Specific Data
-**IMPORTANT**: Only scan the LATEST version for versioned data:
-- TreeData: Only scan `TreeData/{latest_version}/tree.lua`, ignore older versions
-- The latest version is determined by semantic versioning (e.g., 0_4 > 0_3 > 0_2 > 0_1)
-- This prevents duplicate/outdated data in knowledge base
-
-## Core Modules
-
-### 1. Data Scanner (`data_scanner.py`)
-Scans and caches POB data files:
-- Lua file traversal and content reading
-- Data type identification (skills, stats, calculations)
-- Version information extraction
-- Scan result caching
-
-### 2. Entity Index (`entity_index.py`)
-SQLite-based entity storage:
-- Entity data extraction and storage
-- Query by ID, type, skillTypes
-- Full-text search on names/descriptions
-
-### 3. Rules Extractor (`rules_extractor.py`)
-Multi-layer rule extraction:
-- Layer 1: Entity-stats relationships
-- Layer 2: Stat-mechanism mappings (SkillStatMap)
-- Layer 3: Condition rules from calculation code
-
-### 4. Attribute Graph (`attribute_graph.py`)
-Graph-based knowledge representation:
-- Nodes: Entity, Mechanism, Stat, Constraint
-- Edges: has_type, has_stat, modifies, causes, blocks, bypasses
-- Graph traversal queries (BFS/DFS with recursive CTE)
-
-### 5. Query Engine (`query_engine.py`)
-Intelligent question answering:
-- Question analysis (intent, entities, constraints)
-- Query mode selection (entity/rule/graph)
-- Result integration
-
-### 6. Knowledge Manager (`knowledge_manager.py`)
-Incremental learning and recovery:
-- Heuristic record management
-- Pending confirmation workflow
-- Version change detection
-- Knowledge migration
-
-## Configuration
-
-### Predefined Edges (`config/predefined_edges.yaml`)
-Knowledge that cannot be auto-extracted:
-```yaml
-edges:
-  - source: "hazard_zone_explosion"
-    target: "triggered_energy_limit"
-    edge_type: "bypasses"
-    reason: "Hazard damage not attributed to trigger event"
-```
-
-### Rule Templates (`config/rule_templates.yaml`)
-Patterns for rule extraction:
-```yaml
-templates:
-  - name: "energy_generation"
-    conditions:
-      - skillTypes.contains("GeneratesEnergy")
-    effects:
-      - creates_node("mechanism", "EnergyGeneration")
-```
-
-### Extraction Patterns (`config/extraction_patterns.yaml`)
-Patterns for code analysis:
-```yaml
-patterns:
-  - name: "triggered_check"
-    code_pattern: "if skillTypes\\[Triggered\\]"
-    extracts: "condition"
-```
-
-## Knowledge Base Structure
-
-```
-knowledge_base/
-├── entities.db         # Entity index (SQLite)
-├── rules.db            # Rules library (SQLite)
-├── graph.db            # Attribute graph (SQLite)
-├── heuristic_records.yaml    # Learned knowledge
-├── pending_confirmations.yaml # User confirmations pending
-├── unverified_list.yaml      # Needs re-verification
-├── learning_log.yaml         # Learning event log
-└── version.yaml              # Version tracking
-```
-
-## Query Workflow
-
-**⚠️ CRITICAL: Before processing ANY user question, MUST follow the Query Strategy Guide!**
-
-详见: `QUERY_STRATEGY.md` - 查询策略指南
-
-### Step 0: Query Strategy Decision (MANDATORY)
-
-**三问法** - 在处理用户问题前，必须先问自己三个问题：
-
-1. **这是"是什么"问题还是"如何关联"问题？**
-   - "是什么" → 数据查询 (entities/rules/formulas)
-   - "如何关联" → 关联图查询 (graph)
-
-2. **是否需要发现隐含关系？**
-   - 显式信息 → 数据查询
-   - 隐式关系 → 关联图
-
-3. **是否存在绕过或异常的可能？**
-   - 常规机制 → 数据查询
-   - 绕过机制 → **必须用关联图**
-
-### Query Method Selection Matrix
-
-| 问题类型 | 关键词 | 数据查询 | 关联图 | 优先级 |
-|---------|--------|---------|--------|--------|
-| 属性查询 | "是什么"、"有多少" | ✅ | ❌ | 数据查询 |
-| 规则查询 | "需要什么条件" | ✅ | ❌ | 数据查询 |
-| 关系查询 | "如何影响"、"有什么关系" | ⚠️ | ✅ | 关联图 |
-| 绕过查询 | "能否绕过"、"是否有例外" | ❌ | ✅ | **关联图优先** |
-| 综合分析 | "如何实现"、"为什么" | ✅ | ✅ | **混合查询** |
-
-### Mandatory Checklist Before Answering
-
-每次回答问题前，必须检查：
-
-- [ ] 是否使用了三问法判断问题类型？
-- [ ] 是否查询了所有相关数据源？
-  - [ ] entities.db - 实体属性
-  - [ ] rules.db - 规则约束
-  - [ ] formulas.db - 公式定义
-  - [ ] graph.db - 关联关系
-- [ ] 是否使用了关联图发现隐含关系？
-- [ ] 如果涉及限制或约束，是否探索了绕过路径？
-- [ ] 是否综合了所有信息得出结论？
-
-### Example: "Doedre's Undoing如何绕过能量限制？"
-
-```
-1. Question Analysis:
-   - Intent: "bypass"
-   - Entities: ["Doedre's Undoing", "energy limit"]
-   - Constraint: "Triggered skill restriction"
-
-2. Entity Lookup:
-   - Find "Doedre's Undoing" in entity index
-   - Find related "Cast on Critical" meta skill
-
-3. Rule Lookup:
-   - Find rules about "Triggered" restriction
-   - Find rules about energy generation limits
-
-4. Graph Traversal:
-   - Start from "Doedre's Undoing"
-   - Find path: Doedre's Undoing → Hazard → bypasses → Triggered Limit
-   - Check: Is path valid for Cast on Critical?
-
-5. Result Integration:
-   - Combine entity data + rules + graph path
-   - Explain: Hazard explosion not attributed to trigger
-   - Cite: Source code locations, stat definitions
-```
-
-## Common Patterns
-
-### Find Meta Skills
-```lua
--- Pattern in skillTypes
-skillTypes = { [SkillType.Meta] = true, [SkillType.GeneratesEnergy] = true }
-```
-
-### Extract Stat Modifiers
-```lua
--- In statSets
-constantStats = {
-    { "stat_name", value }
-}
-stats = { "energy_generated_+%" }
-```
-
-### Energy Formula
-```
-Energy = (HitDamage / AilmentThreshold) × BaseEnergy × (1 + ΣIncBonus) × ΠMoreMods
-```
-
-### Triggered Spell Restriction
-```lua
--- In CalcActiveSkill.lua
-if skillTypes[Triggered] then
-    return 0  -- No energy for triggered spells
-end
-
--- Exception: Hazard-based triggers (Doedre's Undoing)
--- Damage attributed to player action, not trigger response
-```
-
-## Scripts Reference
-
-| Script | Purpose |
-|--------|---------|
-| `kb_query.py` | **Query tool (recommended)** - Query entities, rules, graph |
-| `init_knowledge_base.py` | Initialize all databases |
-| `data_scanner.py` | Scan and cache POB data files |
-| `entity_index.py` | Build entity index database |
-| `rules_extractor.py` | Extract rules from data |
-| `attribute_graph.py` | Build and query attribute graph |
-| `query_engine.py` | Answer questions about mechanics |
-| `knowledge_manager.py` | Manage learning and recovery |
-
-## References
-
-- `references/mechanics.md` - POE skill mechanics and formulas
-- `references/data_structures.md` - POB data structure documentation
-- `knowledge_base/query_lessons.md` - **Query lessons learned (avoid failures)**
-
-## Incremental Learning
-
-The system learns from user interactions:
-
-1. **Discovery**: When answering questions, the system may discover new relationships
-2. **Confirmation**: Ask user to confirm uncertain discoveries
-3. **Persistence**: Confirmed knowledge is saved to heuristic records
-4. **Recovery**: On version updates, re-verify learned knowledge
-
-### Learning Trigger Rules
-
-**IMPORTANT**: During Q&A, actively detect learning opportunities and create pending confirmations.
-
-#### When to Create Pending Confirmation
-
-Create a pending confirmation item when ANY of these conditions are met:
-
-1. **Uncertain Bypass Discovery**
-   - Found a potential bypass mechanism not in knowledge base
-   - Logic suggests it might work but needs validation
-   - Example: "Corpse explosion might bypass Triggered limit"
-
-2. **New Mechanism Relationship**
-   - Discovered relationship between entities not in graph
-   - Inferred from data but not explicitly recorded
-   - Example: "Sacrifice allows Minions as Corpses"
-
-3. **Knowledge Gap Detected**
-   - User asks about something not in knowledge base
-   - AI infers answer from related data
-   - Example: "New skill interaction discovered"
-
-4. **Contradiction Found**
-   - Data suggests different conclusions
-   - Need user to clarify correct interpretation
-   - Example: "Stacking behavior unclear"
-
-5. **Inferred New Knowledge** ★ IMPORTANT
-   - AI successfully answers question through logical reasoning
-   - The conclusion/insight is NOT already in knowledge base
-   - Must check if knowledge base has this fact
-   - Example: "Instant Leech bypasses Recovery Rate Cap"
-   - Trigger: After explaining mechanism, check if conclusion is recorded
-
-6. **Mechanism Abstraction Opportunity** ★ IMPORTANT
-   - Multiple entities share similar effects/stats
-   - The effect is NOT abstracted as independent mechanism node
-   - Should propose creating mechanism node
-   - Example: "Instant Leech" should be mechanism, not just Atziri's Acuity stat
-   - Pattern: When multiple sources provide same effect → create mechanism node
-
-#### Mechanism Identification Rules ★ CRITICAL
-
-**NEVER use description text to identify mechanisms!**
-
-Mechanisms must be identified by **stat ID** or **internal stat name**:
-
-1. **Find Stat Mapping**
-   - Search `ModCache.lua` for description → stat name mapping
-   - Example: `"Leech from Critical Hits is instant"` → `InstantLifeLeech`
-   - Use stat ID from `statOrder` field
-
-2. **Use Internal Stat Names as Mechanism Identifiers**
-   - `InstantLifeLeech` - 立即生命偷取
-   - `InstantManaLeech` - 立即魔力偷取
-   - `InstantEnergyShieldLeech` - 立即能量护盾偷取
-   - `base_leech_is_instant_on_critical` - 暴击时立即偷取
-
-3. **Find All Sources by Stat**
-   - After identifying mechanism by stat name
-   - Search all entities/mods that grant this stat
-   - This gives authoritative list of sources
-
-4. **Example: Instant Leech Discovery**
-   ```
-   WRONG: 搜索描述 "instant" → 不可靠
-   
-   RIGHT:
-   1. Search ModCache.lua: "Leech from Critical Hits is instant"
-   2. Found: name="InstantLifeLeech", statOrder=2208
-   3. Mechanism ID: "InstantLifeLeech"
-   4. Find sources: search all mods with InstantLifeLeech
-   5. Result: Atziri's Acuity, and any other items with this stat
-   ```
-
-7. **Data Source Missing** ★ IMPORTANT
-   - User mentions data that should exist but doesn't
-   - Example: Ascendancy nodes, passive tree data
-   - Should acknowledge gap and propose to scan missing data
-   - Do NOT just create heuristic record → fix the data source
-
-#### Confirmation Flow
-
-When a learning opportunity is detected:
-
-```
-Step 1: Identify Discovery
-─────────────────────────
-• What was discovered?
-• Why is it uncertain?
-• What entities/mechanisms are involved?
-
-Step 2: Create Pending Item
-───────────────────────────
-Call: knowledge_manager.create_pending_confirmation({
-    'type': 'bypass' | 'mechanism' | 'relation',
-    'question': 'Original user question',
-    'answer': 'AI inferred answer',
-    'confidence': 'low' | 'medium' | 'high',
-    'key_entities': [...],
-    'key_mechanisms': [...],
-    'reason': 'Why this needs confirmation',
-    'data_updates': [
-        # What should be added if confirmed
-        {'target': 'graph_edges', 'operation': 'insert', 'data': {...}}
-    ]
-})
-
-Step 3: Ask User Confirmation
-─────────────────────────────
-Use ask_followup_question tool:
-{
-    "questions": [{
-        "id": "confirm_discovery",
-        "question": "Should I record this discovery? [discription]",
-        "options": [
-            "Yes, this is correct",
-            "No, this is wrong",
-            "Need more testing"
-        ],
-        "multiSelect": false
-    }]
-}
-
-Step 4: Process Confirmation
-────────────────────────────
-If confirmed:
-• Call knowledge_manager.confirm_discovery(item_id, True)
-• Apply data_updates to knowledge base
-• Log learning event
-
-If rejected:
-• Call knowledge_manager.confirm_discovery(item_id, False)
-• Record rejection reason if provided
-```
-
-#### Example Learning Session
-
-```
-User asks: "尸体爆炸能绕过Triggered限制吗？"
-
-AI Analysis:
-───────────
-1. Knowledge base query: No direct answer
-2. Reasoning:
-   - Detonate Dead explosion comes from corpse
-   - Damage might be attributed to "corpse" not "triggered skill"
-   - Similar to Hazard bypass mechanism
-3. Confidence: MEDIUM (needs testing)
-
-AI creates pending item:
-─────────────────────────
-{
-    'type': 'bypass',
-    'question': '尸体爆炸能绕过Triggered限制吗？',
-    'answer': '可能绕过，因为伤害归因为尸体而非触发技能',
-    'confidence': 'medium',
-    'key_entities': ['DetonateDeadPlayer', 'MetaCastOnCritPlayer'],
-    'key_mechanisms': ['Triggered标签', '尸体爆炸', '伤害归因'],
-    'reason': '机制类似Hazard绕过，但需要实际测试验证',
-    'data_updates': [
-        {
-            'target': 'graph_edges',
-            'operation': 'insert',
-            'data': {
-                'source': 'corpse_explosion',
-                'target': 'triggered_energy_limit',
-                'edge_type': 'bypasses',
-                'source_type': 'heuristic'
-            }
-        }
-    ]
-}
-
-AI asks user:
-────────────
-"我发现了潜在的绕过机制：尸体爆炸可能因为伤害归因为尸体本身而绕过Triggered限制。
-是否将此发现记录到知识库？"
-
-Options:
-• 是，确认这个机制
-• 否，这个机制不正确
-• 需要更多测试验证
-```
-
-## Output Formats
-
-### Skill Summary
-```
-## Skill: Cast on Critical
-- Type: Meta, GeneratesEnergy, Triggers
-- Description: While active, gains Energy when you Critically Hit...
-- Stats: energy_generated_+% (per level)
-- Reservation: 100 Spirit (flat)
-```
-
-### Mechanism Analysis
-```
-## Energy Generation (Cast on Critical)
-Formula: (HitDamage / AilmentThreshold) × BaseEnergy × (1 + IncBonus) × MoreMods
-Base: 100 centienergy per monster power
-Scaling: +3% per level, affected by Boundless Energy
-Restriction: Triggered spells cannot generate energy
-Exception: Doedre's Undoing (Hazard mechanism bypasses restriction)
-```
-
-### Graph Path Result
-```
-## Path Found: Doedre's Undoing → Energy Generation
-1. Doedre's Undoing (Support Gem)
-   └─ creates → Hazard Zone (Mechanism)
-2. Hazard Zone (Mechanism)
-   └─ triggers → Curse Explosion (Event)
-3. Curse Explosion (Event)
-   └─ bypasses → Triggered Restriction (Constraint)
-4. Triggered Restriction (Constraint)
-   └─ blocks → Energy Generation (Mechanism)
-   
-Result: Damage from Hazard explosion is NOT attributed to trigger event,
-allowing Cast on Critical to generate energy.
-```
-
-## Schema Management System
-
-### Overview
-
-The schema management system ensures consistency between data structure definitions and their consumers across the codebase.
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Core Components                                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  schemas/schemas.json - Central storage for:                            │
-│  • Structure definitions (SQLite tables, dataclasses, enums)           │
-│  • Definition-consumer relationships                                   │
-│  • Notification queue                                                  │
-│  • Change tracking                                                     │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Key Concepts
-
-| Term | Description |
-|------|-------------|
-| **Structure** | A data definition unit (SQLite table, @dataclass, Enum) |
-| **Definition File** | File that defines a structure (e.g., entity_index.py defines entities) |
-| **Consumer File** | File that uses a structure (e.g., rules_extractor.py uses entities) |
-| **schemas.json** | Central registry of all structures and their relationships |
-
-### Code Modification Workflow
-
-**CRITICAL**: When modifying code files that define or use data structures, follow this workflow:
-
-#### Phase 1: Before Modification
-
-```
-When AI receives a request to modify a file:
-
-Step 1: Query schemas.json to determine file role
-──────────────────────────────────────────────────
-from schema_manager import SchemaManager
-manager = SchemaManager('schemas/schemas.json')
-role = manager.get_file_role('rules_extractor.py')
-# Returns: {'definitions': ['rules', 'Rule'], 'consumptions': ['entities']}
-
-Step 2: Check for pending notifications
-───────────────────────────────────────
-If file is a consumer, check if referenced structures have changed:
-- Compare structure's last_modified with consumer's last_adapted
-- Alert user if adaptation needed
-
-Step 3: Proceed with modification
-─────────────────────────────────
-```
-
-#### Phase 2: After Modification
-
-```
-After modifying a file:
-
-Step 1: Remove from queue (if consumer)
-───────────────────────────────────────
-manager.remove_from_queue('rules_extractor.py')
-
-Step 2: Update schema if definition changed
-───────────────────────────────────────────
-if is_definition_changed:
-    manager.update_schema('rules')
-    # This adds consumers to notification queue
-
-Step 3: Update adaptation timestamp
-───────────────────────────────────
-manager.update_consumer_adapted('entities', 'rules_extractor.py')
-
-Step 4: Save changes
-───────────────────
-manager.save()
-```
-
-#### Phase 3: Queue Processing
-
-```
-After all user requests completed:
-
-Step 1: Check if queue is empty
-───────────────────────────────
-if not manager.is_queue_empty():
-    process_queue()
-
-Step 2: Process queue iteratively
-─────────────────────────────────
-while queue not empty and iteration < max_iterations:
-    for record in queue:
-        detect_circular()
-        if circular:
-            handle_circular_flow()
-        else:
-            modify_consumer_file()
-            remove_from_queue()
-
-Step 3: Termination conditions
-──────────────────────────────
-• Queue empty → Iteration complete
-• Max iterations reached → Alert user
-```
-
-### Circular Reference Handling
-
-When circular references are detected (File A defines Structure A, references Structure B; File B defines Structure B, references Structure A):
-
-```
-Step 1: Detect circular
-───────────────────────
-is_circular, circular_files = manager.detect_circular()
-
-Step 2: Pre-update phase
-────────────────────────
-• Collect all required structure changes
-• Batch update schemas.json (no notifications triggered)
-
-Step 3: Execution phase
-───────────────────────
-• Modify circular files sequentially
-• Each file adapts to latest schemas.json
-
-Step 4: Clear related queue records
-───────────────────────────────────
-```
-
-### Iteration Limit Calculation
-
-```
-max_iterations = planned_files × max_depth × safety_factor
-
-Where:
-• planned_files = Number of files user plans to modify
-• max_depth = Maximum depth of single file iteration (default: 3)
-• safety_factor = Safety margin (default: 1.5)
-
-Limits:
-• Minimum: 5
-• Maximum: 100
-```
-
-### Initialization
-
-First-time setup or when schemas.json is missing:
+### 实体查询
 
 ```bash
-python scripts/init_schemas.py --scripts-dir scripts/ --output schemas/schemas.json
+# 查询所有Meta技能
+python scripts/kb_query.py entity --meta
+
+# 搜索包含"Cast"的实体
+python scripts/kb_query.py entity --search "Cast"
+
+# 按类型查询
+python scripts/kb_query.py entity --type skill_definition
+
+# 查询特定实体详情
+python scripts/kb_query.py entity ArcPlayer
 ```
 
-This scans all Python files and extracts:
-- Structure definitions (CREATE TABLE, @dataclass, Enum)
-- Consumer references (imports, SQL queries)
+### 公式查询
 
-### Schema Manager API
+```bash
+# 查询公式统计
+python scripts/kb_query.py formula --stats
+
+# 按问题查询公式
+python scripts/kb_query.py formula --query "护甲减伤公式"
+
+# 按实体查询公式
+python scripts/kb_query.py formula --entity ArcPlayer
+
+# 按stat名称查询映射
+python scripts/kb_query.py formula --stat "energy_generated_+%"
+```
+
+### 机制查询
+
+```bash
+# 列出所有机制
+python scripts/kb_query.py mechanism --all
+
+# 搜索机制
+python scripts/kb_query.py mechanism --search "trigger"
+
+# 查询特定机制详情
+python scripts/kb_query.py mechanism InstantLifeLeech
+```
+
+---
+
+## 初始化知识库
+
+### 完整初始化（4步流程）
+
+```bash
+python scripts/init_knowledge_base.py <pob_data_dir>
+```
+
+初始化流程：
+1. **实体索引初始化** - 扫描POB数据文件，提取实体定义
+2. **公式索引初始化** - 提取计算公式和stat映射
+3. **机制提取** - 从ModCache.lua提取游戏机制
+4. **版本信息更新** - 记录知识库版本
+
+### 数据源
+
+POB数据文件位于以下目录：
+
+```
+POBData/
+├── Data/
+│   ├── Skills/           # 技能定义
+│   │   ├── act_*.lua    # 主动技能
+│   │   └── sup_*.lua    # 辅助技能
+│   ├── Uniques/         # 唯一物品
+│   ├── Bases/           # 物品基础
+│   ├── Gems.lua         # 宝石定义
+│   ├── ModCache.lua     # Mod缓存
+│   ├── SkillStatMap.lua # Stat映射
+│   └── StatDescriptions/ # Stat描述
+├── Modules/             # 计算模块
+│   ├── CalcTriggers.lua # 触发计算
+│   ├── CalcActiveSkill.lua # 主动技能计算
+│   └── ...
+└── TreeData/{version}/  # 天赋树数据
+```
+
+---
+
+## 核心模块
+
+### 1. 数据扫描器 (`data_scanner.py`)
+
+扫描和缓存POB数据文件：
+- Lua文件遍历和内容读取
+- 数据类型识别（技能、物品、天赋等）
+- 版本信息提取
+- 扫描结果缓存
+
+### 2. 实体索引 (`entity_index.py`)
+
+SQLite-based实体存储：
+- 实体数据提取和存储
+- 按ID、类型、技能类型查询
+- 全文搜索（名称、描述）
+
+### 3. 公式索引 (`formula_index.py`)
+
+三级公式索引系统：
+- **通用公式**：适用于所有实体的通用计算公式
+- **Stat映射**：技能特定的stat到modifier映射
+- **缺口公式**：Meta技能的能量生成公式
+
+### 4. 机制提取器 (`mechanism_extractor.py`)
+
+从ModCache.lua提取游戏机制：
+- 机制识别（基于stat ID）
+- 来源追踪
+- 实体关联
+
+### 5. 索引系统 (`indexes/`)
+
+四级索引加速查询：
+- **StatIndex**：Stat名称快速查找
+- **SkillTypeIndex**：技能类型过滤
+- **FunctionIndex**：函数调用关系
+- **SemanticIndex**：语义相似度
+
+---
+
+## 查询接口
+
+### `kb_query.py` - 统一查询工具
+
+#### 实体查询
+
+```python
+from kb_query import KnowledgeBaseQuery
+
+kb = KnowledgeBaseQuery()
+
+# 获取单个实体
+entity = kb.get_entity('ArcPlayer')
+print(entity['name'], entity['skill_types'])
+
+# 搜索实体
+results = kb.search_entities('Cast')
+for r in results:
+    print(r['id'], r['name'])
+
+# 按类型获取
+skills = kb.get_entities_by_type('skill_definition')
+
+# 按技能类型获取
+meta_skills = kb.get_entities_by_skill_type('Meta')
+```
+
+#### 公式查询
+
+```python
+# 按问题查询
+result = kb.query_formula("Arc的DPS怎么算")
+print(result['universal'])      # 通用公式
+print(result['stat_mappings'])  # stat映射
+print(result['gap_formulas'])   # 缺口公式
+
+# 按实体查询
+result = kb.query_formula("", entity_id="ArcPlayer")
+
+# 按stat查询
+mappings = kb.search_formulas_by_stat("energy_generated_+%")
+```
+
+#### 机制查询
+
+```python
+# 获取所有机制
+mechanisms = kb.get_all_mechanisms()
+
+# 搜索机制
+results = kb.search_mechanisms('trigger')
+
+# 获取机制详情
+mech = kb.get_mechanism('InstantLifeLeech')
+print(mech['sources'])
+```
+
+---
+
+## 数据库结构
+
+### entities.db - 实体库
+
+```sql
+CREATE TABLE entities (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    type TEXT,
+    skill_types TEXT,      -- JSON数组
+    description TEXT,
+    data_json TEXT,        -- 完整数据
+    -- ... 其他字段
+);
+```
+
+实体类型：
+- `skill_definition` - 技能定义（1,248个）
+- `gem_definition` - 宝石定义（900个）
+- `stat_mapping` - Stat映射（5,230个）
+- `passive_node` - 天赋节点（4,313个）
+- `unique_item` - 唯一物品（474个）
+- `item_base` - 物品基础（1,171个）
+- `mod_affix` - Mod词缀（2,570个）
+- `minion_definition` - 召唤物定义（496个）
+- `calculation_module` - 计算模块（59个）
+
+### formulas.db - 公式库
+
+```sql
+-- 通用公式
+CREATE TABLE universal_formulas (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    formula_text TEXT,
+    domain TEXT,
+    -- ...
+);
+
+-- Stat映射
+CREATE TABLE stat_mappings (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    formula_text TEXT,
+    domain TEXT,
+    -- ...
+);
+
+-- 缺口公式
+CREATE TABLE gap_formulas (
+    id TEXT PRIMARY KEY,
+    entity_id TEXT,
+    name TEXT,
+    formula_text TEXT,
+    -- ...
+);
+```
+
+### mechanisms.db - 机制库
+
+```sql
+CREATE TABLE mechanisms (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    stat_name TEXT,
+    source_count INTEGER,
+    -- ...
+);
+
+CREATE TABLE mechanism_sources (
+    id INTEGER PRIMARY KEY,
+    mechanism_id TEXT,
+    source_type TEXT,
+    source_id TEXT,
+    -- ...
+);
+```
+
+---
+
+## 配置文件
+
+### extraction_patterns.yaml
+
+数据提取模式配置：
+- Lua文件解析模式
+- 字段提取规则
+- 数据类型识别
+
+### universal_formulas.yaml
+
+通用公式定义：
+- DPS计算公式
+- 伤害转换公式
+- 属性计算公式
+
+### index_config.yaml
+
+索引系统配置：
+- 索引数据库路径
+- 性能参数
+- 缓存设置
+
+---
+
+## Schema管理系统
+
+### 概述
+
+Schema管理系统确保数据结构定义与其消费者之间的一致性。
+
+### 核心文件
+
+- `schemas/schemas.json` - 结构定义中心存储
+- `scripts/schema_manager.py` - 核心管理函数
+- `scripts/schema_validator.py` - 验证和队列处理
+
+### 使用方法
 
 ```python
 from schema_manager import SchemaManager
 
 manager = SchemaManager('schemas/schemas.json')
 
-# Query file role
-role = manager.get_file_role('rules_extractor.py')
-# {'definitions': ['rules', 'Rule'], 'consumptions': ['entities']}
+# 查询文件角色
+role = manager.get_file_role('entity_index.py')
+# {'definitions': ['entities'], 'consumptions': []}
 
-# Check if queue is empty
+# 检查队列
 if not manager.is_queue_empty():
-    # Process pending notifications
+    # 处理待处理项
     pass
 
-# Add to queue (definition changed)
-manager.add_to_queue('entities', 'rules_extractor.py')
-
-# Remove from queue (consumer modified)
-manager.remove_from_queue('rules_extractor.py')
-
-# Detect circular references
-is_circular, files = manager.detect_circular()
-
-# Calculate max iterations
-max_iter = manager.calculate_max_iterations(planned_files=5)
-
-# Save changes
+# 保存变更
 manager.save()
 ```
 
-### Validator API
+---
 
-```python
-from schema_validator import SchemaValidator
+## 常见问题
 
-validator = SchemaValidator('schemas/schemas.json')
+### Q: 如何更新知识库到最新版本？
 
-# Before file modification
-result = validator.before_file_modify('rules_extractor.py')
-# {'role': {...}, 'warnings': [...], 'pending_schemas': [...]}
-
-# After file modification
-validator.after_file_modify('rules_extractor.py', is_definition_changed=True)
-
-# Process queue
-result = validator.process_queue(
-    modify_callback=lambda file, schemas: True,
-    planned_files=3
-)
+```bash
+# 重新初始化
+python scripts/init_knowledge_base.py <pob_data_dir>
 ```
 
-### Files Reference
+### Q: 如何查询特定技能的详细属性？
 
-| File | Purpose |
-|------|---------|
-| `schemas/schemas.json` | Central registry of structures and relationships |
-| `scripts/schema_manager.py` | Core management functions |
-| `scripts/schema_validator.py` | Validation and queue processing |
-| `scripts/init_schemas.py` | Initialize schemas.json from codebase |
+```bash
+python scripts/kb_query.py entity <skill_id>
+```
 
-### Error Handling
+### Q: 如何找到某个stat的计算公式？
 
-| Error | Handling |
-|-------|----------|
-| Max iterations reached | Stop, generate report, alert user |
-| Single file processing failed | Mark as failed, continue with others |
-| Circular handling failed | Log chain, alert user |
-| Stale queue records | Alert user for confirmation |
-| Consumer file deleted | Remove from queue and schema |
+```bash
+python scripts/kb_query.py formula --stat <stat_name>
+```
+
+### Q: 知识库数据从哪里来？
+
+所有数据都从POB（Path of Building）的源文件提取，包括：
+- Lua数据文件（技能、物品、天赋定义）
+- 计算模块（公式、逻辑）
+- Stat映射和描述
+
+### Q: 数据多久更新一次？
+
+知识库不会自动更新，需要手动重新初始化以获取最新的POB数据。
 
 ---
 
-## Knowledge Base Statistics (2026-03-06)
+## 项目统计
 
-### Current Status: ✅ Complete
+### 数据规模（2026-03-18）
 
-All databases created and populated successfully.
+| 组件 | 数量 |
+|------|------|
+| 实体总数 | 16,461 |
+| 公式总数 | 1,486 |
+| 机制总数 | 44 |
 
-### Data Overview
+### 代码规模
 
-| Component | Count | Details |
-|-----------|-------|---------|
-| **Entities** | 16,118 | Skills, gems, items, nodes, etc. |
-| **Rules** | 24,906 | Formulas, modifiers, constraints |
-| **Graph Nodes** | 22,277 | Entities, attributes, mechanisms |
-| **Graph Edges** | 19,657 | Relationships and associations |
-| **Mechanisms** | 44 | Identified game mechanics |
-
-### Entity Breakdown
-
-| Type | Count | Percentage |
-|------|-------|------------|
-| stat_mapping | 5,230 | 32.5% |
-| passive_node | 4,313 | 26.8% |
-| mod_affix | 2,570 | 16.0% |
-| item_base | 1,171 | 7.3% |
-| skill_definition | 900 | 5.6% |
-| gem_definition | 900 | 5.6% |
-| minion_definition | 496 | 3.1% |
-| unique_item | 479 | 3.0% |
-| calculation_module | 59 | 0.4% |
-
-### Database Files
-
-| File | Size | Purpose |
-|------|------|---------|
-| `entities.db` | ~15MB | Entity definitions and attributes |
-| `rules.db` | ~8MB | Extraction rules and formulas |
-| `graph.db` | ~5MB | Attribute relationship graph |
-| `mechanisms.db` | ~1MB | Identified game mechanisms |
-
-### Recent Improvements (2026-03-06)
-
-1. **Schema Management System** ✅
-   - Tracks structure changes
-   - Notifies consumers automatically
-   - Handles circular references
-
-2. **Entity Data Extraction** ✅
-   - Added 36 new fields to entities table
-   - Complete skill level data (cooldown, cost, Spirit)
-   - Support gem restrictions (requireSkillTypes, addSkillTypes, excludeSkillTypes)
-   - Gem-skill associations (granted_effect_id)
-   - StatSets detailed data
-
-3. **Mechanism Extraction** ✅
-   - Fixed lupa dependency issue
-   - Added error handling and warnings
-   - Extracts 44 mechanisms from ModCache.lua
-
-4. **Data Completeness**
-   - Entity completeness: ~30% → ~95% (+65%)
-   - All core game mechanisms captured
-   - Hidden entities filtered (351 hidden skills excluded)
-
-### Dependencies
-
-| Library | Version | Purpose |
-|---------|---------|---------|
-| `lupa` | >=2.0 | Lua parser for POB files |
-| `sqlite3` | Built-in | Database storage |
-| `json` | Built-in | Data serialization |
-| `pathlib` | Built-in | Path handling |
-
-**Installation**:
-```bash
-pip install -r requirements.txt
-```
-
-### Known Issues & Solutions
-
-| Issue | Status | Solution |
-|-------|--------|----------|
-| Missing lupa | ✅ Fixed | Added to requirements.txt, init checks |
-| Mechanism extraction fails silently | ✅ Fixed | Added error handling and warnings |
-| Hidden skills not filtered | ✅ Fixed | Added hidden filtering logic |
-| Skill level data missing | ✅ Fixed | Complete level extraction implemented |
+| 类别 | 文件数 | 代码行数 |
+|------|--------|----------|
+| 核心脚本 | ~20 | ~6,000 |
+| 索引系统 | 8 | ~1,500 |
+| 测试脚本 | 5 | ~500 |
 
 ---
 
-## Usage Examples
+## 版本历史
 
-### Query Skills with New Fields
+### v2.0.0 (2026-03-18)
 
-```bash
-# Query skill with complete level data
-python scripts/kb_query.py entity ArcPlayer
+**重大重构：从"游戏逻辑探索"转为"数据问答服务"**
 
-# Query support gem restrictions
-python scripts/kb_query.py entity SupportSpellEchoPlayer
+删除系统：
+- 关联图系统（graph.db、attribute_graph.py）
+- 规则系统（rules.db、rules_extractor.py）
+- 验证系统（verification/目录）
+- 启发推理系统（heuristic_*.py）
+- 查询引擎（query_router.py、query_engine.py）
 
-# Query gem-skill association
-python scripts/kb_query.py entity "Metadata/Items/Gems/SkillGemArc"
-```
+保留系统：
+- 实体库（entities.db）
+- 公式库（formulas.db）
+- 机制库（mechanisms.db）
+- 索引系统
 
-### Verify Knowledge Base
+优势：
+- 清晰的能力边界
+- 更简单的查询接口
+- 更低的维护成本
+- 更快的查询性能
 
-```bash
-# Check statistics
-python scripts/kb_query.py stats
+### v1.0.0
 
-# Verify database structure
-python scripts/verify_db.py
-```
-
-### Reinitialize Knowledge Base
-
-```bash
-# Complete reinitialization
-python scripts/init_knowledge_base.py "G:/POEMaster/POBData" --kb-path "knowledge_base"
-```
+初始版本，包含完整的推理和验证系统。
 
 ---
 
-## Next Steps
+## 贡献指南
 
-1. **Update rules extraction** to leverage new entity fields
-2. **Enhance query engine** with new data access patterns
-3. **Validate heuristic records** with improved data
-4. **Document new query patterns** in query_lessons.md
+本项目用于Path of Exile游戏数据分析，欢迎贡献：
+- 数据提取脚本改进
+- 查询接口优化
+- 文档完善
+- Bug修复
 
+---
+
+## 许可证
+
+本项目仅供学习和研究使用。

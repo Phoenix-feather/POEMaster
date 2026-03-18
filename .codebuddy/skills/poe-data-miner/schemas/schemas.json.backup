@@ -1,0 +1,439 @@
+{
+  "$schema": "schema-management-system-v1",
+  "version": "1.0.0",
+  "description": "数据结构定义中心 - 自动生成",
+  "schemas": {
+    "graph_nodes": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "sqlite_table",
+        "table_name": "graph_nodes"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "graph_edges": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "sqlite_table",
+        "table_name": "graph_edges"
+      },
+      "consumers": [
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "GraphNode": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "dataclass",
+        "class_name": "GraphNode"
+      },
+      "consumers": []
+    },
+    "GraphEdge": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "dataclass",
+        "class_name": "GraphEdge"
+      },
+      "consumers": []
+    },
+    "NodeType": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "enum",
+        "class_name": "NodeType"
+      },
+      "consumers": []
+    },
+    "EdgeType": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "attribute_graph.py",
+        "type": "enum",
+        "class_name": "EdgeType"
+      },
+      "consumers": []
+    },
+    "ScanResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "data_scanner.py",
+        "type": "dataclass",
+        "class_name": "ScanResult"
+      },
+      "consumers": []
+    },
+    "ScanCache": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "data_scanner.py",
+        "type": "dataclass",
+        "class_name": "ScanCache"
+      },
+      "consumers": []
+    },
+    "ScanLogEntry": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "data_scanner.py",
+        "type": "dataclass",
+        "class_name": "ScanLogEntry"
+      },
+      "consumers": []
+    },
+    "DataType": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "data_scanner.py",
+        "type": "enum",
+        "class_name": "DataType"
+      },
+      "consumers": []
+    },
+    "entities": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "entity_index.py",
+        "type": "sqlite_table",
+        "table_name": "entities"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        },
+        {
+          "file": "mechanism_extractor.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "known_paths": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "entity_index.py",
+        "type": "sqlite_table",
+        "table_name": "known_paths"
+      },
+      "consumers": []
+    },
+    "SchemaDefinition": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "init_schemas.py",
+        "type": "dataclass",
+        "class_name": "SchemaDefinition"
+      },
+      "consumers": []
+    },
+    "ConsumerReference": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "init_schemas.py",
+        "type": "dataclass",
+        "class_name": "ConsumerReference"
+      },
+      "consumers": []
+    },
+    "HeuristicRecord": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "knowledge_manager.py",
+        "type": "dataclass",
+        "class_name": "HeuristicRecord"
+      },
+      "consumers": []
+    },
+    "PendingConfirmation": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "knowledge_manager.py",
+        "type": "dataclass",
+        "class_name": "PendingConfirmation"
+      },
+      "consumers": []
+    },
+    "UnverifiedItem": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "knowledge_manager.py",
+        "type": "dataclass",
+        "class_name": "UnverifiedItem"
+      },
+      "consumers": []
+    },
+    "mechanisms": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "mechanism_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "mechanisms"
+      },
+      "consumers": []
+    },
+    "mechanism_sources": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "mechanism_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "mechanism_sources"
+      },
+      "consumers": []
+    },
+    "QueryAnalysis": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "query_engine.py",
+        "type": "dataclass",
+        "class_name": "QueryAnalysis"
+      },
+      "consumers": []
+    },
+    "QueryResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "query_engine.py",
+        "type": "dataclass",
+        "class_name": "QueryResult"
+      },
+      "consumers": []
+    },
+    "QueryType": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "query_engine.py",
+        "type": "enum",
+        "class_name": "QueryType"
+      },
+      "consumers": []
+    },
+    "rules": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "rules_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "rules"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "Rule": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "rules_extractor.py",
+        "type": "dataclass",
+        "class_name": "Rule"
+      },
+      "consumers": []
+    },
+    "QueueRecord": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "schema_manager.py",
+        "type": "dataclass",
+        "class_name": "QueueRecord"
+      },
+      "consumers": []
+    },
+    "SchemaInfo": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "schema_manager.py",
+        "type": "dataclass",
+        "class_name": "SchemaInfo"
+      },
+      "consumers": []
+    },
+    "ProcessResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "schema_validator.py",
+        "type": "dataclass",
+        "class_name": "ProcessResult"
+      },
+      "consumers": []
+    },
+    "universal_formulas": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_index.py",
+        "type": "sqlite_table",
+        "table_name": "universal_formulas"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "stat_mappings": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_map_index.py",
+        "type": "sqlite_table",
+        "table_name": "stat_mappings"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "gap_formulas": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "gap_formulas"
+      },
+      "consumers": [
+        {
+          "file": "formula_matcher.py",
+          "last_adapted": null
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "StatMapping": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "stat_map_index.py",
+        "type": "dataclass",
+        "class_name": "StatMapping"
+      },
+      "consumers": []
+    },
+    "GapFormula": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_extractor.py",
+        "type": "dataclass",
+        "class_name": "GapFormula"
+      },
+      "consumers": []
+    },
+    "FormulaResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_matcher.py",
+        "type": "dataclass",
+        "class_name": "FormulaResult"
+      },
+      "consumers": [
+        {
+          "file": "kb_query.py",
+          "last_adapted": null
+        }
+      ]
+    },
+    "FormulaQueryResult": {
+      "hash": null,
+      "last_modified": null,
+      "definition": {
+        "file": "formula_matcher.py",
+        "type": "dataclass",
+        "class_name": "FormulaQueryResult"
+      },
+      "consumers": []
+    }
+  },
+  "notification_queue": {
+    "records": [],
+    "stats": {
+      "total_added": 0,
+      "total_processed": 0,
+      "total_failed": 0,
+      "max_iterations": 10,
+      "current_iteration": 0
+    },
+    "failed_records": []
+  },
+  "change_tracking": {
+    "current_chain": [],
+    "detected_circular": false,
+    "circular_files": [],
+    "processing_history": []
+  },
+  "config": {
+    "max_depth": 3,
+    "safety_factor": 1.5,
+    "min_iterations": 5,
+    "max_iterations_limit": 100,
+    "stale_threshold_hours": 24
+  }
+}

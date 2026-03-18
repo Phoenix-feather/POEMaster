@@ -1,0 +1,17 @@
+# 版本信息
+# 记录当前知识库对应的POB版本
+
+metadata:
+  knowledge_base_version: "0.1.0"
+  last_initialized: "2026-03-17T19:49:47.371349"
+
+pob_version:
+  game_version: "unknown"
+  pob_version: "unknown"
+  data_hash: null
+  
+  detection:
+    method: "init_script"
+    detected_at: "2026-03-17T19:49:47.371349"
+
+version_history: []

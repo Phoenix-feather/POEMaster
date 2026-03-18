@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-POE知识库初始化脚本
-统一初始化实体索引、规则库、关联图
+POE知识库初始化脚本 v2
+统一初始化实体索引、公式库、机制库
 """
 
 import os
@@ -18,8 +18,6 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from data_scanner import POBDataScanner
 from entity_index import EntityIndex
 from mechanism_extractor import MechanismExtractor
-from rules_extractor import RulesExtractor  # 使用新版本
-from attribute_graph import GraphBuilder  # v2: 关联图构建器
 from formula_index import init_formula_index
 from pob_paths import get_pob_path, get_knowledge_base_path, validate_pob_path
 
@@ -107,137 +105,10 @@ def init_formula_library(pob_path: str, db_path: str, entities_db_path: str) -> 
     return stats
 
 
-def init_rules_db(db_path: str, entities_db_path: str) -> dict:
-    """初始化规则库 - 使用新的 RulesExtractor"""
-    print("\n" + "=" * 60)
-    print("3. 初始化规则库")
-    print("=" * 60)
-    
-    # 获取知识库路径
-    kb_path = Path(entities_db_path).parent
-    
-    # 使用新的 RulesExtractor
-    extractor = RulesExtractor(str(kb_path))
-    extractor.run()
-    
-    # 统计
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT category, COUNT(*) FROM rules GROUP BY category")
-    cat_counts = dict(cursor.fetchall())
-    cursor.execute("SELECT COUNT(*) FROM rules")
-    total = cursor.fetchone()[0]
-    conn.close()
-    
-    print(f"[OK] 已创建 {total} 条规则")
-    for c, count in cat_counts.items():
-        print(f"  - {c}: {count}")
-    
-    return {'total': total, 'by_category': cat_counts}
-
-
-def init_attribute_graph(db_path: str, entities_db_path: str, rules_db_path: str, 
-                         predefined_edges_path: str = None, pob_path: str = None,
-                         use_verified_mappings: bool = True) -> dict:
-    """
-    初始化关联图 — v2 方案
-    
-    使用 GraphBuilder 10步构建流程替代旧的分层构建。
-    
-    数据流:
-    1. GraphBuilder 删除重建 graph.db（v2 Schema）
-    2. step1: 集合节点 + is_subset_of
-    3. step2: entities.db → belongs_to
-    4. step3: 标签推导 → 机制边
-    5. step4-10: 触发/能量/约束/改变者/标签传播/异常发现
-    
-    注意: rules.db 不再参与图构建（保留独立运行）
-    """
-    print("\n" + "=" * 60)
-    print("4. 初始化关联图 (v2 GraphBuilder)")
-    print("=" * 60)
-    
-    # 构建关联图
-    builder = GraphBuilder(
-        graph_db_path=db_path,
-        entities_db_path=entities_db_path,
-        pob_path=pob_path,
-        archive_path=predefined_edges_path,
-    )
-    
-    try:
-        build_stats = builder.build()
-    finally:
-        builder.close()
-    
-    # 打印统计
-    node_count = build_stats.get('total_nodes', 0)
-    edge_count = build_stats.get('total_edges', 0)
-    node_types = build_stats.get('node_type_counts', {})
-    edge_types = build_stats.get('edge_type_counts', {})
-    
-    print(f"\n[OK] 已创建 {node_count} 个节点")
-    for t, c in node_types.items():
-        print(f"  - {t}: {c}")
-    
-    print(f"[OK] 已创建 {edge_count} 条边")
-    for t, c in edge_types.items():
-        print(f"  - {t}: {c}")
-    
-    # 各步统计
-    print("\n各步统计:")
-    for key, value in build_stats.items():
-        if key.startswith('step') and isinstance(value, (int, float)):
-            print(f"  {key}: {value}")
-    
-    return {
-        'nodes': node_count,
-        'edges': edge_count,
-        'node_types': node_types,
-        'edge_types': edge_types,
-        'build_stats': build_stats,
-    }
-
-
-def update_version_yaml(kb_path: str, version: str = None):
-    """更新版本信息"""
-    print("\n更新版本信息...")
-    
-    version_file = Path(kb_path) / 'version.yaml'
-    
-    content = f"""# 版本信息
-# 记录当前知识库对应的POB版本
-
-metadata:
-  knowledge_base_version: "0.1.0"
-  last_initialized: "{datetime.now().isoformat()}"
-
-pob_version:
-  game_version: "{version or 'unknown'}"
-  pob_version: "{version or 'unknown'}"
-  data_hash: null
-  
-  detection:
-    method: "init_script"
-    detected_at: "{datetime.now().isoformat()}"
-
-version_history: []
-"""
-    
-    with open(version_file, 'w', encoding='utf-8') as f:
-        f.write(content)
-    
-    print(f"[OK] 版本信息已更新")
-
-
-
-
-
-
 def extract_mechanisms(modcache_path: str, db_path: str, entities_db_path: str = None) -> dict:
     """提取机制到数据库"""
     print("\n" + "=" * 60)
-    print("6. 提取机制 (基于 stat ID)")
+    print("3. 提取机制 (基于 stat ID)")
     print("=" * 60)
     
     # 检查 lupa 依赖
@@ -273,15 +144,42 @@ def extract_mechanisms(modcache_path: str, db_path: str, entities_db_path: str =
         return {'mechanisms': 0, 'sources': 0}
 
 
+def update_version_yaml(kb_path: str, version: str = None):
+    """更新版本信息"""
+    print("\n更新版本信息...")
+    
+    version_file = Path(kb_path) / 'version.yaml'
+    
+    content = f"""# 版本信息
+# 记录当前知识库对应的POB版本
 
+metadata:
+  knowledge_base_version: "2.0.0"
+  last_initialized: "{datetime.now().isoformat()}"
 
+pob_version:
+  game_version: "{version or 'unknown'}"
+  pob_version: "{version or 'unknown'}"
+  data_hash: null
+  
+  detection:
+    method: "init_script"
+    detected_at: "{datetime.now().isoformat()}"
+
+version_history: []
+"""
+    
+    with open(version_file, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    print(f"[OK] 版本信息已更新")
 
 
 def main():
     """主函数"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='初始化POE知识库')
+    parser = argparse.ArgumentParser(description='初始化POE知识库 v2')
     parser.add_argument('pob_path', nargs='?', default=None, help='POB数据目录路径（默认自动检测）')
     parser.add_argument('--kb-path', default=None, help='知识库目录路径')
     
@@ -310,7 +208,7 @@ def main():
             print(f"  - {w}")
     
     print("=" * 60)
-    print("POE知识库初始化")
+    print("POE知识库初始化 v2")
     print("=" * 60)
     print(f"POB数据: {pob_path}")
     print(f"知识库: {kb_path}")
@@ -330,19 +228,6 @@ def main():
     # 初始化各模块
     entities_db = kb_path / 'entities.db'
     formulas_db = kb_path / 'formulas.db'
-    rules_db = kb_path / 'rules.db'
-    graph_db = kb_path / 'graph.db'
-    
-    # 预置边配置文件路径（相对于脚本目录）
-    # 位置: config/predefined_edges.yaml
-    # 说明: 包含无法从POB数据自动提取的关键隐含知识
-    script_dir = Path(__file__).parent
-    predefined_edges_path = script_dir.parent / 'config' / 'predefined_edges.yaml'
-    
-    if predefined_edges_path.exists():
-        print(f"[INFO] 预置边配置: {predefined_edges_path}")
-    else:
-        print(f"[WARN] 预置边配置文件不存在: {predefined_edges_path}")
     
     entity_stats = init_entity_index(str(pob_path), str(entities_db))
     
@@ -354,23 +239,6 @@ def main():
         import traceback
         traceback.print_exc()
         formula_stats = {'universal_formulas': 0, 'stat_mappings': {'total': 0}, 'gap_formulas': {'total': 0}, 'total': 0}
-    
-    rules_stats = init_rules_db(str(rules_db), str(entities_db))
-    
-    # 关联图初始化（添加异常处理）
-    try:
-        graph_stats = init_attribute_graph(
-            str(graph_db), 
-            str(entities_db), 
-            str(rules_db),
-            predefined_edges_path=str(predefined_edges_path) if predefined_edges_path.exists() else None,
-            pob_path=str(pob_path),
-        )
-    except Exception as e:
-        print(f"\n[ERROR] 关联图初始化失败: {e}")
-        import traceback
-        traceback.print_exc()
-        graph_stats = {'nodes': 0, 'edges': 0}
     
     # 提取机制
     modcache_path = pob_path / 'Data' / 'ModCache.lua'
@@ -391,8 +259,6 @@ def main():
     gf_total = formula_stats.get('gap_formulas', {}).get('total', 0)
     formula_total = formula_stats.get('total', 0)
     print(f"公式索引: 通用{uf} + 映射{sm_total} + 缺口{gf_total} = {formula_total} 条")
-    print(f"规则库:   {rules_stats['total']} 条规则")
-    print(f"关联图:   {graph_stats['nodes']} 个节点, {graph_stats['edges']} 条边")
     print(f"机制库:   {mechanism_stats['mechanisms']} 个机制, {mechanism_stats.get('sources', 0)} 个来源")
     
     # 验证检查
@@ -409,14 +275,6 @@ def main():
     # 检查公式库
     if formula_total == 0:
         issues.append("公式库为空，请检查 init_formula_library 是否执行成功")
-    
-    # 检查规则库
-    if rules_stats['total'] == 0:
-        issues.append("规则库为空")
-    
-    # 检查关联图
-    if graph_stats['edges'] == 0:
-        issues.append("关联图无边数据")
     
     if issues:
         print("⚠ 发现以下问题:")
