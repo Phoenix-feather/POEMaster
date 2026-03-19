@@ -118,7 +118,12 @@ class EntityIndex:
                 stat_descriptions TEXT,  -- JSON数组，存储描述文本
                 
                 -- [v3新增] 宝石→隐藏技能关联
-                additional_granted_effect_ids TEXT  -- JSON数组，additionalGrantedEffectId1/2/3
+                additional_granted_effect_ids TEXT,  -- JSON数组，additionalGrantedEffectId1/2/3
+                
+                -- [v4新增] 解读层预计算字段
+                summary TEXT,           -- 核心机制描述（从技能专属statMap覆盖+description提炼）
+                key_mechanics TEXT,      -- JSON数组: [{name, stat, formula, effect}, ...] 结构化机制列表
+                display_stats TEXT       -- JSON数组: ["描述行1", "描述行2", ...] StatDescriber生成的人类可读描述
             )
         ''')
         
@@ -150,6 +155,12 @@ class EntityIndex:
                 ALTER TABLE entities ADD COLUMN additional_granted_effect_ids TEXT
             ''')
             self.conn.commit()
+        
+        # v4 迁移: 解读层预计算字段
+        for col_name in ('summary', 'key_mechanics', 'display_stats'):
+            if col_name not in existing_columns:
+                cursor.execute(f'ALTER TABLE entities ADD COLUMN {col_name} TEXT')
+        self.conn.commit()
     
     def _create_indexes(self):
         """创建索引"""
@@ -257,6 +268,15 @@ class EntityIndex:
                 entity.get('additional_granted_effect_ids'), ensure_ascii=False
             )
         
+        # [v4新增] 解读层预计算字段
+        summary = entity.get('summary')  # 核心机制描述文本
+        key_mechanics = None
+        if entity.get('key_mechanics'):
+            key_mechanics = json.dumps(entity.get('key_mechanics'), ensure_ascii=False)
+        display_stats = None
+        if entity.get('display_stats'):
+            display_stats = json.dumps(entity.get('display_stats'), ensure_ascii=False)
+        
         cursor.execute('''
             INSERT OR REPLACE INTO entities 
             (id, name, type, skill_types, constant_stats, stats, description, reservation, mod_tags, weight_keys, affix_type, mod_data, data_json, source_file, updated_at,
@@ -264,13 +284,15 @@ class EntityIndex:
              game_id, variant_id, granted_effect_id, tags, gem_type, tag_string, req_str, req_dex, req_int, tier, natural_max_level, additional_stat_set1, additional_stat_set2, weapon_requirements, gem_family,
              requires_level, granted_skill, implicits, variant, source,
              ascendancy_name, is_notable, is_keystone, stats_node, reminder_text, stat_descriptions,
-             additional_granted_effect_ids)
+             additional_granted_effect_ids,
+             summary, key_mechanics, display_stats)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?,
-                    ?)
+                    ?,
+                    ?, ?, ?)
         ''', (
             entity_id,
             name,
@@ -330,6 +352,10 @@ class EntityIndex:
             stat_descriptions,
             # v3新增字段
             additional_granted_effect_ids,
+            # v4新增字段 - 解读层
+            summary,
+            key_mechanics,
+            display_stats,
         ))
         
         self.conn.commit()
@@ -472,6 +498,53 @@ class EntityIndex:
         cursor.execute('DELETE FROM known_paths')
         self.conn.commit()
     
+    def update_enrichment_fields(self, entity_id: str, 
+                                  summary: str = None,
+                                  key_mechanics: list = None,
+                                  display_stats: list = None):
+        """
+        更新实体的解读层字段（预计算后回写）
+        
+        Args:
+            entity_id: 实体ID
+            summary: 核心机制描述文本
+            key_mechanics: 结构化机制列表 [{name, stat, formula, effect}, ...]
+            display_stats: StatDescriber 生成的描述行列表 ["text1", "text2", ...]
+        """
+        cursor = self.conn.cursor()
+        
+        km_json = json.dumps(key_mechanics, ensure_ascii=False) if key_mechanics else None
+        ds_json = json.dumps(display_stats, ensure_ascii=False) if display_stats else None
+        
+        cursor.execute('''
+            UPDATE entities 
+            SET summary = ?, key_mechanics = ?, display_stats = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (summary, km_json, ds_json, entity_id))
+        
+        self.conn.commit()
+    
+    def batch_update_enrichment(self, updates: List[Dict[str, Any]]):
+        """
+        批量更新解读层字段（高效事务模式）
+        
+        Args:
+            updates: [{id, summary, key_mechanics, display_stats}, ...]
+        """
+        cursor = self.conn.cursor()
+        
+        for u in updates:
+            km_json = json.dumps(u.get('key_mechanics'), ensure_ascii=False) if u.get('key_mechanics') else None
+            ds_json = json.dumps(u.get('display_stats'), ensure_ascii=False) if u.get('display_stats') else None
+            
+            cursor.execute('''
+                UPDATE entities 
+                SET summary = ?, key_mechanics = ?, display_stats = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (u.get('summary'), km_json, ds_json, u['id']))
+        
+        self.conn.commit()
+    
     def close(self):
         """关闭数据库连接"""
         if self.conn:
@@ -482,12 +555,21 @@ class EntityIndex:
         """将行转换为字典"""
         result = dict(row)
         
-        # 解析JSON字段
-        for field in ['skill_types', 'constant_stats', 'stats', 'reservation', 'data_json']:
+        # 解析所有JSON字段（与kb_query.py保持一致）
+        json_fields = [
+            'skill_types', 'constant_stats', 'stats', 'reservation',
+            'mod_tags', 'weight_keys', 'mod_data', 'data_json',
+            'quality_stats', 'levels', 'stat_sets',
+            'require_skill_types', 'add_skill_types', 'exclude_skill_types',
+            'tags', 'stats_node', 'reminder_text', 'variant',
+            'stat_descriptions', 'additional_granted_effect_ids',
+            'key_mechanics', 'display_stats'
+        ]
+        for field in json_fields:
             if result.get(field):
                 try:
                     result[field] = json.loads(result[field])
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, TypeError):
                     pass
         
         return result
@@ -552,6 +634,597 @@ def main():
             print("各类型数量:")
             for type_name, count in index.get_type_counts().items():
                 print(f"  {type_name}: {count}")
+
+
+# ─────────────────────────────────────────────────────────────────
+# EntityEnricher: 解读层预计算（Phase 2a: Tasks 3.2 + 3.3 + 3.4）
+# ─────────────────────────────────────────────────────────────────
+
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+
+class EntityEnricher:
+    """
+    实体解读层预计算器
+    
+    在初始化阶段为每个实体预计算三个解读字段：
+    - summary: 核心机制描述文本（从技能专属statMap覆盖+description提炼）
+    - key_mechanics: 结构化机制列表 [{name, stat, formula, effect}, ...]
+    - display_stats: StatDescriber 生成的人类可读描述行列表
+    
+    设计原则（D1）：如果查询不到说明设计有漏洞，不做动态兜底。
+    """
+    
+    # 全局 stat 名 → 通用含义映射（用于 constant_stats 中非前缀匹配的常见机制 stat）
+    KNOWN_MECHANIC_STATS = {
+        'number_of_chains': {'name': 'Chain', 'effect': 'Chains to additional targets'},
+        'number_of_additional_projectiles': {'name': 'Additional Projectiles', 'effect': 'Fires additional projectiles'},
+        'base_number_of_projectiles_in_spiral_nova': {'name': 'Nova Projectiles', 'effect': 'Number of projectiles in nova pattern'},
+        'active_skill_area_of_effect_+%_final': {'name': 'Area of Effect', 'effect': 'Modifies area of effect'},
+        'shock_effect_+%': {'name': 'Shock Effect', 'effect': 'Increases Shock effectiveness'},
+        'chill_effect_+%': {'name': 'Chill Effect', 'effect': 'Increases Chill effectiveness'},
+        'freeze_effect_+%': {'name': 'Freeze Effect', 'effect': 'Increases Freeze effectiveness'},
+        'active_skill_hit_damage_freeze_multiplier_+%_final': {'name': 'Freeze Multiplier', 'effect': 'Multiplies Freeze buildup from hits'},
+        'active_skill_chill_effect_+%_final': {'name': 'Chill Multiplier', 'effect': 'Multiplies Chill effect'},
+        'base_skill_effect_duration': {'name': 'Duration', 'effect': 'Base skill effect duration'},
+        'active_skill_damage_+%_final': {'name': 'Damage (MORE)', 'effect': 'MORE multiplier to damage'},
+        'base_critical_strike_multiplier_+': {'name': 'Critical Multiplier', 'effect': 'Additional Critical Strike Multiplier'},
+        'maximum_number_of_summoned_totems': {'name': 'Totem Limit', 'effect': 'Maximum number of summoned totems'},
+    }
+    
+    # 忽略的通用 stat（不构成独特机制特征）
+    IGNORE_STATS = {
+        'movement_speed_acceleration_+%_per_second_while_performing_action',
+        'movement_speed_while_performing_action_locked_duration_%',
+        'base_is_projectile',
+        'projectile_uses_contact_position',
+        'projectile_uses_contact_direction',
+        'check_for_targets_between_initiator_and_projectile_source',
+        'skill_can_fire_arrows',
+        'can_perform_skill_while_moving',
+        'base_deal_no_damage',
+        'active_skill_ignore_setting_aim_stance',
+        'is_area_damage',
+        'base_skill_is_totemable',
+        'base_skill_is_trappable',
+        'base_skill_is_mineable',
+        'active_skill_attack_damage_final_permyriad',
+        'active_skill_spell_damage_final_permyriad',
+        'active_skill_override_turn_duration_ms',
+        'channel_start_lock_cancelling_of_attack_time_%',
+        'channel_skill_end_animation_duration_multiplier_permyriad',
+    }
+    
+    # 已知的技能名前缀模式（用于从 stat 名提取前缀）
+    # 格式: stat名 = {前缀}_{后缀}
+    # 如 arc_damage_+%_final_for_each_remaining_chain → 前缀 = "arc"
+    
+    def __init__(self, entity_index: 'EntityIndex', stat_describer=None):
+        """
+        初始化解读层预计算器
+        
+        Args:
+            entity_index: EntityIndex 实例（用于读写数据库）
+            stat_describer: StatDescriberBridge 实例（用于生成 display_stats）
+                           None 则跳过 display_stats 预计算
+        """
+        self.entity_index = entity_index
+        self.stat_describer = stat_describer
+    
+    def enrich_all(self) -> Dict[str, int]:
+        """
+        为所有实体预计算解读层字段
+        
+        Returns:
+            {'total': N, 'summary': N, 'key_mechanics': N, 'display_stats': N}
+            各字段的非空数量统计
+        """
+        cursor = self.entity_index.conn.cursor()
+        cursor.execute('SELECT id, type, data_json, constant_stats, stats, stat_sets, '
+                       'description, stats_node, stat_descriptions '
+                       'FROM entities')
+        rows = cursor.fetchall()
+        
+        stats = {'total': len(rows), 'summary': 0, 'key_mechanics': 0, 'display_stats': 0}
+        updates = []
+        batch_size = 500
+        
+        for row in rows:
+            eid, etype, data_json_str, cs_str, stats_str, ss_str, desc, sn_str, sd_str = row
+            
+            # 解析 JSON 字段
+            data_json = self._safe_json(data_json_str, {})
+            constant_stats = self._safe_json(cs_str, [])
+            entity_stats = self._safe_json(stats_str, [])
+            stat_sets = self._safe_json(ss_str, {})
+            stats_node = self._safe_json(sn_str, [])
+            stat_descriptions = self._safe_json(sd_str, [])
+            
+            entity_data = {
+                'id': eid, 'type': etype, 'description': desc,
+                'constant_stats': constant_stats,
+                'stats': entity_stats,
+                'stat_sets': stat_sets,
+                'stats_node': stats_node,
+                'stat_descriptions': stat_descriptions,
+            }
+            # 从 data_json 补充 skill_types 等
+            entity_data['skill_types'] = data_json.get('skill_types', [])
+            entity_data['name'] = data_json.get('name', eid)
+            entity_data['levels'] = data_json.get('levels', {})
+            entity_data['gem_type'] = data_json.get('gem_type')
+            
+            # 计算三个解读字段
+            summary = self._compute_summary(entity_data, etype)
+            key_mechanics = self._compute_key_mechanics(entity_data, etype)
+            display_stats_list = self._compute_display_stats(entity_data, etype)
+            
+            if summary:
+                stats['summary'] += 1
+            if key_mechanics:
+                stats['key_mechanics'] += 1
+            if display_stats_list:
+                stats['display_stats'] += 1
+            
+            updates.append({
+                'id': eid,
+                'summary': summary,
+                'key_mechanics': key_mechanics,
+                'display_stats': display_stats_list,
+            })
+            
+            # 批量写入
+            if len(updates) >= batch_size:
+                self.entity_index.batch_update_enrichment(updates)
+                updates = []
+        
+        # 写入剩余
+        if updates:
+            self.entity_index.batch_update_enrichment(updates)
+        
+        return stats
+    
+    # ─── Task 3.2: Summary 提取 ───
+    
+    def _compute_summary(self, entity: Dict[str, Any], etype: str) -> Optional[str]:
+        """
+        提取核心机制描述 summary
+        
+        逻辑：
+        1. skill_definition: 从技能专属 statMap 覆盖 + description 提炼独特性
+        2. gem_definition: 使用 description（宝石无独立 statMap）
+        3. unique_item: 从 stat_descriptions 或 description 提取
+        4. passive_node: 仅对 notable/keystone 提取 stat_descriptions 摘要
+        5. mod_affix: 使用 stat_descriptions 首行
+        
+        无独特性时返回 None（不做无意义的描述）
+        """
+        if etype == 'skill_definition':
+            return self._summary_for_skill(entity)
+        elif etype == 'gem_definition':
+            return self._summary_for_gem(entity)
+        elif etype == 'unique_item':
+            return self._summary_for_unique(entity)
+        elif etype == 'passive_node':
+            return self._summary_for_passive(entity)
+        elif etype == 'mod_affix':
+            return self._summary_for_mod(entity)
+        return None
+    
+    def _summary_for_skill(self, entity: Dict[str, Any]) -> Optional[str]:
+        """
+        技能的 summary 提取
+        
+        来源优先级：
+        1. 技能专属 statMap 覆盖（前缀为技能名的 stat）→ 提炼核心机制
+        2. 独特 constant_stats → 识别非通用的固定效果
+        3. description → 游戏内描述的首句
+        
+        如果以上都是通用内容（无独特性），返回 None
+        """
+        stat_sets = entity.get('stat_sets', {})
+        stat_map = stat_sets.get('statMap', {})
+        constant_stats = entity.get('constant_stats', [])
+        description = entity.get('description', '') or ''
+        skill_name = entity.get('name', '')
+        skill_types = entity.get('skill_types', [])
+        
+        parts = []
+        
+        # 1. 从 statMap 提取独特机制描述
+        unique_stats = [k for k in stat_map.keys() 
+                       if not k.startswith('quality_display_')]
+        if unique_stats:
+            mechanic_names = []
+            for stat_name in unique_stats:
+                readable = self._stat_name_to_readable(stat_name, skill_name)
+                if readable:
+                    mechanic_names.append(readable)
+            if mechanic_names:
+                parts.append('; '.join(mechanic_names))
+        
+        # 2. 从 constant_stats 提取独特固定效果
+        unique_cs = self._filter_unique_constant_stats(constant_stats, skill_name)
+        if unique_cs:
+            cs_descs = []
+            for stat_name, value in unique_cs:
+                readable = self._constant_stat_to_readable(stat_name, value)
+                if readable:
+                    cs_descs.append(readable)
+            if cs_descs:
+                parts.append('; '.join(cs_descs[:3]))  # 最多3个
+        
+        # 3. 如果既没有 statMap 也没有独特 cs，用 description 首句
+        if not parts and description:
+            # 提取第一句话（到第一个句号或换行）
+            first_sentence = re.split(r'[.\n]', description)[0].strip()
+            if first_sentence and len(first_sentence) > 10:
+                parts.append(first_sentence)
+        
+        if not parts:
+            return None
+        
+        # 组装 summary
+        # 前置：技能类型标签
+        type_prefix = self._skill_type_prefix(skill_types)
+        summary = '. '.join(parts)
+        if type_prefix:
+            summary = f"[{type_prefix}] {summary}"
+        
+        return summary
+    
+    def _summary_for_gem(self, entity: Dict[str, Any]) -> Optional[str]:
+        """宝石的 summary：直接使用 description 首句"""
+        description = entity.get('description', '') or ''
+        if not description:
+            return None
+        first_sentence = re.split(r'[.\n]', description)[0].strip()
+        if first_sentence and len(first_sentence) > 10:
+            return first_sentence
+        return None
+    
+    def _summary_for_unique(self, entity: Dict[str, Any]) -> Optional[str]:
+        """唯一物品的 summary：从 stat_descriptions 或 stats 中提取关键效果"""
+        # 1. stat_descriptions（如果有）
+        stat_descs = entity.get('stat_descriptions', [])
+        if isinstance(stat_descs, list) and stat_descs:
+            return '; '.join(str(s) for s in stat_descs[:3])
+        
+        # 2. stats 字段（唯一物品的 stats 可能直接是描述文本字符串列表）
+        entity_stats = entity.get('stats', [])
+        if isinstance(entity_stats, list) and entity_stats:
+            text_stats = [str(s) for s in entity_stats if isinstance(s, str) and len(s) > 5]
+            if text_stats:
+                return '; '.join(text_stats[:3])
+        
+        # 3. description
+        description = entity.get('description', '') or ''
+        if description:
+            return re.split(r'[.\n]', description)[0].strip() or None
+        return None
+    
+    def _summary_for_passive(self, entity: Dict[str, Any]) -> Optional[str]:
+        """
+        天赋节点的 summary
+        
+        仅对 notable 和 keystone 生成 summary（普通小节点不需要）。
+        从 stat_descriptions 提取。
+        """
+        stat_descs = entity.get('stat_descriptions', [])
+        if isinstance(stat_descs, list) and stat_descs:
+            return '; '.join(str(s) for s in stat_descs[:3])
+        
+        # 天赋节点如果没有 stat_descriptions，检查 stats_node
+        stats_node = entity.get('stats_node', [])
+        if isinstance(stats_node, list) and stats_node:
+            readable_stats = []
+            for sn in stats_node[:3]:
+                if isinstance(sn, str):
+                    readable = self._stat_name_to_readable(sn, '')
+                    if readable:
+                        readable_stats.append(readable)
+            if readable_stats:
+                return '; '.join(readable_stats)
+        
+        return None
+    
+    def _summary_for_mod(self, entity: Dict[str, Any]) -> Optional[str]:
+        """Mod 词缀的 summary：使用 stat_descriptions 首行"""
+        stat_descs = entity.get('stat_descriptions', [])
+        if isinstance(stat_descs, list) and stat_descs:
+            return str(stat_descs[0])
+        return None
+    
+    # ─── Task 3.3: Key Mechanics 提取 ───
+    
+    def _compute_key_mechanics(self, entity: Dict[str, Any], etype: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        提取结构化机制列表 key_mechanics
+        
+        每个元素: {name, stat, formula, effect}
+        
+        仅对 skill_definition 提取（其他类型的机制信息由 mechanisms.db 覆盖）
+        """
+        if etype != 'skill_definition':
+            return None
+        
+        stat_sets = entity.get('stat_sets', {})
+        stat_map = stat_sets.get('statMap', {})
+        constant_stats = entity.get('constant_stats', [])
+        skill_name = entity.get('name', '')
+        
+        mechanics = []
+        seen_stats = set()
+        
+        # 1. 从 statMap 提取（这些是技能专属的覆盖映射——最有价值的机制信息）
+        for stat_name in stat_map:
+            if stat_name.startswith('quality_display_'):
+                continue  # 品质显示用的标记，不是真正的机制
+            if stat_name in seen_stats:
+                continue
+            seen_stats.add(stat_name)
+            
+            mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats)
+            if mechanic:
+                mechanics.append(mechanic)
+        
+        # 2. 从 constant_stats 中提取有独特意义的固定 stat
+        for cs_item in constant_stats:
+            if not isinstance(cs_item, (list, tuple)) or len(cs_item) < 2:
+                continue
+            stat_name, value = cs_item[0], cs_item[1]
+            if stat_name in seen_stats:
+                continue
+            if stat_name in self.IGNORE_STATS:
+                continue
+            
+            # 检查是否是已知的有意义的机制 stat
+            if stat_name in self.KNOWN_MECHANIC_STATS:
+                info = self.KNOWN_MECHANIC_STATS[stat_name]
+                mechanics.append({
+                    'name': info['name'],
+                    'stat': stat_name,
+                    'formula': f'{stat_name} = {value}',
+                    'effect': info['effect'],
+                })
+                seen_stats.add(stat_name)
+            elif self._is_skill_specific_stat(stat_name, skill_name):
+                # 技能专属前缀的 constant_stat
+                mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats)
+                if mechanic:
+                    mechanics.append(mechanic)
+                    seen_stats.add(stat_name)
+        
+        return mechanics if mechanics else None
+    
+    def _stat_to_mechanic(self, stat_name: str, skill_name: str, 
+                          constant_stats: list) -> Optional[Dict[str, str]]:
+        """
+        将单个 stat 转换为结构化机制描述
+        
+        Returns:
+            {name, stat, formula, effect} 或 None
+        """
+        # 查找该 stat 在 constant_stats 中的值
+        value = None
+        for cs_item in constant_stats:
+            if isinstance(cs_item, (list, tuple)) and len(cs_item) >= 2:
+                if cs_item[0] == stat_name:
+                    value = cs_item[1]
+                    break
+        
+        # 从 stat 名称提取可读的机制名
+        readable_name = self._stat_name_to_readable(stat_name, skill_name)
+        if not readable_name:
+            readable_name = stat_name  # fallback
+        
+        # 构建公式表达
+        formula = stat_name
+        if value is not None:
+            formula = f'{stat_name} = {value}'
+        
+        # 解读效果
+        effect = self._interpret_stat_effect(stat_name, value)
+        
+        return {
+            'name': readable_name,
+            'stat': stat_name,
+            'formula': formula,
+            'effect': effect,
+        }
+    
+    # ─── Task 3.4: Display Stats (via StatDescriber bridge) ───
+    
+    def _compute_display_stats(self, entity: Dict[str, Any], etype: str) -> Optional[List[str]]:
+        """
+        通过 StatDescriber 桥接生成人类可读描述
+        
+        优先级：
+        1. 使用 stat_describer_bridge（lupa 运行原始 Lua 代码）
+        2. 已有的 stat_descriptions 字段（data_scanner 提取的天赋/装备描述）
+        3. 唯一物品的 stats 字段（直接是描述文本字符串列表）
+        4. None（无可用描述）
+        """
+        # 1. 使用 StatDescriber 桥接
+        if self.stat_describer and self.stat_describer.available:
+            lines = self.stat_describer.describe_entity_stats(entity, etype)
+            if lines:
+                return lines
+        
+        # 2. 已有的 stat_descriptions（天赋节点和装备词缀已有描述文本）
+        stat_descs = entity.get('stat_descriptions', [])
+        if isinstance(stat_descs, list) and stat_descs:
+            return [str(s) for s in stat_descs]
+        
+        # 3. 唯一物品的 stats 字段（直接是描述文本）
+        if etype == 'unique_item':
+            entity_stats = entity.get('stats', [])
+            if isinstance(entity_stats, list) and entity_stats:
+                text_stats = [str(s) for s in entity_stats if isinstance(s, str)]
+                if text_stats:
+                    return text_stats
+        
+        return None
+    
+    # ─── 辅助方法 ───
+    
+    def _safe_json(self, s: Optional[str], default):
+        """安全解析 JSON 字符串"""
+        if not s:
+            return default
+        try:
+            return json.loads(s)
+        except (json.JSONDecodeError, TypeError):
+            return default
+    
+    def _is_skill_specific_stat(self, stat_name: str, skill_name: str) -> bool:
+        """
+        判断 stat 是否是技能专属的（前缀匹配技能名）
+        
+        例如: skill_name="Arc" → 前缀 "arc_"
+              skill_name="Detonating Arrow" → 前缀 "detonating_arrow_"
+        """
+        if not skill_name:
+            return False
+        # 将技能名转换为 stat 前缀格式（小写 + 下划线替换空格）
+        prefix = skill_name.lower().replace(' ', '_').replace("'", '') + '_'
+        return stat_name.startswith(prefix)
+    
+    def _stat_name_to_readable(self, stat_name: str, skill_name: str) -> Optional[str]:
+        """
+        将 stat 名称转换为可读的机制名
+        
+        例如:
+          arc_damage_+%_final_for_each_remaining_chain → MORE Damage per Remaining Chain
+          detonating_arrow_all_damage_%_to_gain_as_fire_per_stage → Damage gained as Fire per Stage
+          empower_barrage_base_number_of_barrage_repeats → Base Barrage Repeats
+        """
+        # 先检查已知映射
+        if stat_name in self.KNOWN_MECHANIC_STATS:
+            return self.KNOWN_MECHANIC_STATS[stat_name]['name']
+        
+        # 移除技能名前缀
+        suffix = stat_name
+        if skill_name:
+            prefix = skill_name.lower().replace(' ', '_').replace("'", '') + '_'
+            if stat_name.startswith(prefix):
+                suffix = stat_name[len(prefix):]
+            else:
+                # 尝试其他常见前缀（如 empower_barrage_ 对应 Barrage）
+                # 使用通用策略：找最长匹配的下划线分割点
+                pass
+        
+        # 将下划线分割、去除符号、首字母大写
+        parts = suffix.replace('+%', 'Pct').replace('-%', 'Reduction').replace('%', 'Pct')
+        parts = parts.replace('_', ' ').strip()
+        
+        if not parts or parts == stat_name:
+            return None
+        
+        # 识别 MORE/LESS/INC 等关键词
+        readable = parts.title()
+        if 'Final' in readable:
+            readable = readable.replace('Final', '(MORE/LESS)')
+        
+        return readable if len(readable) > 3 else None
+    
+    def _constant_stat_to_readable(self, stat_name: str, value) -> Optional[str]:
+        """将 constant_stat 转换为可读文本"""
+        if stat_name in self.KNOWN_MECHANIC_STATS:
+            info = self.KNOWN_MECHANIC_STATS[stat_name]
+            if 'duration' in stat_name.lower() and isinstance(value, (int, float)):
+                return f"{info['name']}: {value/1000:.1f}s"
+            return f"{info['name']}: {value}"
+        
+        if stat_name in self.IGNORE_STATS:
+            return None
+        
+        # 通用格式化
+        readable = stat_name.replace('_', ' ').replace('+%', '%').replace('-%', '% less')
+        if isinstance(value, (int, float)) and value != 0:
+            return f"{readable}: {value}"
+        return None
+    
+    def _interpret_stat_effect(self, stat_name: str, value) -> str:
+        """解读 stat 的效果描述"""
+        lower = stat_name.lower()
+        
+        # 基于 stat 名称中的关键词推断效果
+        if 'final' in lower and 'damage' in lower:
+            if value and value > 0:
+                return f'{value}% MORE damage'
+            elif value and value < 0:
+                return f'{abs(value)}% LESS damage'
+            return 'MORE/LESS damage modifier'
+        
+        if 'gained' in lower and 'infusion' in lower:
+            return f'Gained on Infusion consumption (value: {value})'
+        
+        if 'per_stage' in lower or 'per_stack' in lower:
+            return f'Scales per stage/stack (value: {value})'
+        
+        if 'chain' in lower:
+            return f'Chain-related mechanic (value: {value})'
+        
+        if 'cooldown' in lower:
+            return f'Affects cooldown (value: {value})'
+        
+        if 'number_of' in lower or 'max_number' in lower:
+            return f'Count/limit mechanic (value: {value})'
+        
+        if 'duration' in lower:
+            if isinstance(value, (int, float)) and value >= 100:
+                return f'Duration: {value/1000:.1f}s'
+            return f'Duration modifier (value: {value})'
+        
+        if 'reservation' in lower or 'mana_cost' in lower:
+            return f'Cost/reservation modifier (value: {value})'
+        
+        if value is not None:
+            return f'Value: {value}'
+        return 'Effect from statMap override'
+    
+    def _skill_type_prefix(self, skill_types: list) -> str:
+        """从技能类型列表生成简短的类型前缀标签"""
+        priority_types = [
+            'Spell', 'Attack', 'Channel', 'Minion', 'Aura', 
+            'Warcry', 'Curse', 'Herald', 'Trap', 'Mine', 'Totem',
+            'Projectile', 'Area', 'Duration', 'Buff',
+        ]
+        matched = []
+        for pt in priority_types:
+            if pt in skill_types:
+                matched.append(pt)
+            if len(matched) >= 3:
+                break
+        return '/'.join(matched)
+    
+    def _filter_unique_constant_stats(self, constant_stats: list, skill_name: str) -> List[tuple]:
+        """
+        从 constant_stats 中过滤出有独特意义的固定 stat
+        排除通用的移动速度惩罚等无信息量的 stat
+        """
+        unique = []
+        for cs_item in constant_stats:
+            if not isinstance(cs_item, (list, tuple)) or len(cs_item) < 2:
+                continue
+            stat_name = cs_item[0]
+            value = cs_item[1]
+            
+            # 排除通用无信息量的 stat
+            if stat_name in self.IGNORE_STATS:
+                continue
+            
+            # 排除值为 0 的 stat
+            if isinstance(value, (int, float)) and value == 0:
+                continue
+            
+            unique.append((stat_name, value))
+        
+        return unique
 
 
 if __name__ == '__main__':

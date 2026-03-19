@@ -44,25 +44,30 @@
       "consumers": []
     },
     "entities": {
-      "hash": null,
-      "last_modified": null,
+      "hash": "v4.0-enrichment-summary-key_mechanics-display_stats",
+      "last_modified": "2026-03-19T12:00:00",
       "definition": {
         "file": "entity_index.py",
         "type": "sqlite_table",
-        "table_name": "entities"
+        "table_name": "entities",
+        "notes": "v4.0: 新增 summary/key_mechanics/display_stats 解读层预计算字段; EntityEnricher 类; batch_update_enrichment 方法; v2.1: _row_to_dict解析22个JSON字段; kb_query.py类型字段裁剪+detail级别"
       },
       "consumers": [
         {
           "file": "init_knowledge_base.py",
-          "last_adapted": null
+          "last_adapted": "2026-03-19T12:00:00"
         },
         {
           "file": "kb_query.py",
-          "last_adapted": null
+          "last_adapted": "2026-03-19T12:00:00"
         },
         {
           "file": "mechanism_extractor.py",
-          "last_adapted": null
+          "last_adapted": "2026-03-19T14:00:00"
+        },
+        {
+          "file": "stat_describer_bridge.py",
+          "last_adapted": "2026-03-19T12:00:00"
         }
       ]
     },
@@ -97,24 +102,55 @@
       "consumers": []
     },
     "mechanisms": {
-      "hash": null,
-      "last_modified": null,
+      "hash": "v2.0-enrichment-friendly_name-behavior_description-mechanism_category-formula_abstract-affected_stats",
+      "last_modified": "2026-03-19T14:00:00",
       "definition": {
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
-        "table_name": "mechanisms"
+        "table_name": "mechanisms",
+        "notes": "v2.0: 新增 friendly_name/behavior_description/mechanism_category/formula_abstract/affected_stats 5个字段; KNOWN_MECHANISMS 44个机制定义; BehaviorExtractor 三型行为提取; YAML 补充描述"
       },
-      "consumers": []
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": "2026-03-19T14:00:00"
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
     },
     "mechanism_sources": {
-      "hash": null,
-      "last_modified": null,
+      "hash": "v2.0-unchanged",
+      "last_modified": "2026-03-19T14:00:00",
       "definition": {
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
         "table_name": "mechanism_sources"
       },
-      "consumers": []
+      "consumers": [
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
+    },
+    "mechanism_relations": {
+      "hash": "v1.0-initial",
+      "last_modified": "2026-03-19T14:00:00",
+      "definition": {
+        "file": "mechanism_extractor.py",
+        "type": "sqlite_table",
+        "table_name": "mechanism_relations",
+        "notes": "v1.0: 新表，存储机制间关系; 6种关系类型: mutually_exclusive/modifies/requires/overrides/converts/stacks_with; 方向: a_to_b/b_to_a/both"
+      },
+      "consumers": [
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
     },
     "QueueRecord": {
       "hash": null,
@@ -247,6 +283,66 @@
         "class_name": "FormulaQueryResult"
       },
       "consumers": []
+    },
+    "support_compatibility": {
+      "hash": "v1.0-initial",
+      "last_modified": "2026-03-19T16:00:00",
+      "definition": {
+        "file": "support_matcher.py",
+        "type": "sqlite_table",
+        "table_name": "support_compatibility",
+        "notes": "v1.0: 辅助-技能兼容矩阵; RPN逻辑表达式匹配 require/exclude_skill_types; 含 match_reason"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": "2026-03-19T16:00:00"
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
+    },
+    "support_effects": {
+      "hash": "v1.0-initial",
+      "last_modified": "2026-03-19T16:00:00",
+      "definition": {
+        "file": "support_matcher.py",
+        "type": "sqlite_table",
+        "table_name": "support_effects",
+        "notes": "v1.0: 辅助效果分类; 15种 effect_category; quantifiable 标记; key_stats/formula_impact JSON; level_scaling 1/10/20级数值"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": "2026-03-19T16:00:00"
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
+    },
+    "support_potential": {
+      "hash": "v1.0-initial",
+      "last_modified": "2026-03-19T16:00:00",
+      "definition": {
+        "file": "support_matcher.py",
+        "type": "sqlite_table",
+        "table_name": "support_potential",
+        "notes": "v1.0: 辅助潜力推荐; 3种 synergy_type (mechanic_match/tag_synergy/stat_amplify); 基于规则引擎的机制协同检测"
+      },
+      "consumers": [
+        {
+          "file": "init_knowledge_base.py",
+          "last_adapted": "2026-03-19T16:00:00"
+        },
+        {
+          "file": "kb_query.py",
+          "last_adapted": "2026-03-19T17:00:00"
+        }
+      ]
     }
   },
   "notification_queue": {

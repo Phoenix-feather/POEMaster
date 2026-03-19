@@ -1,0 +1,221 @@
+# 机制行为补充描述
+# 用于补充无法从 POB 代码自动提取的描述信息
+# 优先级：KNOWN_MECHANISMS (代码内置) > YAML > 代码提取上下文 > 默认值
+#
+# 字段说明：
+#   id: 机制 stat 名称（主键）
+#   friendly_name: 中文友好名称（仅在代码内置缺失时使用）
+#   category: 机制分类（仅在代码内置缺失时使用）
+#   behavior_description: 人工编写的行为描述（与代码上下文合并）
+#   formula_abstract: 抽象公式（仅在代码内置缺失时使用）
+#   affected_stats: 影响的 stat 列表
+
+mechanisms:
+  # === 偷取类 ===
+  - id: InstantLifeLeech
+    behavior_description: |
+      即时偷取机制：当偷取生效时，指定百分比的偷取量会立即恢复，
+      而非通过正常的偷取实例逐渐恢复。InstantLifeLeech 的值为 0-100，
+      表示即时恢复的比例百分比。当值为 100 时，所有生命偷取都是即时的。
+      代码实现：output.LifeLeechInstantProportion = clamp(Sum("BASE", cfg, "InstantLifeLeech"), 0, 100) / 100
+      恢复计算：即时恢复量 = 单次偷取总量 × LifeLeechInstantProportion
+      剩余部分按正常偷取速率恢复。
+
+  - id: InstantManaLeech
+    behavior_description: |
+      即时魔力偷取，机制与 InstantLifeLeech 完全相同。
+      output.ManaLeechInstantProportion = clamp(Sum("BASE", cfg, "InstantManaLeech"), 0, 100) / 100
+
+  - id: InstantEnergyShieldLeech
+    behavior_description: |
+      即时能量护盾偷取，机制与 InstantLifeLeech 完全相同。
+      output.EnergyShieldLeechInstantProportion = clamp(Sum("BASE", cfg, "InstantEnergyShieldLeech"), 0, 100) / 100
+
+  - id: CanLeechLifeOnFullLife
+    behavior_description: |
+      正常情况下，满血时生命偷取实例会被移除。此机制使满血时偷取实例不被移除，
+      允许在满血状态下继续维持偷取实例（例如配合"满偷取速率时的加成"等机制）。
+      注意：当 GhostReaver 激活时，此 Flag 不生效（因为偷取已转为 ES 偷取）。
+      代码：if Flag("CanLeechLifeOnFullLife") and not Flag("GhostReaver") then ...
+
+  - id: GhostReaver
+    behavior_description: |
+      幽魂掠夺：将所有生命偷取转换为能量护盾偷取。
+      激活后：
+      1. 所有生命偷取数值加到 ES 偷取上：energyShieldLeech += lifeLeech
+      2. 生命偷取归零：lifeLeech = 0
+      3. 偷取上限改为使用 MaxEnergyShieldLeechRate（而非 MaxLifeLeechRate）
+      4. 即时偷取比例也随之转移
+      5. CanLeechLifeOnFullLife 在 GhostReaver 激活时失效
+      代码：CalcOffence.lua L3636, L3901
+
+  # === 免疫类 ===
+  - id: CannotBeIgnited
+    behavior_description: |
+      完全免疫点燃异常状态。在 CalcDefence.lua 中通过动态拼接 "{Ailment}Immune"
+      Flag 检查实现。元素异常（Ignite/Freeze/Shock）和非元素异常（Poison/Bleed/Stun）
+      使用不同的免疫检查路径。
+      点燃免疫使 output.IgniteAvoidChance = 100。
+
+  - id: CannotBeFrozen
+    behavior_description: |
+      完全免疫冰冻异常状态。使 output.FreezeAvoidChance = 100。
+      冰冻免疫是防御端最重要的异常免疫之一，因为冰冻会完全阻止行动。
+
+  - id: CannotBeShocked
+    behavior_description: |
+      完全免疫感电异常状态。使 output.ShockAvoidChance = 100。
+      感电会增加角色承受的伤害（最多 50%），是防御端需要关注的异常。
+      可通过 ShockAvoidAppliesToElementalAilments Flag 扩展到所有元素异常。
+
+  - id: CannotBePoisoned
+    behavior_description: |
+      完全免疫中毒异常状态。使 output.PoisonAvoidChance = 100。
+      在 CalcDefence.lua 中属于非元素异常免疫路径。
+
+  - id: CannotBeBled
+    behavior_description: |
+      完全免疫流血异常状态。使 output.BleedAvoidChance = 100。
+      在 CalcDefence.lua 中属于非元素异常免疫路径。
+
+  - id: CannotBeStunned
+    behavior_description: |
+      完全免疫晕眩。使 output.StunAvoidChance = 100。
+      在 CalcDefence.lua 中属于非元素异常免疫路径。
+
+  - id: CannotBeEvaded
+    behavior_description: |
+      命中必中：跳过闪避检定（hitChance = 100%）。
+      在进攻端（CalcOffence.lua L2471）检查 Flag(cfg, "CannotBeEvaded")，
+      也检查 skillData.cannotBeEvaded（技能固有属性）和敌人的 CannotEvade。
+      在防御端（CalcDefence.lua L1391）检查 enemyDB:Flag(nil, "CannotBeEvaded")。
+      召唤物可通过 NewMod("CannotBeEvaded", "FLAG", 1, ...) 获得此机制。
+
+  # === 伤害转换类 ===
+  - id: PhysicalDamageConvertToFire
+    behavior_description: |
+      将物理伤害的指定百分比转换为火焰伤害。POB 的伤害转换系统在 CalcOffence.lua 的
+      calcConvertedDamage 函数中实现。转换遵循转换链：Physical → Lightning → Cold → Fire → Chaos。
+      同一伤害来源类型的总转换比例不能超过 100%，超过时按比例缩放。
+      随机转换（PhysicalDamageConvertToRandom）在 L1100 特殊处理。
+
+  - id: PhysicalDamageConvertToCold
+    behavior_description: |
+      将物理伤害的指定百分比转换为冰霜伤害。转换链顺序使得物理→冰在物理→火之前处理。
+
+  - id: PhysicalDamageConvertToLightning
+    behavior_description: |
+      将物理伤害的指定百分比转换为闪电伤害。转换链中闪电是最靠近物理的元素。
+
+  - id: PhysicalDamageConvertToChaos
+    behavior_description: |
+      将物理伤害的指定百分比转换为混沌伤害。混沌在转换链末端，不会被进一步转换。
+
+  # === 承受转换类 ===
+  - id: PhysicalDamageFromHitsTakenAsLightning
+    behavior_description: |
+      将承受的物理命中伤害的一部分转移为闪电伤害承受。这发生在伤害减免计算之前，
+      转移的部分会使用闪电抗性进行减免而非物理减免。
+      代码：CalcDefence.lua L357 shiftTable 系统处理所有 DamageTakenAs 转移。
+      注意区分 "DamageTakenAs"（所有伤害）和 "DamageFromHitsTakenAs"（仅命中伤害）。
+
+  - id: PhysicalDamageFromHitsTakenAsFire
+    behavior_description: |
+      将承受的物理命中伤害的一部分转移为火焰伤害承受。
+
+  - id: PhysicalDamageFromHitsTakenAsCold
+    behavior_description: |
+      将承受的物理命中伤害的一部分转移为冰霜伤害承受。
+
+  - id: PhysicalDamageFromHitsTakenAsChaos
+    behavior_description: |
+      将承受的物理命中伤害的一部分转移为混沌伤害承受。
+
+  # === 资源类 ===
+  - id: ZealotsOath
+    behavior_description: |
+      狂热誓言：将所有生命回复转为能量护盾回复。
+      在 CalcDefence.lua L1648 检查：当资源是 Life 且 ZealotsOath 激活且
+      生命回复恢复值 > 0 时，将生命回复的恢复值加到 ES 回复上，生命回复归零。
+      常与 ChaosInoculation 组合使用（CI 使最大生命为 1，ZO 把无用的生命回复转给 ES）。
+      L1680 提供 breakdown 显示。
+
+  - id: LifeConvertToEnergyShield
+    behavior_description: |
+      将生命基础值的百分比转换为能量护盾基础值。主要用于召唤物（CalcPerform.lua L954），
+      将召唤物的 energyShield 数据乘以 100 作为 BASE mod 注入。
+
+  - id: ChaosInoculation
+    behavior_description: |
+      混沌无伤（CI）：将最大生命设为 1，同时获得 100% 混沌抗性。
+      在 CalcDefence.lua L83 设置 output.ChaosInoculation 标记。
+      是构建 ES 池角色的核心关键石，与 ZealotsOath、EnergyShieldProtectsMana 形成经典组合。
+
+  - id: EnergyShieldProtectsMana
+    behavior_description: |
+      灵能之血（Eldritch Battery/EB）：将能量护盾改为保护魔力而非生命。
+      在 CalcOffence.lua L5614 检查此 Flag。
+      激活后，ES 覆盖在魔力池上方，优先吸收本应从魔力扣除的伤害。
+
+  # === 伤害修饰类 ===
+  - id: IgnoreEnemyArmour
+    behavior_description: |
+      忽略敌人的护甲。在 CalcOffence.lua L3737：
+      ignoreEnemyArmour = Flag(cfg, "IgnoreEnemyArmour") and enemyArmour or Sum("IgnoreArmour")
+      当 Flag 生效时，忽略全部敌人护甲；否则用 Sum 计算部分忽略值。
+      效果：物理伤害不经过敌人护甲的物理减免计算。
+
+  - id: IronReflexes
+    behavior_description: |
+      钢铁反射：将所有闪避值转换为护甲值。
+      在 CalcDefence.lua 多处（L800, L1206 等）检查此 Flag。
+      当 IronReflexes 激活时，闪避增幅计算后的值加到护甲上，闪避归零。
+      与 DoubleBodyArmourDefence 等 Flag 有交互。
+
+  # === 格挡类 ===
+  - id: CannotBlockAttacks
+    behavior_description: |
+      无法格挡攻击。在 CalcDefence.lua L1017 检查，使攻击格挡几率归零。
+      如果同时存在 CannotBeBlocked（enemyDB），效果叠加。
+
+  - id: CannotBlockSpells
+    behavior_description: |
+      无法格挡法术。在 CalcDefence.lua L1021 检查，使法术格挡几率归零。
+
+  - id: SpellBlockChanceIsBlockChance
+    behavior_description: |
+      法术格挡等同攻击格挡。在 CalcDefence.lua L996 检查，
+      将法术格挡几率直接设为攻击格挡几率的值。
+      这意味着所有对攻击格挡的增幅也间接影响法术格挡。
+
+  # === 触发类 ===
+  - id: CastOnCriticalStrike
+    behavior_description: |
+      暴击施放（CoC）：当链接的攻击技能暴击命中时，自动施放链接的法术。
+      触发条件：暴击命中（triggerSkillCond = CritInPast8Sec）
+      被触发技能条件：法术技能（triggeredSkillCond = SkillIsSpell）
+      冷却计算：触发率受技能冷却限制，实际触发率 = min(攻击率×暴击率, 1/冷却时间)
+      configTable 键："cast on critical strike"（CalcTriggers.lua L1089）
+
+  - id: CastWhenDamageTaken
+    behavior_description: |
+      受伤施放（CWDT）：当累计受到的伤害达到阈值时，自动施放链接的法术。
+      触发条件：累计伤害达到宝石等级决定的阈值
+      被触发技能条件：法术技能
+      自定义处理器：castWhenDamageTakenHandler（CalcTriggers.lua L1113 后续逻辑）
+      阈值随宝石等级增长，高等级支持高等级法术但需要更多伤害触发。
+
+  - id: CastWhileChannelling
+    behavior_description: |
+      引导施放（CWC）：在引导技能的引导过程中，每隔固定间隔自动施放链接的法术。
+      使用 castWhileChannellingHandler 自定义处理器。
+      触发间隔 = 引导技能的施法/攻击间隔
+      configTable 键："cast while channelling"（CalcTriggers.lua L1295）
+
+  - id: Spellslinger
+    behavior_description: |
+      法术弹幕：预留魔力后，使用法杖攻击时自动施放链接的法术。
+      触发条件：使用法杖攻击（triggerOnUse = true）
+      特点：法术保留一定比例的魔力（ManaReservation），施法速率使用攻击速率
+      useCastRate = true 使触发率基于攻击速率计算。
+      configTable 键："spellslinger"（CalcTriggers.lua L1153）

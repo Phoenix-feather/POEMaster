@@ -324,7 +324,7 @@ class FormulaMatcher:
                     id=f"sm_{stat_name}",
                     name=stat_name,
                     formula_type='stat_mapping',
-                    formula_text=mod_code[:200] if mod_code else '',
+                    formula_text=mod_code or '',
                     domain=domain or 'unknown',
                     score=1.0,  # 直接匹配
                     details={
@@ -407,7 +407,7 @@ class FormulaMatcher:
                     id=f"sm_{sn}",
                     name=sn,
                     formula_type='stat_mapping',
-                    formula_text=mod_code[:200] if mod_code else '',
+                    formula_text=mod_code or '',
                     domain=domain or 'unknown',
                     score=1.0 if sn == stat_name else 0.8,
                     details={
