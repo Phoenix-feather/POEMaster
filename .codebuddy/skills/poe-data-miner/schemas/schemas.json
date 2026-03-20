@@ -305,22 +305,22 @@
       ]
     },
     "support_effects": {
-      "hash": "v1.0-initial",
-      "last_modified": "2026-03-19T16:00:00",
+      "hash": "v1.3-cap-semantic-fix",
+      "last_modified": "2026-03-20T18:00:00",
       "definition": {
         "file": "support_matcher.py",
         "type": "sqlite_table",
         "table_name": "support_effects",
-        "notes": "v1.0: 辅助效果分类; 15种 effect_category; quantifiable 标记; key_stats/formula_impact JSON; level_scaling 1/10/20级数值"
+        "notes": "v1.3: _resolve_per_cap Type B(display 'up to')优先于Type A(伴随cap stat); 'up to N'无%号统一解读为百分比上限(POB limitTotal=true语义); Type A简化为纯层数计算; 修复Arakaali's Lust从x4.20→x1.40、Dauntless从x2.35→x1.45"
       },
       "consumers": [
         {
           "file": "init_knowledge_base.py",
-          "last_adapted": "2026-03-19T16:00:00"
+          "last_adapted": "2026-03-20T10:00:00"
         },
         {
           "file": "kb_query.py",
-          "last_adapted": "2026-03-19T17:00:00"
+          "last_adapted": "2026-03-20T14:00:00"
         }
       ]
     },

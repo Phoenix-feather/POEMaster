@@ -57,75 +57,181 @@ SYNERGY_TYPES = {
 # stat 名称到效果分类的映射规则
 # ============================================================
 STAT_CATEGORY_RULES: List[Tuple[str, str, str]] = [
-    # (正则模式, 效果分类, 公式影响描述)
+    # (正则模式, 效果分类, 玩家友好描述)
     
     # MORE 伤害
-    (r'damage_\+%_final', 'damage_more', 'AverageDamage 中的 more 乘数项'),
-    (r'support_.*_damage_\+%_final', 'damage_more', 'AverageDamage 中的 support more 乘数项'),
-    (r'active_skill_damage_\+%_final', 'damage_more', 'AverageDamage 中的 active skill more 乘数'),
+    (r'damage_\+%_final', 'damage_more', '伤害独立乘区'),
+    (r'support_.*_damage_\+%_final', 'damage_more', '辅助伤害独立乘区'),
+    (r'active_skill_damage_\+%_final', 'damage_more', '主动技能伤害独立乘区'),
     
     # 附加伤害
-    (r'base_.*_damage', 'damage_added', 'AverageDamage 中的 base damage 加成'),
-    (r'added_.*_damage', 'damage_added', 'AverageDamage 中的 added damage 加成'),
-    (r'damage_effectiveness', 'damage_added', '附加伤害的效率系数'),
+    (r'base_.*_damage', 'damage_added', '基础附加伤害'),
+    (r'added_.*_damage', 'damage_added', '附加伤害'),
+    (r'damage_effectiveness', 'damage_added', '附加伤害效率'),
     
     # 速度
-    (r'cast_speed', 'speed', 'CastRate / AttackRate 乘数'),
-    (r'attack_speed', 'speed', 'AttackRate 乘数'),
-    (r'speed_\+%', 'speed', 'CastRate 或 AttackRate 乘数'),
+    (r'cast_speed', 'speed', '施法/攻击速度'),
+    (r'attack_speed', 'speed', '攻击速度'),
+    (r'speed_\+%', 'speed', '施法或攻击速度'),
     
     # 范围
-    (r'area_of_effect', 'aoe', 'AreaOfEffect 计算'),
-    (r'area_radius', 'aoe', 'AreaRadius 加成'),
+    (r'area_of_effect', 'aoe', '技能范围'),
+    (r'area_radius', 'aoe', '技能半径'),
     
     # 连锁
-    (r'chain', 'chain', 'ChainMax 增减 + 每次连锁衰减'),
-    (r'number_of_chains', 'chain', 'ChainMax 增减'),
+    (r'chain', 'chain', '连锁次数（每次连锁伤害衰减）'),
+    (r'number_of_chains', 'chain', '连锁次数'),
     
     # 投射物
-    (r'projectile', 'projectile', 'ProjectileCount / ProjectileSpeed 修改'),
-    (r'number_of_additional_projectiles', 'projectile', 'ProjectileCount 加成'),
-    (r'fork', 'projectile', 'ForkMax 增加'),
+    (r'projectile', 'projectile', '投射物数量/速度'),
+    (r'number_of_additional_projectiles', 'projectile', '额外投射物数量'),
+    (r'fork', 'projectile', '分裂次数'),
     
     # 持续时间
-    (r'duration', 'duration', 'Duration 乘数'),
-    (r'skill_effect_duration', 'duration', 'Duration 乘数'),
+    (r'duration', 'duration', '技能持续时间'),
+    (r'skill_effect_duration', 'duration', '技能效果持续时间'),
     
     # 暴击
-    (r'crit', 'crit', 'CritChance / CritMultiplier 修改'),
-    (r'critical_strike', 'crit', 'CritChance / CritMultiplier 修改'),
-    (r'cannot_crit', 'crit', '禁止暴击（CritChance 设为 0）'),
+    (r'crit', 'crit', '暴击率/暴击伤害'),
+    (r'critical_strike', 'crit', '暴击率/暴击伤害'),
+    (r'cannot_crit', 'crit', '禁止暴击'),
     
     # 持续伤害
-    (r'damage_over_time', 'dot', 'DoT 伤害乘数'),
-    (r'bleed|poison|ignite', 'dot', '异常状态 DoT 伤害'),
+    (r'damage_over_time', 'dot', '持续伤害'),
+    (r'bleed|poison|ignite', 'dot', '异常状态持续伤害'),
     
     # 触发
-    (r'triggered_by', 'trigger', '触发机制（元技能）'),
+    (r'triggered_by', 'trigger', '触发机制'),
     (r'trigger', 'trigger', '触发机制'),
-    (r'cast_on_', 'trigger', '触发施放机制'),
-    (r'invocation', 'trigger', '元技能触发机制'),
+    (r'cast_on_', 'trigger', '触发施放'),
+    (r'invocation', 'trigger', '元技能触发'),
     
     # 召唤物
-    (r'minion', 'minion', '召唤物属性修改'),
-    (r'totem', 'minion', '图腾属性修改'),
+    (r'minion', 'minion', '召唤物属性'),
+    (r'totem', 'minion', '图腾属性'),
     
     # 消耗减少
-    (r'mana_cost', 'cost_reduction', 'Mana 消耗修改'),
-    (r'spirit_cost', 'cost_reduction', 'Spirit 消耗修改'),
-    (r'cost_\+%', 'cost_reduction', '消耗乘数修改'),
+    (r'mana_cost', 'cost_reduction', '法力消耗'),
+    (r'spirit_cost', 'cost_reduction', '灵魂消耗'),
+    (r'cost_\+%', 'cost_reduction', '消耗倍率'),
     
     # 转换
     (r'convert', 'conversion', '伤害类型转换'),
-    (r'gain_.*_as', 'conversion', '额外获得伤害转换'),
+    (r'gain_.*_as', 'conversion', '额外伤害转换'),
     
     # 防御
     (r'life_gain', 'defense', '生命回复'),
-    (r'energy_shield', 'defense', '能量护盾相关'),
-    (r'block', 'defense', '格挡相关'),
-    (r'armour', 'defense', '护甲相关'),
-    (r'evasion', 'defense', '闪避相关'),
+    (r'energy_shield', 'defense', '能量护盾'),
+    (r'block', 'defense', '格挡'),
+    (r'armour', 'defense', '护甲'),
+    (r'evasion', 'defense', '闪避'),
 ]
+
+# ============================================================
+# _per_ stat 无 cap 时的合理最大层数估值
+# 用于 Type C（无伴随 cap stat、无 "up to" 描述）的 _per_ stat
+# key: _per_ 后面的条件关键词片段, value: 合理最大层数
+# ============================================================
+# ============================================================
+# 通用 stat qualifier 词典（用于语义有效性检查）
+# 三个正交维度：从 _final stat 名中分词后匹配
+# ============================================================
+DAMAGE_TYPE_WORDS: Set[str] = {
+    'physical', 'fire', 'cold', 'lightning', 'chaos', 'elemental',
+}
+ATTACK_MODE_WORDS: Set[str] = {
+    'melee', 'spell', 'projectile', 'area', 'attack', 'ranged',
+}
+DAMAGE_SCOPE_WORDS: Set[str] = {
+    'hit', 'dot', 'ailment', 'bleed', 'poison', 'ignite',
+    'burning', 'damage_over_time',
+}
+
+# Flag stat → 阻断的伤害类型/模式映射
+# key: flag stat 名, value: 被阻断的维度标签集合
+BLOCK_FLAG_MAP: Dict[str, Set[str]] = {
+    'deal_no_elemental_damage':        {'fire', 'cold', 'lightning', 'elemental'},
+    'base_deal_no_chaos_damage':       {'chaos'},
+    'deal_no_physical_damage':         {'physical'},
+    'cannot_inflict_elemental_ailments': {'ignite', 'burning', 'freeze', 'chill', 'shock'},
+    'never_freeze':                    {'freeze', 'chill'},
+    'never_ignite':                    {'ignite', 'burning'},
+    'never_shock':                     {'shock'},
+    'cannot_cause_bleeding':           {'bleed'},
+    'cannot_crit':                     {'crit'},
+    'global_cannot_crit':              {'crit'},
+}
+
+PER_STAT_MAX_HEURISTIC: Dict[str, int] = {
+    'different_elemental': 3,          # 3种元素类型（火/冰/电）
+    'elemental_skill_used_recently': 3, # 3种不同元素技能
+    'charge_type_or_infusion': 5,      # 3 charge + ~2 infusion
+    'charge_type': 3,                  # 3种能量球（暴击/狂怒/耐力）
+    'infusion_type': 3,                # 估约3种灌注
+    'combo_stack': 10,                 # combo 默认 max 10（通常有伴随 cap）
+    'recently': 5,                     # "used recently" 一般 ~4-6 次
+    'used_recently': 5,                # 同上
+    'time': 6,                         # 时间叠加默认 ~6 stacks
+}
+
+# ============================================================
+# Flag 型 stat 语义映射表
+# 这些 stat 存在于 stats 字段中（纯字符串，无数值），
+# 需要映射为人类可读描述和正面/负面极性。
+# polarity: 'restriction' = 负面限制, 'benefit' = 正面效果, 'mechanic' = 中性机制
+# ============================================================
+FLAG_SEMANTIC_MAP: Dict[str, Dict[str, str]] = {
+    # === 元素/伤害类型限制（restriction，严重） ===
+    'cannot_inflict_elemental_ailments':   {'desc': '不能造成元素异常（电震/点燃/冻结）', 'polarity': 'restriction', 'category': 'damage_more'},
+    'deal_no_elemental_damage':           {'desc': '不能造成元素伤害', 'polarity': 'restriction', 'category': 'conversion'},
+    'base_deal_no_chaos_damage':          {'desc': '不能造成混沌伤害', 'polarity': 'restriction', 'category': 'conversion'},
+    
+    # === 暴击限制 ===
+    'cannot_crit':                        {'desc': '不能暴击', 'polarity': 'restriction', 'category': 'crit'},
+    'global_cannot_crit':                 {'desc': '不能暴击', 'polarity': 'restriction', 'category': 'crit'},
+    
+    # === 异常状态限制 ===
+    'never_freeze':                       {'desc': '不能冻结敌人', 'polarity': 'restriction', 'category': 'dot'},
+    'never_ignite':                       {'desc': '不能点燃敌人', 'polarity': 'restriction', 'category': 'dot'},
+    'never_shock':                        {'desc': '不能电击敌人', 'polarity': 'restriction', 'category': 'dot'},
+    'cannot_cause_bleeding':              {'desc': '不能造成流血', 'polarity': 'restriction', 'category': 'dot'},
+    'cannot_inflict_maim':                {'desc': '不能造成残废', 'polarity': 'restriction', 'category': 'dot'},
+    'cannot_consume_impale':              {'desc': '不能消耗穿刺', 'polarity': 'restriction', 'category': 'damage_more'},
+    
+    # === 召唤物限制 ===
+    'minions_cannot_be_damaged':          {'desc': '召唤物不会受到伤害', 'polarity': 'benefit', 'category': 'minion'},
+    'minions_deal_no_damage':             {'desc': '召唤物不造成伤害', 'polarity': 'restriction', 'category': 'minion'},
+    
+    # === 能量球/资源限制 ===
+    'skill_cannot_generate_power_charges':  {'desc': '不能产生暴击球', 'polarity': 'restriction', 'category': 'crit'},
+    'skill_cannot_generate_endurance_charges': {'desc': '不能产生耐力球', 'polarity': 'restriction', 'category': 'defense'},
+    
+    # === 目标/攻击限制 ===
+    'can_only_damage_low_life_enemies':   {'desc': '只能伤害低血量敌人', 'polarity': 'restriction', 'category': 'damage_more'},
+    'number_of_totems_allowed_is_1':      {'desc': '最多放置1个图腾', 'polarity': 'restriction', 'category': 'minion'},
+    
+    # === 正面效果（benefit） ===
+    'projectiles_nova':                   {'desc': '投射物以nova方式发射', 'polarity': 'benefit', 'category': 'projectile'},
+    'global_knockback':                   {'desc': '击退敌人', 'polarity': 'benefit', 'category': 'utility'},
+    'global_always_hit':                  {'desc': '命中无法被闪避', 'polarity': 'benefit', 'category': 'damage_more'},
+    'global_maim_on_hit':                 {'desc': '命中时造成残废', 'polarity': 'benefit', 'category': 'utility'},
+    'global_poison_on_hit':               {'desc': '命中时造成中毒', 'polarity': 'benefit', 'category': 'dot'},
+    'global_bleed_on_hit':                {'desc': '命中时造成流血', 'polarity': 'benefit', 'category': 'dot'},
+    'supported_by_inevitable_criticals':  {'desc': '暴击无法被闪避', 'polarity': 'benefit', 'category': 'crit'},
+    'hits_ignore_enemy_fire_resistance':  {'desc': '命中无视敌人火焰抗性', 'polarity': 'benefit', 'category': 'damage_more'},
+    'double_ancestral_boost_effect':      {'desc': '祖灵增益效果翻倍', 'polarity': 'benefit', 'category': 'damage_more'},
+    'life_leech_from_source_not_removed_at_full_life': {'desc': '满血时偷取不被移除', 'polarity': 'benefit', 'category': 'defense'},
+    'always_shock_wet_enemies':           {'desc': '总是电击潮湿的敌人', 'polarity': 'benefit', 'category': 'dot'},
+    'base_chaos_damage_can_ignite':       {'desc': '混沌伤害可以点燃', 'polarity': 'benefit', 'category': 'conversion'},
+    'mana_leech_from_elemental_instead':  {'desc': '从元素伤害中偷取法力', 'polarity': 'benefit', 'category': 'cost_reduction'},
+    
+    # === 中性机制（mechanic） ===
+    'curse_apply_as_curse_zone':          {'desc': '诅咒以区域方式施放', 'polarity': 'mechanic', 'category': 'utility'},
+    'wall_is_created_in_a_circle_instead': {'desc': '墙壁改为环形', 'polarity': 'mechanic', 'category': 'aoe'},
+    'repeat_last_step_of_combo_attack':   {'desc': '重复连击最后一段', 'polarity': 'mechanic', 'category': 'damage_more'},
+    'storm_skills_spawn_at_initiator_location': {'desc': '风暴技能在自身位置生成', 'polarity': 'mechanic', 'category': 'aoe'},
+    'strikes_are_ancestrally_boosted':    {'desc': '近战打击获得祖灵增幅', 'polarity': 'benefit', 'category': 'damage_more'},
+}
 
 # 编译正则
 _COMPILED_STAT_RULES = [(re.compile(pattern, re.IGNORECASE), cat, desc) for pattern, cat, desc in STAT_CATEGORY_RULES]
@@ -312,7 +418,7 @@ class SupportMatcher:
         cursor.execute('''
             SELECT id, name, skill_types, require_skill_types, add_skill_types,
                    exclude_skill_types, constant_stats, stats, stat_sets, levels,
-                   hidden, is_trigger, summary, key_mechanics
+                   hidden, is_trigger, summary, key_mechanics, display_stats
             FROM entities 
             WHERE type = 'skill_definition' AND support = 1 AND hidden = 0
         ''')
@@ -344,7 +450,7 @@ class SupportMatcher:
         json_fields = [
             'skill_types', 'require_skill_types', 'add_skill_types',
             'exclude_skill_types', 'constant_stats', 'stats', 'stat_sets',
-            'levels', 'key_mechanics'
+            'levels', 'key_mechanics', 'display_stats'
         ]
         for field in json_fields:
             val = result.get(field)
@@ -481,11 +587,18 @@ class SupportMatcher:
             # 关键 stat
             key_stats = self._extract_key_stats(support, categories)
             
-            # 公式影响
-            formula_impact = self._build_formula_impact(categories)
+            # 公式影响（传入 key_stats + display_stats 以注入具体数值和叠加上下文）
+            display_stats = support.get('display_stats', [])
+            formula_impact = self._build_formula_impact(categories, key_stats, display_stats)
             
             # 等级成长（5.5）
             level_scaling = self._extract_level_scaling(support)
+            
+            # 倍率预计算（5.8: 分维度期望倍率）
+            multipliers = self._compute_multipliers(key_stats, support)
+            
+            # 语义限制提取（5.6: 通用 qualifier 系统）
+            restrictions = self._extract_restrictions(support)
             
             self._effects[support_id] = {
                 'support_id': support_id,
@@ -495,22 +608,32 @@ class SupportMatcher:
                 'key_stats': key_stats,
                 'formula_impact': formula_impact,
                 'level_scaling': level_scaling,
+                'multipliers': multipliers,
+                'restrictions': restrictions,
             }
         
         # 统计
         cat_dist = defaultdict(int)
         quant_count = 0
         has_scaling = 0
+        has_multipliers = 0
+        has_restrictions = 0
         for eff in self._effects.values():
             cat_dist[eff['effect_category']] += 1
             if eff['quantifiable']:
                 quant_count += 1
             if eff['level_scaling']:
                 has_scaling += 1
+            if eff.get('multipliers'):
+                has_multipliers += 1
+            if eff.get('restrictions'):
+                has_restrictions += 1
         
         print(f"  效果分类完成: {len(self._effects)} 个辅助")
         print(f"  可量化: {quant_count}/{len(self._effects)}")
         print(f"  有等级成长: {has_scaling}/{len(self._effects)}")
+        print(f"  有倍率数据: {has_multipliers}/{len(self._effects)}")
+        print(f"  有语义限制: {has_restrictions}/{len(self._effects)}")
         print(f"  分类分布: {dict(sorted(cat_dist.items(), key=lambda x: -x[1]))}")
     
     def _collect_support_stats(self, support: Dict[str, Any]) -> List[str]:
@@ -613,10 +736,20 @@ class SupportMatcher:
     
     def _extract_key_stats(self, support: Dict[str, Any],
                            categories: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """提取关键 stat 列表（含名称和数值）"""
+        """
+        提取关键 stat 列表（含名称和数值）。
+        
+        三个数据源：
+        1. constant_stats: 固定数值型 stat（如 [["stat", -30]]）
+        2. stat_sets.levels: 随等级变化的数值型 stat
+        3. stats: Flag 型 stat（纯字符串，通过 FLAG_SEMANTIC_MAP 查表）
+        """
         key_stats = []
         
-        # 从 constant_stats 提取有数值的 stat
+        # 收集已有的 stat 名称（用于去重）
+        existing_stats: Set[str] = set()
+        
+        # === 数据源 1: constant_stats（固定数值型） ===
         constant_stats = support.get('constant_stats', [])
         if isinstance(constant_stats, list):
             for item in constant_stats:
@@ -637,18 +770,24 @@ class SupportMatcher:
                             'category': stat_cat,
                             'source': 'constant',
                         })
+                        existing_stats.add(stat_name)
         
-        # 从 stat_sets.levels 级别 1 中提取有数值的 stat
+        # 收集 constant_stats 中的 stat 名称（用于 Flag 去重）
+        constant_stat_names = set()
+        if isinstance(constant_stats, list):
+            for item in constant_stats:
+                if isinstance(item, list) and len(item) >= 1:
+                    constant_stat_names.add(str(item[0]))
+        
+        # === 数据源 2: stat_sets.levels（等级成长型） ===
         stat_sets = support.get('stat_sets', {})
         if isinstance(stat_sets, dict):
             stat_map = stat_sets.get('statMap', {})
             levels_data = stat_sets.get('levels', {})
             
             if isinstance(stat_map, dict) and isinstance(levels_data, dict):
-                # 获取 statMap 中的 stat 名称顺序
                 stat_map_keys = list(stat_map.keys())
                 
-                # 取 level 1 的 values
                 level1 = levels_data.get('1', {})
                 if isinstance(level1, dict):
                     values = level1.get('values', [])
@@ -656,9 +795,7 @@ class SupportMatcher:
                         for i, val in enumerate(values):
                             if i < len(stat_map_keys) and val and val != 0:
                                 stat_name = stat_map_keys[i]
-                                # 避免与 constant_stats 重复
-                                existing = {ks['stat'] for ks in key_stats}
-                                if stat_name not in existing:
+                                if stat_name not in existing_stats:
                                     stat_cat = 'utility'
                                     for pattern, cat, _ in _COMPILED_STAT_RULES:
                                         if pattern.search(stat_name):
@@ -671,21 +808,594 @@ class SupportMatcher:
                                         'category': stat_cat,
                                         'source': 'stat_sets_level_1',
                                     })
+                                    existing_stats.add(stat_name)
+        
+        # === 数据源 3: stats 字段中的 Flag 型 stat ===
+        stats = support.get('stats', [])
+        if isinstance(stats, list):
+            for s in stats:
+                if not isinstance(s, str):
+                    continue
+                # 跳过已在 constant_stats 或 stat_sets 中有数值的 stat
+                if s in existing_stats or s in constant_stat_names:
+                    continue
+                
+                # 查 FLAG_SEMANTIC_MAP（精确匹配 + global_ 前缀 fallback）
+                flag_info = FLAG_SEMANTIC_MAP.get(s)
+                if not flag_info and s.startswith('global_'):
+                    # fallback: 去掉 global_ 前缀再查
+                    flag_info = FLAG_SEMANTIC_MAP.get(s[len('global_'):])
+                if flag_info:
+                    key_stats.append({
+                        'stat': s,
+                        'value': None,  # Flag 型无数值
+                        'category': flag_info['category'],
+                        'source': 'flag',
+                        'flag_desc': flag_info['desc'],
+                        'polarity': flag_info['polarity'],
+                    })
+                    existing_stats.add(s)
         
         return key_stats
     
-    def _build_formula_impact(self, categories: Dict[str, Dict[str, Any]]) -> str:
-        """构建公式影响描述"""
-        if not categories:
+    def _build_formula_impact(self, categories: Dict[str, Dict[str, Any]],
+                              key_stats: Optional[List[Dict[str, Any]]] = None,
+                              display_stats: Optional[List[str]] = None) -> str:
+        """
+        构建公式影响描述（含正面/负面数值区分 + Flag 型限制 + _per_ 叠加上下文）。
+        
+        输出格式示例:
+          [damage_more] 伤害独立乘区 (MORE +40%) | [chain] 连锁次数 (+1, LESS -30%)
+          [damage_more] 伤害独立乘区 (MORE +40%) | ⚠️ 不能造成元素异常
+          [damage_more] 伤害独立乘区 (MORE +12% per elemental type, desc: "12% more Elemental Damage for each Skill used Recently of a different Elemental type")
+        """
+        if not categories and not key_stats:
             return '无直接公式影响'
+        
+        # 构建 stat→value 映射（用于在描述中注入具体数值）
+        stat_values: Dict[str, Any] = {}
+        flag_items: List[Dict[str, Any]] = []  # Flag 型条目
+        if key_stats:
+            for ks in key_stats:
+                if ks.get('source') == 'flag':
+                    flag_items.append(ks)
+                else:
+                    stat_values[ks.get('stat', '')] = ks.get('value')
+        
+        # 预处理 display_stats：为 _per_ stat 查找对应的描述文本
+        per_stat_context = self._find_per_stat_context(stat_values, display_stats)
         
         impacts = []
         for cat, info in sorted(categories.items(), key=lambda x: -x[1]['count']):
             formula_impacts = info.get('formula_impacts', set())
-            if formula_impacts:
-                impacts.append(f"[{cat}] {'; '.join(formula_impacts)}")
+            if not formula_impacts:
+                continue
+            
+            # 收集该分类下各 stat 的数值注释（去重）
+            value_notes = []
+            seen_stats = set()
+            for stat_name in info.get('stats', []):
+                if stat_name in seen_stats:
+                    continue
+                seen_stats.add(stat_name)
+                val = stat_values.get(stat_name)
+                if val is not None and val != 0:
+                    if isinstance(val, (int, float)):
+                        stat_lower_fi = stat_name.lower()
+                        if '_more_times' in stat_lower_fi or '_more_time' in stat_lower_fi:
+                            # 乘法语义：val=1 → 100% more (翻倍)
+                            pct = int(val * 100)
+                            note = f"MORE +{pct}% times"
+                            value_notes.append(note)
+                        elif 'final' in stat_name.lower():
+                            label = 'MORE' if val > 0 else 'LESS'
+                            note = f"{label} {val:+g}%"
+                            # 附加叠加上下文（如 "per elemental type, up to 36%"）
+                            ctx = per_stat_context.get(stat_name)
+                            if ctx:
+                                note += f" {ctx}"
+                            value_notes.append(note)
+                        else:
+                            note = f"{val:+g}"
+                            ctx = per_stat_context.get(stat_name)
+                            if ctx:
+                                note += f" {ctx}"
+                            value_notes.append(note)
+            
+            desc = '; '.join(formula_impacts)
+            if value_notes:
+                desc += f" ({', '.join(value_notes)})"
+            impacts.append(f"[{cat}] {desc}")
+        
+        # 附加 Flag 型限制/效果
+        for flag in flag_items:
+            polarity = flag.get('polarity', 'mechanic')
+            flag_desc = flag.get('flag_desc', flag.get('stat', ''))
+            if polarity == 'restriction':
+                impacts.append(f"⚠️ {flag_desc}")
+            elif polarity == 'benefit':
+                impacts.append(f"✅ {flag_desc}")
+            else:
+                impacts.append(f"🔧 {flag_desc}")
         
         return ' | '.join(impacts) if impacts else '无直接公式影响'
+    
+    def _find_per_stat_context(self, stat_values: Dict[str, Any],
+                                display_stats: Optional[List[str]]) -> Dict[str, str]:
+        """
+        为含 _per_ 的 stat 从 display_stats 中提取叠加上下文注释。
+        
+        策略：
+        1. 筛选 stat_values 中含 '_per_' 的 stat 名
+        2. 从 stat 名中提取关键词（去掉 support_/active_skill_ 前缀，按 _ 切分）
+        3. 在 display_stats 中找到最匹配的描述行
+        4. 从描述中提取 "for each ..." / "per ..." / "up to ..." 等叠加上下文短语
+        
+        Returns:
+            {stat_name: context_str} 例如 {"support_elemental_damage_+%_final_per_different_...": "per elemental type — \"12% more Elemental Damage for each...\""}
+        """
+        if not display_stats or not isinstance(display_stats, list):
+            return {}
+        
+        result: Dict[str, str] = {}
+        
+        for stat_name, val in stat_values.items():
+            if '_per_' not in stat_name:
+                continue
+            
+            # 从 stat 名中提取数值的绝对值（用于在 display_stats 中匹配）
+            abs_val_str = str(abs(int(val))) if isinstance(val, (int, float)) and val == int(val) else str(abs(val)) if isinstance(val, (int, float)) else None
+            
+            # 尝试在 display_stats 中找到对应描述
+            best_desc = None
+            best_score = 0
+            
+            # 从 stat 名提取关键词（去掉前缀和 _per_ 后面的部分取其之前的核心词）
+            stat_lower = stat_name.lower()
+            for prefix in ('support_', 'active_skill_'):
+                stat_lower = stat_lower.replace(prefix, '', 1) if stat_lower.startswith(prefix) else stat_lower
+            
+            # 提取 _per_ 之后的短语作为条件关键词
+            per_idx = stat_lower.find('_per_')
+            per_condition = stat_lower[per_idx + 5:] if per_idx >= 0 else ''  # e.g. "different_elemental_skill_used_recently"
+            per_words = set(per_condition.replace('_', ' ').split())  # e.g. {"different", "elemental", "skill", "used", "recently"}
+            
+            for ds in display_stats:
+                if not isinstance(ds, str):
+                    continue
+                ds_clean = ds.replace('\n', ' ').lower()
+                score = 0
+                
+                # 数值匹配
+                if abs_val_str and abs_val_str + '%' in ds_clean:
+                    score += 3
+                elif abs_val_str and abs_val_str in ds_clean:
+                    score += 1
+                
+                # "per" 或 "for each" 在描述中出现
+                if ' per ' in ds_clean or 'for each' in ds_clean or 'every ' in ds_clean:
+                    score += 2
+                
+                # per 条件关键词匹配
+                matched_words = sum(1 for w in per_words if w in ds_clean and len(w) > 2)
+                score += matched_words
+                
+                if score > best_score:
+                    best_score = score
+                    best_desc = ds.replace('\n', ' ').strip()
+            
+            # 只在足够匹配时附加（避免错误关联）
+            if best_desc and best_score >= 3:
+                # 提取叠加上下文片段
+                context = self._extract_stacking_phrase(best_desc)
+                if context:
+                    result[stat_name] = context
+        
+        return result
+    
+    def _extract_stacking_phrase(self, desc: str) -> str:
+        """
+        从 display_stats 描述中提取叠加上下文短语。
+        
+        提取模式：
+        - "for each X" → "for each X"
+        - "per X" → "per X"  
+        - "up to X%" → "up to X%"
+        - "every X seconds" → "every X seconds"
+        
+        返回压缩的上下文字符串。
+        """
+        desc_lower = desc.lower()
+        
+        fragments = []
+        
+        # 提取 "for each ..." 片段
+        for pattern_str in (r'for each\b[^,;]*', r'\bper\b[^,;]*'):
+            m = re.search(pattern_str, desc_lower)
+            if m:
+                frag = m.group(0).strip()
+                # 限制长度避免过长
+                if len(frag) > 80:
+                    frag = frag[:77] + '...'
+                fragments.append(frag)
+                break  # 取第一个匹配
+        
+        # 提取 "up to X%" 片段
+        m = re.search(r'up to [\d,.]+%?', desc_lower)
+        if m:
+            fragments.append(m.group(0).strip())
+        
+        if fragments:
+            return '(' + ', '.join(fragments) + ')'
+        
+        return ''
+    
+    def _resolve_per_cap(self, stat_name: str, per_value: float,
+                         support: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        为含 _per_ 的 stat 解析 cap（最大叠加层数/上限百分比）。
+        
+        三类 Cap 规则：
+        - Type A (伴随 cap stat): constant_stats 中存在 max_XXX/maximum_XXX stat
+          → max = per_value × cap_stat_value
+        - Type B (display "up to N%"): display_stats 包含 "up to N%"
+          → max = N%
+        - Type C (无 cap): 使用 PER_STAT_MAX_HEURISTIC 查找表
+          → max = per_value × heuristic_max_stacks
+        
+        Returns:
+            {
+                'cap_type': 'A'|'B'|'C',
+                'per_value': float,         # 每层值
+                'max_stacks': int|None,     # 最大层数（Type A/C）
+                'max_value': float,         # 最大百分比值
+                'cap_source': str,          # cap 数据来源说明
+            }
+        """
+        abs_per = abs(per_value)
+        
+        # === Type B (优先): display_stats 中的 "up to N%" ===
+        # display_stats 是 GGG 官方描述，语义权威性最高，优先于 stat 名推断
+        display_stats = support.get('display_stats', [])
+        if isinstance(display_stats, list):
+            for ds in display_stats:
+                if not isinstance(ds, str):
+                    continue
+                ds_lower = ds.replace('\n', ' ').lower()
+                
+                # 确保这条 display_stat 与当前 _per_ stat 相关
+                # 用数值匹配 + per/each 关键词
+                abs_val_str = str(int(abs_per)) if abs_per == int(abs_per) else str(abs_per)
+                if abs_val_str not in ds_lower:
+                    continue
+                if not (' per ' in ds_lower or 'for each' in ds_lower or 'every ' in ds_lower):
+                    continue
+                
+                # 提取 "up to N%" 
+                m = re.search(r'up to (\d+(?:\.\d+)?)(%)?', ds_lower)
+                if m:
+                    cap_num = float(m.group(1))
+                    has_percent = m.group(2) is not None
+                    
+                    if has_percent:
+                        # "up to 45%" → max = 45%
+                        max_value = cap_num
+                        max_stacks = int(max_value / abs_per) if abs_per > 0 else None
+                    else:
+                        # "up to 40" (无%) → 同样是百分比上限
+                        # 因为 display 上下文是 "X% more ... up to N"，
+                        # N 是 X% 累计的百分比上限（POB 中对应 limitTotal=true）
+                        # 例: Arakaali's "8% more ... up to 40" → max 40% MORE
+                        max_value = cap_num
+                        max_stacks = int(max_value / abs_per) if abs_per > 0 else None
+                    
+                    return {
+                        'cap_type': 'B',
+                        'per_value': per_value,
+                        'max_stacks': max_stacks,
+                        'max_value': max_value,
+                        'cap_source': f'display: "up to {m.group(0)}"',
+                    }
+        
+        # === Type A: 伴随 cap stat (仅在 display 无 "up to" 时生效) ===
+        constant_stats = support.get('constant_stats', [])
+        if isinstance(constant_stats, list):
+            # 提取 _per_ 前面的 stat 前缀来匹配伴随 cap
+            # 例如 support_cadence_attack_speed_+%_per_use_recently → 找 maximum_stacks
+            stat_lower = stat_name.lower()
+            per_idx = stat_lower.find('_per_')
+            if per_idx >= 0:
+                per_condition = stat_lower[per_idx + 5:]  # e.g. "poison_stack"
+                
+                for item in constant_stats:
+                    if not isinstance(item, list) or len(item) < 2:
+                        continue
+                    cs_name = str(item[0]).lower()
+                    cs_val = item[1]
+                    
+                    if not isinstance(cs_val, (int, float)) or cs_val <= 0:
+                        continue
+                    
+                    # 匹配模式：max_XXX / maximum_XXX / XXX_cap 
+                    # 条件关键词必须在 cap stat 名中出现
+                    is_cap_stat = False
+                    
+                    # max_poison_stacks, maximum_number_of_combo_stacks, etc.
+                    if ('max' in cs_name or 'maximum' in cs_name) and cs_name != stat_lower:
+                        # 检查条件关键词重叠
+                        per_words = set(per_condition.replace('_', ' ').split())
+                        cap_words = set(cs_name.replace('_', ' ').split())
+                        overlap = per_words & cap_words - {'per', 'final', 'support', 'stack', 'stacks'}
+                        if overlap or per_condition in cs_name or any(w in cs_name for w in per_words if len(w) > 3):
+                            is_cap_stat = True
+                    
+                    # XXX_cap pattern (e.g. support_channelling_damage_cap)
+                    if cs_name.endswith('_cap') and cs_name != stat_lower:
+                        is_cap_stat = True
+                    
+                    if is_cap_stat:
+                        # Type A 走到这里，说明 display_stats 中没有 "up to" 信息
+                        # 此时 cap stat 值一律视为层数上限（stack count）
+                        # 例: Cadence maximum_stacks=6 → 6 stacks × 8% = 48%
+                        #     Culmination maximum_number_of_combo_stacks=10 → 10 × 3% = 30%
+                        max_stacks = int(cs_val)
+                        max_value = abs_per * max_stacks
+                        
+                        return {
+                            'cap_type': 'A',
+                            'per_value': per_value,
+                            'max_stacks': max_stacks,
+                            'max_value': max_value,
+                            'cap_source': f'伴随stat {item[0]}={cs_val} (层数)',
+                        }
+        
+        # === Type C: 无 cap，使用启发式估值 ===
+        stat_lower = stat_name.lower()
+        per_idx = stat_lower.find('_per_')
+        per_condition = stat_lower[per_idx + 5:] if per_idx >= 0 else ''
+        
+        best_max = None
+        for key, max_stacks in PER_STAT_MAX_HEURISTIC.items():
+            if key in per_condition:
+                best_max = max_stacks
+                break
+        
+        if best_max is None:
+            # 通用 fallback: per_condition 中取最后一部分词
+            best_max = 5  # 保守默认
+        
+        max_value = abs_per * best_max
+        return {
+            'cap_type': 'C',
+            'per_value': per_value,
+            'max_stacks': best_max,
+            'max_value': max_value,
+            'cap_source': f'启发式估值 (max {best_max} stacks)',
+        }
+    
+    def _compute_multipliers(self, key_stats: List[Dict[str, Any]],
+                             support: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        为辅助宝石计算分维度期望倍率（预计算阶段）。
+        
+        5 个维度：
+        1. damage: _final damage stats → MORE/LESS 乘积
+        2. speed: _final speed stats → MORE/LESS 乘积
+        3. coverage_add: chain/projectile 的增减量（动态 coverage 在 kb_query 中算）
+        4. crit_notes: 暴击相关标注（不计入倍率）
+        5. notes: 其他注释（damage_added, conversion, AoE 等）
+        
+        _per_ stat 的处理：
+        - min = 1层时的 MORE/LESS
+        - max = 满 cap 时的 MORE/LESS
+        
+        Returns:
+            {
+                'damage': {'min': float, 'max': float, 'details': [...]},
+                'speed': {'min': float, 'max': float, 'details': [...]},
+                'coverage_add': {'chains': int, 'projectiles': int},
+                'crit_notes': [...],
+                'notes': [...],
+            }
+            或 None（如果没有可量化的倍率 stat）
+        """
+        if not key_stats:
+            return None
+        
+        damage_mores_min: List[float] = []  # 1层 MORE 值列表
+        damage_mores_max: List[float] = []  # 满cap MORE 值列表
+        damage_details: List[Dict[str, Any]] = []
+        
+        speed_mores_min: List[float] = []
+        speed_mores_max: List[float] = []
+        speed_details: List[Dict[str, Any]] = []
+        
+        coverage_chains = 0
+        coverage_chains_more = 0.0  # 乘法连锁 (如 chains_hit_X_more_times = 1 → 100% more)
+        coverage_projectiles = 0
+        
+        crit_notes: List[str] = []
+        notes: List[str] = []
+        
+        for ks in key_stats:
+            stat = ks.get('stat', '')
+            val = ks.get('value')
+            cat = ks.get('category', 'utility')
+            source = ks.get('source', '')
+            
+            # Flag 型 stat 不参与倍率计算
+            if source == 'flag':
+                polarity = ks.get('polarity', 'mechanic')
+                flag_desc = ks.get('flag_desc', stat)
+                if cat == 'crit':
+                    crit_notes.append(flag_desc)
+                elif polarity == 'restriction':
+                    notes.append(f"⚠️ {flag_desc}")
+                elif polarity == 'benefit':
+                    notes.append(f"✅ {flag_desc}")
+                continue
+            
+            if val is None or val == 0:
+                continue
+            
+            if not isinstance(val, (int, float)):
+                continue
+            
+            stat_lower = stat.lower()
+            is_final = 'final' in stat_lower
+            is_per = '_per_' in stat_lower
+            
+            # === damage _final (MORE/LESS) ===
+            if is_final and cat in ('damage_more', 'dot'):
+                if is_per:
+                    cap_info = self._resolve_per_cap(stat, val, support)
+                    # min = 1 层, max = 满 cap
+                    min_val = val
+                    max_val = cap_info['max_value'] if val > 0 else -cap_info['max_value']
+                    
+                    damage_mores_min.append(min_val)
+                    damage_mores_max.append(max_val)
+                    damage_details.append({
+                        'stat': stat,
+                        'per_value': val,
+                        'cap': cap_info,
+                        'type': 'per_stack',
+                    })
+                else:
+                    damage_mores_min.append(val)
+                    damage_mores_max.append(val)
+                    damage_details.append({
+                        'stat': stat,
+                        'value': val,
+                        'type': 'fixed',
+                    })
+            
+            # === speed _final (MORE/LESS) ===
+            elif is_final and cat == 'speed':
+                if is_per:
+                    cap_info = self._resolve_per_cap(stat, val, support)
+                    min_val = val
+                    max_val = cap_info['max_value'] if val > 0 else -cap_info['max_value']
+                    
+                    speed_mores_min.append(min_val)
+                    speed_mores_max.append(max_val)
+                    speed_details.append({
+                        'stat': stat,
+                        'per_value': val,
+                        'cap': cap_info,
+                        'type': 'per_stack',
+                    })
+                else:
+                    speed_mores_min.append(val)
+                    speed_mores_max.append(val)
+                    speed_details.append({
+                        'stat': stat,
+                        'value': val,
+                        'type': 'fixed',
+                    })
+            
+            # === chain (coverage) ===
+            elif cat == 'chain' and 'number_of_chains' in stat_lower:
+                coverage_chains += int(val)
+            elif cat == 'chain' and ('_more_times' in stat_lower or '_more_time' in stat_lower):
+                # 乘法连锁: chains_hit_X_more_times = N → N × 100% more chains
+                # 例: chains_hit_X_more_times = 1 → 100% more chain times (翻倍)
+                coverage_chains_more += float(val)
+            elif cat == 'chain' and is_final:
+                # chain damage penalty (e.g. -30% per chain)
+                # 这个是 damage penalty，算在 damage
+                damage_mores_min.append(val)
+                damage_mores_max.append(val)
+                damage_details.append({
+                    'stat': stat,
+                    'value': val,
+                    'type': 'fixed',
+                })
+            
+            # === projectile (coverage) ===
+            elif cat == 'projectile' and ('number_of' in stat_lower or 'additional' in stat_lower):
+                coverage_projectiles += int(val)
+            
+            # === crit (标注不估) ===
+            elif cat == 'crit':
+                if is_final:
+                    label = 'MORE' if val > 0 else 'LESS'
+                    crit_notes.append(f"{label} {val:+g}% crit")
+                else:
+                    crit_notes.append(f"{val:+g} crit")
+            
+            # === damage_added, conversion, aoe 等 → notes ===
+            elif cat == 'damage_added':
+                notes.append(f"附加伤害 {val:+g}")
+            elif cat == 'conversion':
+                notes.append(f"伤害转换 {val:+g}%")
+            elif cat == 'aoe':
+                if is_final:
+                    notes.append(f"AoE {'MORE' if val > 0 else 'LESS'} {val:+g}%")
+                else:
+                    notes.append(f"AoE {val:+g}%")
+            elif cat == 'speed' and not is_final:
+                # INC speed → 标注不乘
+                notes.append(f"INC 速度 {val:+g}%")
+        
+        # 计算乘积倍率
+        def multiply_mores(mores: List[float]) -> float:
+            """计算 MORE 乘积: Π(1 + value/100)"""
+            result = 1.0
+            for m in mores:
+                result *= (1.0 + m / 100.0)
+            return round(result, 4)
+        
+        damage_min = multiply_mores(damage_mores_min)
+        damage_max = multiply_mores(damage_mores_max)
+        speed_min = multiply_mores(speed_mores_min)
+        speed_max = multiply_mores(speed_mores_max)
+        
+        # 如果所有维度都是 1.0（无变化），且无 coverage/crit/notes → 返回 None
+        has_effect = (
+            damage_min != 1.0 or damage_max != 1.0 or
+            speed_min != 1.0 or speed_max != 1.0 or
+            coverage_chains != 0 or coverage_chains_more != 0 or
+            coverage_projectiles != 0 or
+            crit_notes or notes
+        )
+        
+        if not has_effect:
+            return None
+        
+        result: Dict[str, Any] = {}
+        
+        if damage_min != 1.0 or damage_max != 1.0 or damage_details:
+            result['damage'] = {
+                'min': damage_min,
+                'max': damage_max,
+                'details': damage_details,
+            }
+        
+        if speed_min != 1.0 or speed_max != 1.0 or speed_details:
+            result['speed'] = {
+                'min': speed_min,
+                'max': speed_max,
+                'details': speed_details,
+            }
+        
+        if coverage_chains != 0 or coverage_chains_more != 0 or coverage_projectiles != 0:
+            cov: Dict[str, Any] = {
+                'chains': coverage_chains,
+                'projectiles': coverage_projectiles,
+            }
+            if coverage_chains_more != 0:
+                # chains_more: 乘法系数 (1 = 100% more → ×2.0)
+                cov['chains_more'] = coverage_chains_more
+            result['coverage_add'] = cov
+        
+        if crit_notes:
+            result['crit_notes'] = crit_notes
+        
+        if notes:
+            result['notes'] = notes
+        
+        return result
     
     def _extract_level_scaling(self, support: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -737,6 +1447,155 @@ class SupportMatcher:
                 scaling[f"level_{level_str}"] = level_data
         
         return scaling if scaling else None
+    
+    # ============================================================
+    # 5.6: 通用 stat qualifier 提取 + 语义限制
+    # ============================================================
+    @staticmethod
+    def _extract_stat_qualifiers(stat_name: str) -> Dict[str, Set[str]]:
+        """
+        从 _final stat 名称中提取三维度 qualifier。
+        
+        通过分词后匹配已知词典，自动识别 stat 的伤害类型/攻击模式/伤害范畴限定。
+        
+        Args:
+            stat_name: stat 名称（如 'physical_damage_+%_final'、'spell_hit_damage_+%_final'）
+        
+        Returns:
+            {
+                'damage_types': {'physical'},
+                'attack_modes': {'spell'},
+                'damage_scopes': {'hit'},
+            }
+        """
+        lower = stat_name.lower()
+        # 去除常见前缀和后缀，提取有意义的单词
+        for prefix in ('support_', 'active_skill_', 'base_'):
+            if lower.startswith(prefix):
+                lower = lower[len(prefix):]
+        
+        # 分词（按 _ 拆分）
+        tokens = set(lower.replace('+%', '').replace('%', '').split('_'))
+        # 也检查组合词（如 damage_over_time 作为整体）
+        combined = lower.replace('+%', '').replace('%', '')
+        
+        result: Dict[str, Set[str]] = {
+            'damage_types': set(),
+            'attack_modes': set(),
+            'damage_scopes': set(),
+        }
+        
+        for word in DAMAGE_TYPE_WORDS:
+            if word in tokens or word in combined:
+                result['damage_types'].add(word)
+        
+        for word in ATTACK_MODE_WORDS:
+            if word in tokens or word in combined:
+                result['attack_modes'].add(word)
+        
+        for word in DAMAGE_SCOPE_WORDS:
+            if word in tokens:
+                result['damage_scopes'].add(word)
+            elif word.replace('_', '') in combined.replace('_', ''):
+                # 处理 'damage_over_time' 的组合匹配
+                result['damage_scopes'].add(word)
+        
+        return result
+    
+    def _extract_restrictions(self, support: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        从辅助宝石的所有 stat 中提取语义限制信息。
+        
+        扫描两类 stat：
+        1. _final stat → requires（辅助增益的适用维度）
+        2. Flag stat (deal_no_*, cannot_*) → blocks（辅助带来的伤害阻断）
+        
+        Returns:
+            {
+                'requires': {
+                    'damage_types': ['physical'],
+                    'attack_modes': ['melee'],
+                    'damage_scopes': ['hit'],
+                },
+                'blocks': {
+                    'damage_types': ['elemental', 'fire', 'cold', 'lightning'],
+                    'ailments': ['ignite', 'burning'],
+                },
+            }
+            或 None（如果没有任何限制信息）
+        """
+        requires_damage_types: Set[str] = set()
+        requires_attack_modes: Set[str] = set()
+        requires_damage_scopes: Set[str] = set()
+        blocks_damage_types: Set[str] = set()
+        blocks_ailments: Set[str] = set()
+        
+        # === 扫描所有 stat 名称 ===
+        all_stat_names = self._collect_support_stats(support)
+        
+        for stat_name in all_stat_names:
+            lower = stat_name.lower()
+            
+            # 1. _final stat → 提取 requires 维度
+            if 'final' in lower:
+                qualifiers = self._extract_stat_qualifiers(stat_name)
+                requires_damage_types |= qualifiers['damage_types']
+                requires_attack_modes |= qualifiers['attack_modes']
+                requires_damage_scopes |= qualifiers['damage_scopes']
+        
+        # === 扫描 Flag stat → blocks ===
+        stats = support.get('stats', [])
+        if isinstance(stats, list):
+            for s in stats:
+                if not isinstance(s, str):
+                    continue
+                s_lower = s.lower()
+                # 去掉 global_ 前缀统一匹配
+                s_normalized = s_lower
+                if s_normalized.startswith('global_'):
+                    s_normalized = s_normalized[7:]
+                
+                for flag_key, blocked_set in BLOCK_FLAG_MAP.items():
+                    flag_normalized = flag_key.lower()
+                    if flag_normalized.startswith('global_'):
+                        flag_normalized = flag_normalized[7:]
+                    
+                    if s_normalized == flag_normalized or s_lower == flag_key:
+                        # 区分被阻断的是伤害类型还是异常状态
+                        for b in blocked_set:
+                            if b in DAMAGE_TYPE_WORDS:
+                                blocks_damage_types.add(b)
+                            else:
+                                blocks_ailments.add(b)
+        
+        # 构建结果
+        has_requires = requires_damage_types or requires_attack_modes or requires_damage_scopes
+        has_blocks = blocks_damage_types or blocks_ailments
+        
+        if not has_requires and not has_blocks:
+            return None
+        
+        result: Dict[str, Any] = {}
+        
+        if has_requires:
+            req: Dict[str, List[str]] = {}
+            if requires_damage_types:
+                req['damage_types'] = sorted(requires_damage_types)
+            if requires_attack_modes:
+                req['attack_modes'] = sorted(requires_attack_modes)
+            if requires_damage_scopes:
+                req['damage_scopes'] = sorted(requires_damage_scopes)
+            result['requires'] = req
+        
+        if has_blocks:
+            blk: Dict[str, List[str]] = {}
+            if blocks_damage_types:
+                blk['damage_types'] = sorted(blocks_damage_types)
+            if blocks_ailments:
+                blk['ailments'] = sorted(blocks_ailments)
+            result['blocks'] = blk
+        
+        return result
     
     # ============================================================
     # 5.4: 潜力推荐
@@ -837,6 +1696,8 @@ class SupportMatcher:
                 key_stats TEXT,
                 formula_impact TEXT,
                 level_scaling TEXT,
+                multipliers TEXT,
+                restrictions TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -884,8 +1745,8 @@ class SupportMatcher:
             cursor.execute('''
                 INSERT OR REPLACE INTO support_effects
                 (support_id, support_name, effect_category, quantifiable, 
-                 key_stats, formula_impact, level_scaling)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 key_stats, formula_impact, level_scaling, multipliers, restrictions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 support_id,
                 eff.get('support_name', support_id),
@@ -894,6 +1755,8 @@ class SupportMatcher:
                 json.dumps(eff['key_stats'], ensure_ascii=False) if eff['key_stats'] else None,
                 eff.get('formula_impact'),
                 json.dumps(eff['level_scaling'], ensure_ascii=False) if eff['level_scaling'] else None,
+                json.dumps(eff['multipliers'], ensure_ascii=False) if eff.get('multipliers') else None,
+                json.dumps(eff['restrictions'], ensure_ascii=False) if eff.get('restrictions') else None,
             ))
             effects_count += 1
         

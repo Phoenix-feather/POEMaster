@@ -313,17 +313,29 @@ class StatDescriberBridge:
             return None, None
     
     def _build_lua_stats(self, stats: Dict[str, Union[int, float, Dict[str, float]]]) -> Any:
-        """将 Python stats 字典转换为 Lua table"""
+        """将 Python stats 字典转换为 Lua table
+        
+        注意：Lua string.format("%d") 不接受浮点数，
+        因此所有整数浮点值（如 5.0）必须转为 int。
+        """
         lua_table = {}
         for stat_name, value in stats.items():
             if isinstance(value, dict):
                 # 范围值: {min: N, max: N}
+                min_v = value.get('min', 0)
+                max_v = value.get('max', 0)
+                if isinstance(min_v, float) and min_v == int(min_v):
+                    min_v = int(min_v)
+                if isinstance(max_v, float) and max_v == int(max_v):
+                    max_v = int(max_v)
                 lua_table[stat_name] = self.lua.table_from({
-                    'min': value.get('min', 0),
-                    'max': value.get('max', 0)
+                    'min': min_v,
+                    'max': max_v
                 })
             else:
-                # 简单数值
+                # 简单数值：float → int 如果是整数值
+                if isinstance(value, float) and value == int(value):
+                    value = int(value)
                 lua_table[stat_name] = value
         
         return self.lua.table_from(lua_table)
@@ -437,7 +449,11 @@ class StatDescriberBridge:
                     stats[cs[0]] = cs[1]
         
         # 从 stats 提取（通常是动态stat，取等级1的值作为代表）
+        # POB 紧凑格式：stats 是列名列表，stat_sets.levels[N].values 是对应行值
+        # 需要将两者拼装成 {stat_name: value} 字典
         entity_stats = entity.get('stats', [])
+        stat_names_list = []  # 记录纯字符串列名，用于与 levels 拼装
+        
         if isinstance(entity_stats, list):
             for s in entity_stats:
                 if isinstance(s, dict):
@@ -447,18 +463,41 @@ class StatDescriberBridge:
                         value = s.get('baseValue') or s.get('value') or s.get('v', 0)
                         stats[stat_name] = value
                 elif isinstance(s, str):
-                    # 某些格式只是 stat 名称列表，用 1 作为默认值
-                    stats[s] = 1
+                    stat_names_list.append(s)
         
-        # 从 levels 提取（取等级1的stats）
+        # 用 stat_sets.levels 的数值拼装纯字符串 stat 名
+        # POB 格式: stat_sets.levels["1"].values = [val_0, val_1, val_2, ...]
+        #           stats = ["stat_0", "stat_1", "stat_2", ...]
+        #           → {"stat_0": val_0, "stat_1": val_1, ...}
+        if stat_names_list:
+            stat_sets = entity.get('stat_sets', {})
+            ss_levels = stat_sets.get('levels', {}) if isinstance(stat_sets, dict) else {}
+            # 取等级 1 的值作为基础展示
+            level_1 = ss_levels.get('1') or ss_levels.get(1, {})
+            if isinstance(level_1, dict):
+                values = level_1.get('values', [])
+                if isinstance(values, list):
+                    for i, stat_name in enumerate(stat_names_list):
+                        if stat_name not in stats and i < len(values):
+                            v = values[i]
+                            # JSON 反序列化的整数可能是 float (如 5.0)
+                            # Lua string.format("%d") 不接受浮点数，需要转 int
+                            if isinstance(v, float) and v == int(v):
+                                v = int(v)
+                            stats[stat_name] = v
+            
+            # 如果 stat_sets.levels 里没有数据，才用默认值 1
+            # （天赋节点等实体的 stats 可能没有 levels 数值）
+            for stat_name in stat_names_list:
+                if stat_name not in stats:
+                    stats[stat_name] = 1
+        
+        # 从 entity 顶层 levels 提取（fallback，处理非 stat_sets 格式的 levels）
         levels = entity.get('levels', {})
         if isinstance(levels, dict):
-            # levels 格式: {level_num: {stats: [val1, val2, ...]}}
             level_1 = levels.get(1) or levels.get('1') or levels.get(0) or levels.get('0')
             if isinstance(level_1, dict):
                 level_stats = level_1.get('stats', [])
-                # level_stats 是一个数值数组，需要配合 stats 定义来关联
-                # 这里只处理显式的 stat 名→值映射
                 if isinstance(level_stats, dict):
                     stats.update(level_stats)
         

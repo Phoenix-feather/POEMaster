@@ -15,6 +15,7 @@ v3 新增：
 
 import sqlite3
 import json
+import re
 import argparse
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -412,7 +413,8 @@ class KnowledgeBaseQuery:
     # ========== 辅助查询 (6.3) ==========
 
     def query_supports(self, skill_id: str, mode: str = 'all',
-                       limit: int = 50) -> Dict[str, Any]:
+                       limit: int = 50, summary: bool = False,
+                       detail_id: str = None) -> Dict[str, Any]:
         """
         查询技能的辅助宝石匹配
         
@@ -423,6 +425,8 @@ class KnowledgeBaseQuery:
                 - 'dps': 按可量化增益分类（quantifiable=1 的辅助）
                 - 'utility': 工具型辅助（quantifiable=0 的辅助）
                 - 'potential': 潜力推荐
+            summary: (仅 dps 模式) True 时返回紧凑摘要，每辅助一行
+            detail_id: (仅 dps 模式) 指定辅助ID时返回该辅助的完整详情
         
         Returns:
             查询结果字典
@@ -442,6 +446,7 @@ class KnowledgeBaseQuery:
         result = {
             'skill_id': skill_id,
             'mode': mode,
+            'max_support_gems': 5,  # POE2 硬编码上限：每技能最多5个辅助宝石
             'response_type': f'support_{mode}',
         }
         
@@ -473,7 +478,8 @@ class KnowledgeBaseQuery:
             # 可量化增益辅助，按 effect_category 分组
             cursor.execute('''
                 SELECT c.support_id, e.support_name, e.effect_category,
-                       e.key_stats, e.formula_impact, e.level_scaling
+                       e.key_stats, e.formula_impact, e.level_scaling,
+                       e.multipliers
                 FROM support_compatibility c
                 JOIN support_effects e ON c.support_id = e.support_id
                 WHERE c.skill_id = ? AND c.compatible = 1 AND e.quantifiable = 1
@@ -488,12 +494,97 @@ class KnowledgeBaseQuery:
                     'name': r[1],
                     'formula_impact': r[4],
                 }
-                # 解析 key_stats
+                
+                # 解析 multipliers JSON（预计算倍率数据）
+                if r[6]:
+                    try:
+                        entry['multipliers'] = json.loads(r[6])
+                    except (json.JSONDecodeError, TypeError):
+                        entry['multipliers'] = None
+                else:
+                    entry['multipliers'] = None
+                # 解析 key_stats 并拆分正/负效果（支持 Flag 型）
                 if r[3]:
                     try:
-                        entry['key_stats'] = json.loads(r[3])
+                        raw_stats = json.loads(r[3])
                     except (json.JSONDecodeError, TypeError):
-                        entry['key_stats'] = r[3]
+                        raw_stats = []
+                    
+                    entry['key_stats'] = raw_stats
+                    positive = []
+                    negative = []
+                    has_flag_restriction = False
+                    has_conditional_category = False
+                    
+                    for ks in raw_stats:
+                        val = ks.get('value')
+                        stat = ks.get('stat', '')
+                        source = ks.get('source', '')
+                        
+                        # Flag 型 stat（无数值，从 FLAG_SEMANTIC_MAP 来）
+                        if source == 'flag':
+                            polarity = ks.get('polarity', 'mechanic')
+                            flag_desc = ks.get('flag_desc', stat.replace('_', ' '))
+                            item = {
+                                'stat': stat,
+                                'value': None,
+                                'desc': flag_desc,
+                                'is_flag': True,
+                            }
+                            if polarity == 'restriction':
+                                negative.append(item)
+                                has_flag_restriction = True
+                            elif polarity == 'benefit':
+                                positive.append(item)
+                            # mechanic 类型不计入正/负
+                            continue
+                        
+                        # 数值型 stat
+                        if val is None:
+                            continue
+                        
+                        desc = self._format_stat_effect(stat, val)
+                        item = {'stat': stat, 'value': val, 'desc': desc}
+                        
+                        if isinstance(val, (int, float)) and val < 0:
+                            negative.append(item)
+                        elif isinstance(val, (int, float)) and val != 0:
+                            positive.append(item)
+                            # 检查是否属于条件型分类
+                            lower_stat = stat.lower()
+                            if any(kw in lower_stat for kw in ('chain', 'projectile', 'fork', 'number_of')):
+                                has_conditional_category = True
+                    
+                    entry['positive_effects'] = positive
+                    entry['negative_effects'] = negative
+                    
+                    # 问题3: 判断 DPS 计算类型
+                    has_numeric_pos = any(not p.get('is_flag') for p in positive)
+                    has_numeric_neg = any(not n.get('is_flag') for n in negative)
+                    
+                    if has_flag_restriction:
+                        # 有 Flag 限制 → 条件型（取决于 build 是否受限）
+                        entry['dps_type'] = 'conditional'
+                        entry['dps_note'] = '收益取决于build是否受Flag限制影响'
+                    elif has_conditional_category:
+                        # 有多目标类 stat（chain/projectile/fork）→ 条件型
+                        entry['dps_type'] = 'conditional'
+                        entry['dps_note'] = '多目标收益取决于实际命中数'
+                    elif has_numeric_pos and has_numeric_neg:
+                        # 有数值正面和数值负面 → 直接可量化
+                        entry['dps_type'] = 'direct'
+                    elif has_numeric_pos and not has_numeric_neg:
+                        # 只有正面无负面 → 直接可量化（纯增益）
+                        entry['dps_type'] = 'direct'
+                        entry['dps_note'] = '纯增益，无代价'
+                    else:
+                        entry['dps_type'] = 'utility'
+                else:
+                    entry['key_stats'] = []
+                    entry['positive_effects'] = []
+                    entry['negative_effects'] = []
+                    entry['dps_type'] = 'utility'
+                
                 # 解析 level_scaling
                 if r[5]:
                     try:
@@ -505,6 +596,120 @@ class KnowledgeBaseQuery:
             
             result['by_category'] = by_category
             result['total'] = sum(len(v) for v in by_category.values())
+            
+            # Direction A: --detail <id> 展开单辅助完整详情
+            if detail_id:
+                found_entry = None
+                found_cat = None
+                for cat, entries in by_category.items():
+                    for entry in entries:
+                        if entry['support_id'] == detail_id:
+                            found_entry = entry
+                            found_cat = cat
+                            break
+                    if found_entry:
+                        break
+                if found_entry:
+                    result['by_category'] = {found_cat: [found_entry]}
+                    result['total'] = 1
+                    result['detail_for'] = detail_id
+                else:
+                    result['by_category'] = {}
+                    result['total'] = 0
+                    result['detail_for'] = detail_id
+                    result['error'] = f'辅助 {detail_id} 不在 dps 兼容列表中'
+            
+            # Direction A: --summary 紧凑摘要模式
+            # 每辅助压缩为一行描述，去掉 key_stats 原始数据
+            elif summary:
+                # 获取技能的基础覆盖数据（用于动态计算 coverage 倍率）
+                base_cov = self._get_skill_base_coverage(skill_id)
+                # 获取技能的三维度 profile（用于语义有效性检查）
+                skill_profile = self._get_skill_profile(skill_id)
+                
+                # 读取所有辅助的 restrictions（批量查询）
+                support_ids_in_result = []
+                for cat_entries in by_category.values():
+                    for e in cat_entries:
+                        support_ids_in_result.append(e['support_id'])
+                
+                restrictions_map: Dict[str, Any] = {}
+                if support_ids_in_result:
+                    placeholders = ','.join(['?'] * len(support_ids_in_result))
+                    cursor.execute(
+                        f'SELECT support_id, restrictions FROM support_effects WHERE support_id IN ({placeholders})',
+                        support_ids_in_result
+                    )
+                    for r in cursor.fetchall():
+                        if r[1]:
+                            try:
+                                restrictions_map[r[0]] = json.loads(r[1])
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                
+                compact_cats: Dict[str, List] = {}
+                for cat, entries in by_category.items():
+                    compact_list = []
+                    for entry in entries:
+                        sid = entry['support_id']
+                        
+                        # 语义有效性检查
+                        restrictions = restrictions_map.get(sid)
+                        effectiveness = self._check_effectiveness(restrictions, skill_profile)
+                        eff_rating = effectiveness['rating']
+                        
+                        # 跳过 fatal（致命不匹配）
+                        if eff_rating == 'fatal':
+                            continue
+                        
+                        compact = {
+                            'id': sid,
+                            'name': entry['name'],
+                            'dps_type': entry.get('dps_type', 'utility'),
+                        }
+                        
+                        # 标注语义有效性（非 effective 时才显示）
+                        if eff_rating != 'effective':
+                            compact['effectiveness'] = eff_rating
+                            compact['effectiveness_reason'] = effectiveness.get('reason', '')
+                        
+                        # 正面效果 → 一行描述
+                        pos = entry.get('positive_effects', [])
+                        if pos:
+                            compact['pos'] = [
+                                p.get('desc', p.get('flag_desc', p.get('stat', '')))
+                                for p in pos
+                            ]
+                        # 负面效果 → 一行描述
+                        neg = entry.get('negative_effects', [])
+                        if neg:
+                            compact['neg'] = [
+                                n.get('desc', n.get('flag_desc', n.get('stat', '')))
+                                for n in neg
+                            ]
+                        # dps_note 保留
+                        if entry.get('dps_note'):
+                            compact['note'] = entry['dps_note']
+                        # formula_impact 保留但截断
+                        if entry.get('formula_impact'):
+                            fi = entry['formula_impact']
+                            compact['impact'] = fi[:120] + '…' if len(fi) > 120 else fi
+                        
+                        # 📊 期望效率倍率（ineffective 时标注为 N/A）
+                        if eff_rating == 'ineffective':
+                            compact['efficiency'] = 'N/A (增益不适用)'
+                        elif entry.get('multipliers'):
+                            eff = self._compute_efficiency(entry['multipliers'], base_cov)
+                            compact['efficiency'] = self._format_efficiency_line(eff)
+                        
+                        compact_list.append(compact)
+                    compact_cats[cat] = compact_list
+                result['by_category'] = compact_cats
+                result['summary_mode'] = True
+                result['base_coverage'] = base_cov
+                result['skill_profile'] = {
+                    k: sorted(v) for k, v in skill_profile.items() if v
+                }
         
         elif mode == 'utility':
             # 工具型辅助（不可量化）
@@ -554,6 +759,403 @@ class KnowledgeBaseQuery:
             result['total'] = len(potentials)
         
         conn.close()
+        return result
+
+    def _get_skill_base_coverage(self, skill_id: str) -> Dict[str, int]:
+        """
+        获取技能的基础覆盖数据（连锁次数、投射物数量）。
+        从 entities.db 的 constant_stats 和 display_stats 中提取。
+        
+        Returns:
+            {'base_chains': int, 'base_projectiles': int}
+        """
+        result = {'base_chains': 0, 'base_projectiles': 1}  # 默认 0 连锁、1 投射物
+        
+        conn = sqlite3.connect(self.entities_db)
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT constant_stats, display_stats FROM entities WHERE id = ?',
+            (skill_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return result
+        
+        # 从 constant_stats 提取
+        if row[0]:
+            try:
+                cs = json.loads(row[0])
+                for item in cs:
+                    if isinstance(item, list) and len(item) >= 2:
+                        sn = str(item[0]).lower()
+                        sv = item[1]
+                        if isinstance(sv, (int, float)):
+                            if 'number_of_chains' in sn:
+                                result['base_chains'] = int(sv)
+                            elif 'number_of_additional_projectiles' in sn or 'projectile_count' in sn:
+                                result['base_projectiles'] += int(sv)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        # 从 display_stats 中补充（如 "Chains 5 times"）
+        if row[1]:
+            try:
+                ds = json.loads(row[1])
+                for d in ds:
+                    if isinstance(d, str):
+                        d_lower = d.lower().replace('\n', ' ')
+                        m = re.search(r'chains?\s+(\d+)\s+times?', d_lower)
+                        if m:
+                            result['base_chains'] = max(result['base_chains'], int(m.group(1)))
+                        m = re.search(r'fires?\s+(\d+)\s+(?:additional\s+)?projectiles?', d_lower)
+                        if m:
+                            result['base_projectiles'] = max(result['base_projectiles'], int(m.group(1)))
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        return result
+    
+    def _compute_efficiency(self, multipliers: Dict[str, Any],
+                            base_coverage: Dict[str, int]) -> Dict[str, Any]:
+        """
+        计算单个辅助的总效率倍率。
+        
+        总效率 = 单体DPS × 目标数量
+        单体DPS = damage × speed
+        目标数量 = chain_ratio × projectile_ratio
+        
+        Args:
+            multipliers: 预计算的 multipliers JSON
+            base_coverage: {'base_chains': int, 'base_projectiles': int}
+        
+        Returns:
+            {
+                'single_min': float,  # 单体 DPS 最小倍率
+                'single_max': float,  # 单体 DPS 最大倍率
+                'target_ratio': float,  # 目标数量倍率
+                'total_min': float,   # 总效率最小
+                'total_max': float,   # 总效率最大
+                'breakdown': str,     # 人类可读分解
+            }
+        """
+        dmg = multipliers.get('damage', {})
+        spd = multipliers.get('speed', {})
+        cov = multipliers.get('coverage_add', {})
+        
+        dmg_min = dmg.get('min', 1.0)
+        dmg_max = dmg.get('max', 1.0)
+        spd_min = spd.get('min', 1.0)
+        spd_max = spd.get('max', 1.0)
+        
+        single_min = round(dmg_min * spd_min, 4)
+        single_max = round(dmg_max * spd_max, 4)
+        
+        # 目标数量倍率
+        target_ratio = 1.0
+        added_chains = cov.get('chains', 0)
+        chains_more = cov.get('chains_more', 0)  # 乘法系数 (1 = 100% more → ×2.0)
+        added_proj = cov.get('projectiles', 0)
+        
+        bc = base_coverage['base_chains']
+        bp = base_coverage['base_projectiles']
+        
+        # 连锁计算：总连锁 = (1 + base + added) × (1 + chains_more)
+        total_chains_before = 1 + bc + added_chains
+        more_multiplier = 1.0 + chains_more  # chains_more=1 → ×2.0
+        total_chains_after = total_chains_before * more_multiplier
+        base_chains_total = 1 + bc
+        
+        if total_chains_after != base_chains_total:
+            target_ratio *= total_chains_after / base_chains_total
+        
+        if added_proj != 0 and bp > 0:
+            # proj_ratio = (base + added) / base
+            target_ratio *= (bp + added_proj) / bp
+        
+        target_ratio = round(target_ratio, 4)
+        
+        total_min = round(single_min * target_ratio, 4)
+        total_max = round(single_max * target_ratio, 4)
+        
+        # 构建 breakdown 文本
+        parts = []
+        if dmg_min != 1.0 or dmg_max != 1.0:
+            if dmg_min == dmg_max:
+                parts.append(f"伤害 x{dmg_min:.2f}")
+            else:
+                parts.append(f"伤害 x{dmg_min:.2f} ~ x{dmg_max:.2f}")
+        if spd_min != 1.0 or spd_max != 1.0:
+            if spd_min == spd_max:
+                parts.append(f"速度 x{spd_min:.2f}")
+            else:
+                parts.append(f"速度 x{spd_min:.2f} ~ x{spd_max:.2f}")
+        if target_ratio != 1.0:
+            target_detail = []
+            if added_chains != 0 or chains_more != 0:
+                final_chains = int(total_chains_after)
+                if chains_more != 0 and added_chains == 0:
+                    target_detail.append(
+                        f"连锁 {base_chains_total}→{final_chains} (MORE +{int(chains_more*100)}%)"
+                    )
+                elif chains_more != 0 and added_chains != 0:
+                    target_detail.append(
+                        f"连锁 {base_chains_total}→{final_chains} (+{added_chains}, MORE +{int(chains_more*100)}%)"
+                    )
+                else:
+                    target_detail.append(f"连锁 {base_chains_total}→{1+bc+added_chains}")
+            if added_proj != 0:
+                target_detail.append(f"投射物 {bp}→{bp+added_proj}")
+            parts.append(f"目标 x{target_ratio:.2f} ({', '.join(target_detail)})")
+        
+        breakdown = ' | '.join(parts) if parts else '无倍率变化'
+        
+        return {
+            'single_min': single_min,
+            'single_max': single_max,
+            'target_ratio': target_ratio,
+            'total_min': total_min,
+            'total_max': total_max,
+            'breakdown': breakdown,
+        }
+    
+    def _format_efficiency_line(self, eff: Dict[str, Any]) -> str:
+        """格式化效率倍率为一行文本
+        
+        方案 A：单维度简化 + 范围加空格
+        - 单维度: x1.04 ~ x1.20 (伤害)
+        - 多维度: x1.15 (伤害 x1.35 | 速度 x0.85)
+        - 固定值单维度: x1.25 (伤害)
+        - 固定值多维度: x1.25 (伤害 x1.25 | 速度 x1.00)  -- 实际不会出现
+        - 无变化: x1.00 (无倍率变化)
+        """
+        total_min = eff['total_min']
+        total_max = eff['total_max']
+        breakdown = eff['breakdown']
+        
+        # 判断是否为单维度：breakdown 中只有一个维度标签，没有 |
+        is_single_dim = '|' not in breakdown and breakdown != '无倍率变化'
+        
+        if is_single_dim:
+            # 提取维度标签（如 "伤害"、"速度"、"目标"）
+            dim_label = breakdown.split(' ')[0] if breakdown else ''
+            if total_min == total_max:
+                return f"x{total_min:.2f} ({dim_label})"
+            else:
+                return f"x{total_min:.2f} ~ x{total_max:.2f} ({dim_label})"
+        else:
+            # 多维度或无变化：保留完整 breakdown
+            if total_min == total_max:
+                return f"x{total_min:.2f} ({breakdown})"
+            else:
+                return f"x{total_min:.2f} ~ x{total_max:.2f} ({breakdown})"
+
+    def _format_stat_effect(self, stat_name: str, value) -> str:
+        """
+        将 stat 名称 + 数值转换为人类可读的效果描述。
+        
+        示例：
+            ("support_chain_hit_damage_+%_final", -30) → "30% LESS hit damage"
+            ("number_of_chains", 1)                    → "+1 chains"
+            ("support_multiple_damage_+%_final", -35)  → "35% LESS damage"
+            ("cast_speed_+%_final", 15)                → "15% MORE cast speed"
+        """
+        lower = stat_name.lower()
+        
+        # MORE/LESS 乘数（_final 后缀）
+        if 'final' in lower:
+            abs_val = abs(value) if isinstance(value, (int, float)) else value
+            label = 'MORE' if isinstance(value, (int, float)) and value > 0 else 'LESS'
+            # 从 stat 名称中提取被影响的属性
+            subject = lower
+            for prefix in ('support_', 'active_skill_'):
+                subject = subject.replace(prefix, '')
+            subject = subject.replace('_+%_final', '').replace('_final', '')
+            subject = subject.replace('_', ' ').strip()
+            return f"{abs_val}% {label} {subject}"
+        
+        # 百分比增减（_+% 后缀）
+        if '+%' in lower and 'final' not in lower:
+            sign = '+' if isinstance(value, (int, float)) and value > 0 else ''
+            subject = lower.replace('_+%', '').replace('_', ' ').strip()
+            return f"{sign}{value}% {subject}"
+        
+        # 数量型（number_of_xxx / additional_xxx）
+        if 'number_of' in lower or 'additional' in lower:
+            subject = lower
+            for prefix in ('number_of_', 'additional_'):
+                subject = subject.replace(prefix, '')
+            subject = subject.replace('_', ' ').strip()
+            sign = '+' if isinstance(value, (int, float)) and value > 0 else ''
+            return f"{sign}{value} {subject}"
+        
+        # 通用格式
+        readable = stat_name.replace('_', ' ')
+        return f"{readable}: {value}"
+    
+    # ========== 语义有效性检查 (6.3.1) ==========
+    
+    # 技能标签 → 三维度映射表
+    _TAG_TO_DAMAGE_TYPE = {
+        'Fire': 'fire', 'Cold': 'cold', 'Lightning': 'lightning',
+        'Chaos': 'chaos', 'Physical': 'physical',
+    }
+    _TAG_TO_ATTACK_MODE = {
+        'Spell': 'spell', 'Attack': 'attack', 'Melee': 'melee',
+        'Projectile': 'projectile', 'Area': 'area', 'RangedAttack': 'ranged',
+    }
+    _TAG_TO_DAMAGE_SCOPE = {
+        'Hit': 'hit', 'DamageOverTime': 'dot', 'Ailment': 'ailment',
+    }
+    
+    def _get_skill_profile(self, skill_id: str) -> Dict[str, set]:
+        """
+        从技能的 skill_types 标签中提取三维度 profile。
+        
+        Returns:
+            {
+                'damage_types': {'lightning', 'elemental'},
+                'attack_modes': {'spell'},
+                'damage_scopes': {'hit'},
+            }
+        """
+        profile: Dict[str, set] = {
+            'damage_types': set(),
+            'attack_modes': set(),
+            'damage_scopes': set(),
+        }
+        
+        conn = sqlite3.connect(self.entities_db)
+        cursor = conn.cursor()
+        cursor.execute('SELECT skill_types FROM entities WHERE id = ?', (skill_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row or not row[0]:
+            return profile
+        
+        try:
+            skill_types = json.loads(row[0])
+        except (json.JSONDecodeError, TypeError):
+            return profile
+        
+        if not isinstance(skill_types, list):
+            return profile
+        
+        for tag in skill_types:
+            if tag in self._TAG_TO_DAMAGE_TYPE:
+                profile['damage_types'].add(self._TAG_TO_DAMAGE_TYPE[tag])
+            if tag in self._TAG_TO_ATTACK_MODE:
+                profile['attack_modes'].add(self._TAG_TO_ATTACK_MODE[tag])
+            if tag in self._TAG_TO_DAMAGE_SCOPE:
+                profile['damage_scopes'].add(self._TAG_TO_DAMAGE_SCOPE[tag])
+        
+        # 派生：如果有具体元素类型但没有 'elemental'，自动添加
+        elem_types = {'fire', 'cold', 'lightning'}
+        if profile['damage_types'] & elem_types:
+            profile['damage_types'].add('elemental')
+        
+        # 派生：有 Damage 标签但无 DamageOverTime → 推断为 hit
+        tag_set = set(skill_types)
+        if 'Damage' in tag_set and 'DamageOverTime' not in tag_set:
+            profile['damage_scopes'].add('hit')
+        
+        # 派生：有 DamageOverTime → 添加 dot
+        if 'DamageOverTime' in tag_set:
+            profile['damage_scopes'].add('dot')
+        
+        return profile
+    
+    def _check_effectiveness(self, restrictions: Dict[str, Any],
+                             skill_profile: Dict[str, set]) -> Dict[str, Any]:
+        """
+        检查辅助的语义限制与技能 profile 的匹配度。
+        
+        四级评分：
+        - 'effective': 所有限定维度匹配，或无限制
+        - 'partial': 部分维度匹配
+        - 'ineffective': 核心增益维度不匹配（辅助的增益不适用于技能）
+        - 'fatal': 阻断维度命中技能的核心伤害类型
+        
+        Returns:
+            {
+                'rating': 'effective'|'partial'|'ineffective'|'fatal',
+                'reason': str,
+                'blocked_types': [...],  # fatal 时
+                'unmatched_requires': {...},  # ineffective 时
+            }
+        """
+        if not restrictions:
+            return {'rating': 'effective', 'reason': '无语义限制'}
+        
+        blocks = restrictions.get('blocks', {})
+        requires = restrictions.get('requires', {})
+        
+        result: Dict[str, Any] = {'rating': 'effective', 'reason': ''}
+        
+        # 1. 检查 blocks（致命检查优先）
+        if blocks:
+            blocked_dt = set(blocks.get('damage_types', []))
+            blocked_ail = set(blocks.get('ailments', []))
+            
+            skill_dt = skill_profile.get('damage_types', set())
+            
+            # 致命：辅助阻断的伤害类型覆盖了技能的全部伤害类型
+            if blocked_dt and skill_dt:
+                # 检查 skill 是否完全依赖被阻断的类型
+                # 例如：deal_no_elemental → blocks {fire,cold,lightning,elemental}
+                #       技能 profile = {lightning, elemental}
+                #       → skill_dt 是 blocked_dt 的子集 → fatal
+                remaining_dt = skill_dt - blocked_dt
+                # 'elemental' 是派生的，如果具体类型全被 block，elemental 也无效
+                if remaining_dt == {'elemental'} and not (skill_dt & {'physical', 'chaos'} - blocked_dt):
+                    remaining_dt = set()
+                
+                if not remaining_dt:
+                    blocked_list = sorted(blocked_dt & skill_dt)
+                    return {
+                        'rating': 'fatal',
+                        'reason': f'辅助阻断了技能的全部伤害类型: {blocked_list}',
+                        'blocked_types': blocked_list,
+                    }
+        
+        # 2. 检查 requires（有效性检查）
+        if requires:
+            unmatched: Dict[str, Any] = {}
+            match_count = 0
+            total_dims = 0
+            
+            for dim_key in ('damage_types', 'attack_modes', 'damage_scopes'):
+                req_set = set(requires.get(dim_key, []))
+                if not req_set:
+                    continue
+                total_dims += 1
+                
+                skill_set = skill_profile.get(dim_key, set())
+                
+                if req_set & skill_set:
+                    match_count += 1
+                else:
+                    unmatched[dim_key] = {
+                        'required': sorted(req_set),
+                        'skill_has': sorted(skill_set),
+                    }
+            
+            if total_dims > 0 and match_count == 0:
+                return {
+                    'rating': 'ineffective',
+                    'reason': f'辅助增益不适用于技能 (0/{total_dims} 维度匹配)',
+                    'unmatched_requires': unmatched,
+                }
+            elif unmatched:
+                return {
+                    'rating': 'partial',
+                    'reason': f'部分增益适用 ({match_count}/{total_dims} 维度匹配)',
+                    'unmatched_requires': unmatched,
+                }
+        
+        result['reason'] = '所有维度匹配'
         return result
 
     # ========== 对比查询 (6.4) ==========
@@ -994,6 +1596,10 @@ def main():
                                 choices=['all', 'dps', 'utility', 'potential'],
                                 default='all', help='查询模式')
     support_parser.add_argument('--limit', '-l', type=int, default=50, help='结果数量限制')
+    support_parser.add_argument('--summary', action='store_true',
+                                help='(dps模式) 紧凑摘要输出，每辅助一行')
+    support_parser.add_argument('--detail', dest='detail_id', default=None,
+                                help='(dps模式) 展开指定辅助ID的完整详情')
     
     # 对比查询 (6.4)
     compare_parser = subparsers.add_parser('compare', help='对比两个实体')
@@ -1073,7 +1679,11 @@ def main():
             print("Please specify --all, --search, or a mechanism ID")
     
     elif args.command == 'supports':
-        result = kb.query_supports(args.skill_id, mode=args.mode, limit=args.limit)
+        result = kb.query_supports(
+            args.skill_id, mode=args.mode, limit=args.limit,
+            summary=getattr(args, 'summary', False),
+            detail_id=getattr(args, 'detail_id', None),
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     
     elif args.command == 'compare':

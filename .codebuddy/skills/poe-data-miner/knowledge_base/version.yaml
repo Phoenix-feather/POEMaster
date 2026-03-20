@@ -3,7 +3,7 @@
 
 metadata:
   knowledge_base_version: "3.0.0"
-  last_initialized: "2026-03-19T18:30:00"
+  last_initialized: "2026-03-19T18:33:48.637528"
 
 pob_version:
   game_version: "unknown"
@@ -12,12 +12,6 @@ pob_version:
   
   detection:
     method: "init_script"
-    detected_at: "2026-03-19T18:30:00"
+    detected_at: "2026-03-19T18:33:48.637528"
 
-version_history:
-  - version: "3.0.0"
-    date: "2026-03-19"
-    changes: "系统升级: 数据分析汇总服务 (解读层+机制增强+辅助匹配+查询输出层+skill.md重写)"
-  - version: "2.0.0"
-    date: "2026-03-18"
-    changes: "重大重构: 从游戏逻辑探索转为数据问答服务"
+version_history: []

@@ -416,8 +416,8 @@ class POBDataScanner:
             const_start = const_match.end() - 1
             const_table = self.extract_lua_table(set_content, const_start)
             if const_table:
-                # 提取 { "name", value } 格式
-                pattern = r'\{\s*"([^"]+)"\s*,\s*([\d.]+)\s*\}'
+                # 提取 { "name", value } 格式（支持负数值，如 -30）
+                pattern = r'\{\s*"([^"]+)"\s*,\s*(-?[\d.]+)\s*\}'
                 matches = re.findall(pattern, const_table)
                 for name, value in matches:
                     result['constant_stats'].append([name, float(value) if '.' in value else int(value)])

@@ -956,18 +956,46 @@ class EntityEnricher:
         constant_stats = entity.get('constant_stats', [])
         skill_name = entity.get('name', '')
         
+        # 构建有实际值的 stat 集合（用于过滤 statMap 中的条件映射）
+        # statMap 的 key 只代表"POB 知道如何计算这个 stat"，不代表该技能拥有它
+        # 只有在 constant_stats / stats+levels 中有实际值时才是已确认的机制
+        valued_stats = set()
+        
+        # 来源1: constant_stats 中的 stat
+        for cs_item in constant_stats:
+            if isinstance(cs_item, (list, tuple)) and len(cs_item) >= 2:
+                valued_stats.add(cs_item[0])
+        
+        # 来源2: stats (列名) + stat_sets.levels (行值) — POB 紧凑格式
+        entity_stats = entity.get('stats', [])
+        level_values = {}  # {stat_name: value} 从 levels 解析，用于传给 _stat_to_mechanic
+        if isinstance(entity_stats, list):
+            stat_names_list = [s for s in entity_stats if isinstance(s, str)]
+            ss_levels = stat_sets.get('levels', {}) if isinstance(stat_sets, dict) else {}
+            level_1 = ss_levels.get('1') or ss_levels.get(1, {})
+            if isinstance(level_1, dict):
+                values = level_1.get('values', [])
+                if isinstance(values, list):
+                    for i, sn in enumerate(stat_names_list):
+                        if i < len(values) and values[i] is not None:
+                            valued_stats.add(sn)
+                            level_values[sn] = values[i]
+        
         mechanics = []
         seen_stats = set()
         
-        # 1. 从 statMap 提取（这些是技能专属的覆盖映射——最有价值的机制信息）
+        # 1. 从 statMap 提取（仅保留有实际值的条目——条件映射被过滤）
         for stat_name in stat_map:
             if stat_name.startswith('quality_display_'):
                 continue  # 品质显示用的标记，不是真正的机制
             if stat_name in seen_stats:
                 continue
+            # Direction C: 只有 stat 有实际值时才视为已确认的机制
+            if stat_name not in valued_stats:
+                continue  # 条件映射（无当前值），跳过
             seen_stats.add(stat_name)
             
-            mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats)
+            mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats, level_values)
             if mechanic:
                 mechanics.append(mechanic)
         
@@ -993,7 +1021,7 @@ class EntityEnricher:
                 seen_stats.add(stat_name)
             elif self._is_skill_specific_stat(stat_name, skill_name):
                 # 技能专属前缀的 constant_stat
-                mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats)
+                mechanic = self._stat_to_mechanic(stat_name, skill_name, constant_stats, level_values)
                 if mechanic:
                     mechanics.append(mechanic)
                     seen_stats.add(stat_name)
@@ -1001,20 +1029,29 @@ class EntityEnricher:
         return mechanics if mechanics else None
     
     def _stat_to_mechanic(self, stat_name: str, skill_name: str, 
-                          constant_stats: list) -> Optional[Dict[str, str]]:
+                          constant_stats: list,
+                          level_values: dict = None) -> Optional[Dict[str, str]]:
         """
         将单个 stat 转换为结构化机制描述
+        
+        Args:
+            stat_name: stat 名称
+            skill_name: 技能名称（用于可读名提取）
+            constant_stats: constant_stats 列表（首选值来源）
+            level_values: {stat_name: value} 从 levels 解析的值（fallback 来源）
         
         Returns:
             {name, stat, formula, effect} 或 None
         """
-        # 查找该 stat 在 constant_stats 中的值
+        # 查找该 stat 的值：优先 constant_stats，fallback level_values
         value = None
         for cs_item in constant_stats:
             if isinstance(cs_item, (list, tuple)) and len(cs_item) >= 2:
                 if cs_item[0] == stat_name:
                     value = cs_item[1]
                     break
+        if value is None and level_values:
+            value = level_values.get(stat_name)
         
         # 从 stat 名称提取可读的机制名
         readable_name = self._stat_name_to_readable(stat_name, skill_name)
