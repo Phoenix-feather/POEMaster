@@ -1,0 +1,7 @@
+# 忽略所有临时缓存文件
+_cache_*
+_tmp_*
+_test_*
+
+# 保留 .gitignore 自身
+!.gitignore

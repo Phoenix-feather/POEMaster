@@ -758,6 +758,109 @@ class KnowledgeBaseQuery:
             result['potentials'] = potentials
             result['total'] = len(potentials)
         
+        elif mode == 'recommend':
+            # 组合查询模式：一次调用返回 skill_info + dps(summary) + utility + potential
+            # 复用现有逻辑，关闭当前连接后分别调用
+            conn.close()
+            
+            # 获取技能基础信息（区块 0 所需）
+            skill_info = {}
+            try:
+                ent_conn = sqlite3.connect(self.entities_db)
+                ent_cursor = ent_conn.cursor()
+                ent_cursor.execute(
+                    'SELECT name, description, skill_types FROM entities WHERE id = ?',
+                    (skill_id,)
+                )
+                row = ent_cursor.fetchone()
+                ent_conn.close()
+                if row:
+                    skill_info['name'] = row[0] or ''
+                    skill_info['description'] = row[1] or ''
+                    if row[2]:
+                        try:
+                            skill_info['skill_types'] = json.loads(row[2])
+                        except (json.JSONDecodeError, TypeError):
+                            skill_info['skill_types'] = []
+            except Exception:
+                pass
+            result['skill_info'] = skill_info
+            
+            dps_result = self.query_supports(skill_id, mode='dps', summary=True, limit=limit)
+            utility_result = self.query_supports(skill_id, mode='utility', limit=limit)
+            potential_result = self.query_supports(skill_id, mode='potential')
+            
+            # 精简 DPS 数据：只保留展示所需字段
+            slim_dps_cats = {}
+            for cat, entries in dps_result.get('by_category', {}).items():
+                slim_list = []
+                for e in entries:
+                    slim = {
+                        'id': e.get('id', e.get('support_id', '')),
+                        'name': e.get('name', ''),
+                        'dps_type': e.get('dps_type', 'utility'),
+                    }
+                    if e.get('pos'):
+                        slim['pos'] = e['pos']
+                    if e.get('neg'):
+                        slim['neg'] = e['neg']
+                    if e.get('impact'):
+                        slim['impact'] = e['impact']
+                    if e.get('efficiency'):
+                        slim['efficiency'] = e['efficiency']
+                    if e.get('note'):
+                        slim['note'] = e['note']
+                    if e.get('effectiveness') and e['effectiveness'] != 'effective':
+                        slim['effectiveness'] = e['effectiveness']
+                        if e.get('effectiveness_reason'):
+                            slim['eff_reason'] = e['effectiveness_reason']
+                    slim_list.append(slim)
+                if slim_list:
+                    slim_dps_cats[cat] = slim_list
+            
+            # 精简 utility 数据
+            slim_utility = []
+            for s in utility_result.get('supports', []):
+                slim = {
+                    'id': s.get('support_id', ''),
+                    'name': s.get('name', ''),
+                    'category': s.get('category', ''),
+                }
+                if s.get('formula_impact'):
+                    slim['impact'] = s['formula_impact']
+                slim_utility.append(slim)
+            
+            # 精简 potential 数据
+            slim_potential = []
+            for p in potential_result.get('potentials', []):
+                slim = {
+                    'id': p.get('support_id', ''),
+                    'name': p.get('name', ''),
+                    'synergy': p.get('synergy_type', ''),
+                    'reason': p.get('potential_reason', ''),
+                }
+                slim_potential.append(slim)
+            
+            result['dps'] = {
+                'by_category': slim_dps_cats,
+                'total': sum(len(v) for v in slim_dps_cats.values()),
+            }
+            if dps_result.get('base_coverage'):
+                result['dps']['base_coverage'] = dps_result['base_coverage']
+            if dps_result.get('skill_profile'):
+                result['dps']['skill_profile'] = dps_result['skill_profile']
+            
+            result['utility'] = {
+                'supports': slim_utility,
+                'total': len(slim_utility),
+            }
+            result['potential'] = {
+                'potentials': slim_potential,
+                'total': len(slim_potential),
+            }
+            
+            return result
+        
         conn.close()
         return result
 
@@ -1593,7 +1696,7 @@ def main():
     support_parser = subparsers.add_parser('supports', help='辅助匹配查询')
     support_parser.add_argument('skill_id', help='主动技能ID')
     support_parser.add_argument('--mode', '-m',
-                                choices=['all', 'dps', 'utility', 'potential'],
+                                choices=['all', 'dps', 'utility', 'potential', 'recommend'],
                                 default='all', help='查询模式')
     support_parser.add_argument('--limit', '-l', type=int, default=50, help='结果数量限制')
     support_parser.add_argument('--summary', action='store_true',

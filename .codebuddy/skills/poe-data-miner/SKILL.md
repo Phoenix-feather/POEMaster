@@ -131,11 +131,14 @@ python scripts/kb_query.py mechanism --all
 
 **调用策略**：
 ```bash
-# DPS 增益辅助 — 紧凑摘要模式（推荐，~30KB 输出）
-python scripts/kb_query.py supports <skill_id> --mode dps --summary
+# ★ 推荐：一次查询获取全部推荐数据（dps摘要 + utility + potential，~40KB）
+python scripts/kb_query.py supports <skill_id> --mode recommend
 
-# DPS 增益辅助 — 展开单个辅助完整详情
+# DPS 增益辅助 — 展开单个辅助完整详情（配合 recommend 使用）
 python scripts/kb_query.py supports <skill_id> --mode dps --detail <support_id>
+
+# DPS 增益辅助 — 紧凑摘要模式（单独查 DPS，~30KB）
+python scripts/kb_query.py supports <skill_id> --mode dps --summary
 
 # DPS 增益辅助 — 完整原始数据（~100KB，仅调试用）
 python scripts/kb_query.py supports <skill_id> --mode dps
@@ -150,9 +153,9 @@ python scripts/kb_query.py supports <skill_id> --mode potential
 python scripts/kb_query.py supports <skill_id> --mode all
 ```
 
-**返回 response_type**：`support_dps` / `support_utility` / `support_potential` / `support_all`
+**返回 response_type**：`support_recommend` / `support_dps` / `support_utility` / `support_potential` / `support_all`
 
-**何时使用**：用户选择辅助宝石时。典型流程：先用 `dps --summary` 模式总览所有可量化辅助（每辅助一行摘要），对感兴趣的辅助用 `dps --detail <id>` 展开完整数据，再用 potential 看潜力推荐。
+**何时使用**：用户选择辅助宝石时。**优先使用 `--mode recommend`** 一次获取所有推荐数据。如需展开某个辅助的完整详情，再用 `dps --detail <id>`。
 
 **⚠️ 输出显示规则**（回答 Type D 问题时必须遵守）：
 
@@ -1544,3 +1547,37 @@ python scripts/kb_query.py compare <id1> <id2> --detail summary
 ## 许可证
 
 本项目仅供学习和研究使用。
+
+---
+
+## 临时文件管理规范
+
+### 原则
+
+所有查询结果优先通过 **stdout 直接读取**，不创建中间文件。当以下情况出现时，允许使用临时文件辅助：
+
+- 数据需要在同一回答中被多次引用
+- stdout 输出过大需要分步处理
+- bash 引号问题导致无法直接执行内联脚本
+
+### 规则
+
+| 规则 | 说明 |
+|------|------|
+| **固定缓存路径** | 所有临时文件必须存放在 `.codebuddy/skills/poe-data-miner/cache/` 目录下 |
+| **命名规范** | `_cache_{query_type}_{skill_id}.json` 或 `_tmp_{description}.py` |
+| **禁止位置** | **禁止**在项目根目录、`knowledge_base/`、`scripts/` 或任何其他位置创建临时文件 |
+| **强制清理** | 每次回答完成后，**必须删除** `cache/` 下所有临时文件 |
+| **会话开始清理** | 新对话开始时，检查 `cache/` 下是否有残留文件，有则先清理 |
+
+### 清理方式
+
+```bash
+# 回答完成后执行
+rm -f .codebuddy/skills/poe-data-miner/cache/_cache_* .codebuddy/skills/poe-data-miner/cache/_tmp_*
+```
+
+### 不需要清理的
+
+- `cache/.gitignore` — 永久保留
+- `cache/` 目录本身 — 永久保留
