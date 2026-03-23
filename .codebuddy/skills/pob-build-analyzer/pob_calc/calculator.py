@@ -15,10 +15,13 @@ def calculate(lua, calcs, mode: str = "MAIN") -> dict[str, float]:
     Args:
         lua: LuaRuntime 实例
         calcs: POB calcs 模块
-        mode: 计算模式，"MAIN" 或 "CALCS"
+        mode: 计算模式 — "MAIN" (默认，已含穿透/敌人抗性), "CALCS", "CALCULATOR"
 
     Returns:
         {stat_name: value} 字典，仅包含数值型字段
+
+    注：initEnv 对非 "CALCS" 模式默认 buffMode=EFFECTIVE（CalcSetup.lua:579），
+    已含 mode_effective=true、mode_buffs=true、mode_combat=true。
     """
     result = lua.execute(f'''
         local build = _spike_build

@@ -162,3 +162,68 @@ class POBCalculator:
             self._lua, self._calcs, slot_name, item_raw_text,
             baseline=self.get_baseline()
         )
+
+    def sensitivity_analysis(self, profiles: list[str] = None,
+                             target_stat: str = "TotalDPS",
+                             target_pct: float = 30.0,
+                             is_spell: bool = None) -> list[dict]:
+        """等基准灵敏度分析。
+
+        固定 DPS 增幅目标（默认 +30%），通过二分搜索反算每个维度达到该目标所需的注入值。
+        所有维度在相同 DPS 增幅下比较"所需投入"，值越小 = 性价比越高 = 优化杠杆越大。
+
+        注：MAIN 模式已含穿透/敌人抗性计算。穿透 profile 若显示无法达到，
+        表示构筑配置中敌人抗性已被诅咒/曝光压至负值（穿透无法降低负抗）。
+
+        POE2 机制：法术不受固定伤害(flat damage)加成。
+        当 is_spell=True（或自动检测为法术）时，自动排除攻击专属 profile。
+
+        INC 合并说明（v1.0.6 修复）：
+        POB 的伤害 INC 在同一乘区内合并计算，例如 Lightning 伤害的 INC 乘区
+        包含 Damage + LightningDamage + ElementalDamage 三个 stat 的总和。
+        公式中的 current_total 显示的是合并后的 INC 总值，而非单个 stat。
+
+        Args:
+            profiles: 要测试的 profile key 列表，None = 全部
+                      可选 key 见 what_if.SENSITIVITY_PROFILES
+            target_stat: 排序依据的目标 stat（默认 "TotalDPS"）
+            target_pct: DPS 增幅目标百分比（默认 30.0 = +30%）
+            is_spell: 主技能是否法术。None=自动检测。
+
+        Returns:
+            按所需值升序排列（值越小 = 性价比越高）的列表，每项包含:
+            - key, label (英文), description (中文)
+            - mod_name, mod_type
+            - needed_value: 达到目标所需的注入值（None=无法达到）
+            - target_pct: 目标增幅百分比
+            - actual_pct: 实际增幅百分比
+            - current_total: 当前 modDB 合并汇总值
+            - formula: 一行简洁的增量公式
+            - sample_diff: 注入后的完整差异字典
+        """
+        return _whatif.sensitivity_analysis(
+            self._lua, self._calcs,
+            profiles=profiles,
+            target_stat=target_stat,
+            target_pct=target_pct,
+            baseline=self.get_baseline(),
+            is_spell=is_spell,
+        )
+
+    def passive_node_analysis(self, dps_stat: str = "TotalDPS",
+                              ehp_stat: str = "TotalEHP") -> list[dict]:
+        """天赋价值分析：逐个移除 Notable/Keystone 天赋，评估 DPS 和 EHP 影响。
+
+        Returns:
+            按 DPS 损失降序排列的列表，每项包含:
+            - id, name, type (Notable/Keystone)
+            - dps_before, dps_after, dps_delta, dps_pct
+            - ehp_before, ehp_after, ehp_delta, ehp_pct
+            - category: "进攻" / "防御" / "混合" / "无效"
+        """
+        return _whatif.passive_node_analysis(
+            self._lua, self._calcs,
+            baseline=self.get_baseline(),
+            dps_stat=dps_stat,
+            ehp_stat=ehp_stat,
+        )

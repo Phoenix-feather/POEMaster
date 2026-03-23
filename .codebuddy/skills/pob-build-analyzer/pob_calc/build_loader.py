@@ -10,8 +10,11 @@
   - load_config:        加载 Config 输入 + 模拟 BuildModList
   - load_all:           按正确顺序调用全部加载函数
 """
+import logging
 from .decoder import decode_tree_url
 from .compat import parse_item_spec_values, postprocess_unparsed_mods
+
+logger = logging.getLogger(__name__)
 
 
 def init_build_object(lua, build_info: dict):
@@ -19,7 +22,16 @@ def init_build_object(lua, build_info: dict):
 
     构造 skillsTab, itemsTab, spec, configTab, calcsTab, partyTab 等
     CalcSetup.initEnv 所需的全部字段。
+
+    从 build_info 读取 classId/ascendClassId，不硬编码任何职业。
+    tree.classes 的完整数据由 load_tree 从 tree.lua 填充。
     """
+    # 从 XML 解析出的 classId（POB 内部 0-based index）
+    class_id = int(build_info.get('classId', '0'))
+    ascend_class_id = int(build_info.get('ascendClassId', '0'))
+    class_name = build_info.get('className', '')
+    ascend_class_name = build_info.get('ascendClassName', '')
+
     lua.execute('''
         local build = {}
         build.data = data
@@ -67,18 +79,18 @@ def init_build_object(lua, build_info: dict):
             ValidateWeaponSlots = function(self, state) end,
         }
 
-        -- spec
+        -- spec（classId/ascendClassId 从 XML 读取，不硬编码）
         build.spec = {
             nodes = {},
             allocNodes = {},
             jewels = {},
             allocSubgraphNodes = {},
             masterySelections = {},
-            curClassId = 7,
-            curAscendClassId = 1,
+            curClassId = ''' + str(class_id) + ''',
+            curAscendClassId = ''' + str(ascend_class_id) + ''',
             curSecondaryAscendClassId = 0,
-            curClassName = "''' + build_info.get('className', 'Monk') + '''",
-            curAscendClassName = "''' + build_info.get('ascendClassName', 'Invoker') + '''",
+            curClassName = "''' + class_name.replace('"', '\\"') + '''",
+            curAscendClassName = "''' + ascend_class_name.replace('"', '\\"') + '''",
             treeVersion = "0_4",
             allocatedNotableCount = 0,
             allocatedSmithBodyArmourNodeCount = 0,
@@ -95,21 +107,6 @@ def init_build_object(lua, build_info: dict):
                 classIntegerIdMap = {},
             },
         }
-
-        -- 填充默认 class data (Monk)
-        build.spec.tree.classes[7] = {
-            base_str = 7,
-            base_dex = 11,
-            base_int = 11,
-            name = "Monk",
-            integerId = 10,
-            ascendancies = {
-                [1] = { id = "Invoker", name = "Invoker", internalId = "Monk2" },
-                [2] = { id = "Acolyte of Chayula", name = "Acolyte of Chayula", internalId = "Monk3" },
-            },
-        }
-        build.spec.tree.classes[7].classes = build.spec.tree.classes[7].ascendancies
-        build.spec.tree.classes[7].classes[0] = { name = "None" }
 
         -- skillsTab
         build.skillsTab = {
@@ -272,8 +269,9 @@ def load_skills(lua, build_info: dict) -> int:
                 table.insert(_spike_build.skillsTab.socketGroupList, group)
             ''')
             loaded += 1
-        except Exception:
-            pass
+        except Exception as e:
+            label_info = label or f"group#{i+1}"
+            logger.warning("技能组加载失败 [%s]: %s", label_info, e)
 
     return loaded
 
@@ -335,8 +333,8 @@ def load_items(lua, build_info: dict) -> int:
             ''')
             if result:
                 loaded += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("装备加载失败 [id=%s]: %s", item_id, e)
 
     # 装备槽位
     slot_names = [
@@ -471,22 +469,65 @@ def load_tree(lua, build_info: dict) -> int:
             node.mods = {{}}
             node.modList = new("ModList")
             if node.sd then
-                for i, line in ipairs(node.sd) do
-                    if line:match("\\n") then
-                        local il = i
-                        table.remove(node.sd, i)
+                -- 先处理换行符
+                local si = 1
+                while node.sd[si] do
+                    if node.sd[si]:match("\\n") then
+                        local line = node.sd[si]
+                        local il = si
+                        table.remove(node.sd, si)
                         for part in line:gmatch("[^\\n]+") do
                             table.insert(node.sd, il, part)
                             il = il + 1
                         end
-                        line = node.sd[i]
                     end
+                    si = si + 1
+                end
+
+                -- 使用 POB 桌面版 ProcessStats 相同的多行合并逻辑
+                local i = 1
+                while node.sd[i] do
+                    local line = node.sd[i]
                     local list, extra = modLib.parseMod(line)
-                    if list then
+                    if not list or extra then
+                        -- 尝试合并后续行再解析
+                        local endI = i + 1
+                        while node.sd[endI] do
+                            local comb = line
+                            for ci = i + 1, endI do
+                                comb = comb .. " " .. node.sd[ci]
+                            end
+                            list, extra = modLib.parseMod(comb, true)
+                            if list and not extra then
+                                -- 成功，为被合并的行设置空 mod
+                                for ci = i + 1, endI do
+                                    node.mods[ci] = {{ list = {{}} }}
+                                end
+                                break
+                            end
+                            endI = endI + 1
+                        end
+                    end
+                    if list and not extra then
                         node.mods[i] = {{ list = list, extra = extra }}
                         for _, mod in ipairs(list) do
                             node.modKey = node.modKey .. modLib.formatMod(mod) .. "&"
-                            node.modList:AddMod(mod)
+                        end
+                    elseif list then
+                        node.mods[i] = {{ list = list, extra = extra }}
+                    end
+                    i = i + 1
+                    while node.mods[i] do
+                        i = i + 1
+                    end
+                end
+                -- 构建最终 modList（仅无 extra 的行）
+                for mi = 1, #node.sd do
+                    local mod = node.mods[mi]
+                    if mod and mod.list and not mod.extra then
+                        for _, m in ipairs(mod.list) do
+                            m = modLib.setSource(m, "Tree:"..node.id)
+                            node.modList:AddMod(m)
                         end
                     end
                 end
@@ -548,22 +589,62 @@ def load_tree(lua, build_info: dict) -> int:
                     switchNode.mods = {{}}
                     switchNode.modList = new("ModList")
                     if switchNode.sd then
-                        for i, line in ipairs(switchNode.sd) do
-                            if line:match("\\n") then
-                                local il = i
-                                table.remove(switchNode.sd, i)
-                                for part in line:gmatch("[^\\n]+") do
+                        -- 先处理换行符
+                        local si = 1
+                        while switchNode.sd[si] do
+                            if switchNode.sd[si]:match("\\n") then
+                                local sline = switchNode.sd[si]
+                                local il = si
+                                table.remove(switchNode.sd, si)
+                                for part in sline:gmatch("[^\\n]+") do
                                     table.insert(switchNode.sd, il, part)
                                     il = il + 1
                                 end
-                                line = switchNode.sd[i]
                             end
+                            si = si + 1
+                        end
+
+                        -- 多行合并解析（同主节点逻辑）
+                        local i = 1
+                        while switchNode.sd[i] do
+                            local line = switchNode.sd[i]
                             local list, extra = modLib.parseMod(line)
-                            if list then
+                            if not list or extra then
+                                local endI = i + 1
+                                while switchNode.sd[endI] do
+                                    local comb = line
+                                    for ci = i + 1, endI do
+                                        comb = comb .. " " .. switchNode.sd[ci]
+                                    end
+                                    list, extra = modLib.parseMod(comb, true)
+                                    if list and not extra then
+                                        for ci = i + 1, endI do
+                                            switchNode.mods[ci] = {{ list = {{}} }}
+                                        end
+                                        break
+                                    end
+                                    endI = endI + 1
+                                end
+                            end
+                            if list and not extra then
                                 switchNode.mods[i] = {{ list = list, extra = extra }}
                                 for _, mod in ipairs(list) do
                                     switchNode.modKey = switchNode.modKey .. modLib.formatMod(mod) .. "&"
-                                    switchNode.modList:AddMod(mod)
+                                end
+                            elseif list then
+                                switchNode.mods[i] = {{ list = list, extra = extra }}
+                            end
+                            i = i + 1
+                            while switchNode.mods[i] do
+                                i = i + 1
+                            end
+                        end
+                        for mi = 1, #switchNode.sd do
+                            local mod = switchNode.mods[mi]
+                            if mod and mod.list and not mod.extra then
+                                for _, m in ipairs(mod.list) do
+                                    m = modLib.setSource(m, "Tree:"..switchNode.id)
+                                    switchNode.modList:AddMod(m)
                                 end
                             end
                         end
@@ -714,8 +795,8 @@ def load_config(lua, build_info: dict) -> int:
             elif inp['string'] is not None:
                 target[name] = inp['string']
                 loaded += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("配置项加载失败 [%s]: %s", name, e)
 
     # 模拟 ConfigTab:BuildModList
     lua.execute('''
@@ -782,11 +863,22 @@ def load_all(lua, build_info: dict):
     5. postprocess_unparsed_mods — mod 修复
     6. load_config — 配置（必须最后，因为 ConfigOptions 可能依赖 items/skills）
     7. 恢复 mainSocketGroup（第一次 initEnv 时被 clamp 到 1）
+
+    Returns:
+        dict: {tree_nodes, skill_groups, items, mod_fixes, config_inputs, warnings}
     """
+    warnings = []
+
     init_build_object(lua, build_info)
 
     tree_count = load_tree(lua, build_info)
+    if tree_count == 0:
+        warnings.append("天赋树加载返回 0 节点，可能缺少 treeURL 或 tree.lua")
+
     skill_count = load_skills(lua, build_info)
+    if skill_count == 0:
+        warnings.append("技能组加载返回 0 组，构筑可能没有技能数据")
+
     item_count = load_items(lua, build_info)
     mod_fixes = postprocess_unparsed_mods(lua, build_info)
     config_count = load_config(lua, build_info)
@@ -795,10 +887,15 @@ def load_all(lua, build_info: dict):
     msg = build_info['mainSocketGroup']
     lua.execute(f'_spike_build.mainSocketGroup = {msg}')
 
+    if warnings:
+        for w in warnings:
+            logger.warning(w)
+
     return {
         'tree_nodes': tree_count,
         'skill_groups': skill_count,
         'items': item_count,
         'mod_fixes': mod_fixes,
         'config_inputs': config_count,
+        'warnings': warnings,
     }

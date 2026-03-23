@@ -9,6 +9,9 @@ Lua 5.4 / LuaJIT 兼容性补丁与 mod 修复。
   - parse_item_spec_values:       从物品原始文本预解析防御/Spirit 值
 """
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def apply_lua54_patches(lua):
@@ -188,7 +191,7 @@ def postprocess_unparsed_mods(lua, build_info: dict) -> int:
             ''')
             if result and str(result).startswith('OK:'):
                 injected += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("mod 修复注入失败 [item=%s, mod=%s]: %s", item_id, mod_name, e)
 
     return injected

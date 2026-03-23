@@ -12,21 +12,59 @@ POB Lua 运行时工厂。
 import os
 import time
 import zlib
+import logging
 from pathlib import Path
 
 from lupa import LuaRuntime
 
 from .compat import apply_lua54_patches, register_item_fix_functions
 
-# 默认 POB 路径
-DEFAULT_POB_PATH = Path("G:/POEMaster/POBData")
+logger = logging.getLogger(__name__)
+
+# POB 路径探测顺序：
+#   1. 函数参数 pob_path
+#   2. 环境变量 POB_DATA_PATH
+#   3. 常见安装位置自动探测
+_POB_SEARCH_PATHS = [
+    Path("G:/POEMaster/POBData"),
+    Path("C:/ProgramData/Path of Building/Data"),
+    Path.home() / "PathOfBuilding" / "Data",
+    Path.home() / "Documents" / "Path of Building" / "Data",
+]
+
+
+def _find_pob_path() -> Path:
+    """自动探测 POBData 目录。
+
+    优先级：
+    1. 环境变量 POB_DATA_PATH
+    2. 常见安装位置
+    """
+    env_path = os.environ.get('POB_DATA_PATH')
+    if env_path:
+        p = Path(env_path)
+        if p.is_dir():
+            return p
+        logger.warning("环境变量 POB_DATA_PATH=%s 不是有效目录", env_path)
+
+    for candidate in _POB_SEARCH_PATHS:
+        if candidate.is_dir() and (candidate / "Modules" / "Calcs.lua").exists():
+            logger.info("自动探测到 POBData: %s", candidate)
+            return candidate
+
+    raise FileNotFoundError(
+        "未找到 POBData 目录。请通过以下方式之一指定：\n"
+        "  1. POBCalculator(pob_path='...')\n"
+        "  2. 设置环境变量 POB_DATA_PATH=<path>\n"
+        f"  已搜索: {[str(p) for p in _POB_SEARCH_PATHS]}"
+    )
 
 
 def create_runtime(pob_path: Path = None) -> tuple:
     """创建完整的 POB Lua 运行时。
 
     Args:
-        pob_path: POBData 目录路径，默认 G:/POEMaster/POBData
+        pob_path: POBData 目录路径。未指定时自动探测（环境变量 → 常见位置）。
 
     Returns:
         (lua, calcs, load_errors)
@@ -35,7 +73,9 @@ def create_runtime(pob_path: Path = None) -> tuple:
         - load_errors: 加载错误列表
     """
     if pob_path is None:
-        pob_path = DEFAULT_POB_PATH
+        pob_path = _find_pob_path()
+    elif not Path(pob_path).is_dir():
+        raise FileNotFoundError(f"POBData 目录不存在: {pob_path}")
     script_path = str(pob_path).replace("\\", "/")
 
     lua = LuaRuntime(unpack_returned_tuples=True)
@@ -97,8 +137,9 @@ def create_runtime(pob_path: Path = None) -> tuple:
         except Exception:
             try:
                 return zlib.decompress(raw, -zlib.MAX_WBITS)
-            except Exception:
-                return None
+            except Exception as e:
+                logger.warning("Inflate 解压失败 (%d bytes): %s", len(raw), e)
+                return b""  # 返回空 bytes 而非 None，避免下游 nil 访问崩溃
 
     g.Inflate = lua_inflate
     g.Deflate = lambda data: zlib.compress(bytes(data)) if data else None
@@ -137,6 +178,11 @@ def create_runtime(pob_path: Path = None) -> tuple:
 
     # === Lua 5.4 兼容层 + 全局变量 ===
     lua.execute(f'''
+        -- math.pow 兼容层（Lua 5.4 移除了 math.pow，POB CalcOffence 依赖它）
+        if not math.pow then
+            math.pow = function(x, y) return x ^ y end
+        end
+
         -- bit 库兼容层
         bit = {{}}
         function bit.band(a, b) return (a or 0) & (b or 0) end
