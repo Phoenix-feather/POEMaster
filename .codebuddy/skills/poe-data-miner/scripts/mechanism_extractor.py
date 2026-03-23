@@ -47,6 +47,7 @@ MECHANISM_CATEGORIES = {
     'damage_modifier',   # 伤害修饰类（忽略抗性、穿透护甲）
     'block',             # 格挡类（无法格挡、格挡转换）
     'suppress',          # 压制类（法术压制）
+    'aggregation',       # 聚合类（Sum/More/Flag/Override — Modifier引擎核心语义）
 }
 
 
@@ -532,6 +533,58 @@ KNOWN_MECHANISMS: Dict[str, Dict[str, Any]] = {
             {'file': 'CalcTriggers.lua', 'line': 1153, 'pattern': 'configTable["spellslinger"]'}
         ],
     },
+
+    # === Modifier聚合类 (aggregation) — 来自 Classes/ModStore.lua ===
+    'ModStore_Sum': {
+        'friendly_name': 'Modifier聚合: Sum (加法叠加)',
+        'category': 'aggregation',
+        'behavior_type': 'numeric',
+        'formula_abstract': 'Sum(type, cfg, ...) = Σ(mod.value) for all mods matching (name, type, flags). type=BASE时为基础值叠加, type=INC时为increased/reduced百分比叠加',
+        'affected_stats': ['*'],  # 适用于所有stat
+        'code_refs': [
+            {'file': 'Classes/ModStore.lua', 'line': 129, 'pattern': 'function ModStoreClass:Sum(modType, cfg, ...)'}
+        ],
+    },
+    'ModStore_More': {
+        'friendly_name': 'Modifier聚合: More (乘法独立)',
+        'category': 'aggregation',
+        'behavior_type': 'numeric',
+        'formula_abstract': 'More(cfg, ...) = Π(1 + mod.value/100) for all MORE-type mods. 每个more/less独立乘算, 不同来源不叠加',
+        'affected_stats': ['*'],
+        'code_refs': [
+            {'file': 'Classes/ModStore.lua', 'line': 158, 'pattern': 'function ModStoreClass:More(cfg, ...)'}
+        ],
+    },
+    'ModStore_Flag': {
+        'friendly_name': 'Modifier聚合: Flag (布尔标记)',
+        'category': 'aggregation',
+        'behavior_type': 'flag',
+        'formula_abstract': 'Flag(cfg, ...) = true if any mod with matching name exists and EvalMod passes. 用于开关型机制(如CannotBeEvaded, GhostReaver)',
+        'affected_stats': ['*'],
+        'code_refs': [
+            {'file': 'Classes/ModStore.lua', 'line': 169, 'pattern': 'function ModStoreClass:Flag(cfg, ...)'}
+        ],
+    },
+    'ModStore_Override': {
+        'friendly_name': 'Modifier聚合: Override (覆盖)',
+        'category': 'aggregation',
+        'behavior_type': 'numeric',
+        'formula_abstract': 'Override(cfg, ...) = mod.value of first matching OVERRIDE-type mod. 直接覆盖计算结果, 优先级最高',
+        'affected_stats': ['*'],
+        'code_refs': [
+            {'file': 'Classes/ModStore.lua', 'line': 180, 'pattern': 'function ModStoreClass:Override(cfg, ...)'}
+        ],
+    },
+    'ModStore_EvalMod': {
+        'friendly_name': 'Modifier求值: EvalMod (条件评估)',
+        'category': 'aggregation',
+        'behavior_type': 'numeric',
+        'formula_abstract': 'EvalMod(mod, cfg) 评估modifier的条件标签(Condition/Multiplier/PerStat/PercentStat/MultiplierThreshold/ActorCondition/SocketedIn/InSlot). 返回(pass, value)对',
+        'affected_stats': ['*'],
+        'code_refs': [
+            {'file': 'Classes/ModStore.lua', 'line': 304, 'pattern': 'function ModStoreClass:EvalMod(mod, cfg, ...)'}
+        ],
+    },
 }
 
 # 关系定义
@@ -684,6 +737,50 @@ MECHANISM_RELATIONS: List[Dict[str, str]] = [
         'direction': 'both',
         'description': '同一技能不能同时受两个触发辅助支持',
     },
+
+    # === Modifier聚合引擎内部关系 (来自 Classes/ModStore.lua) ===
+    {
+        'mechanism_a': 'ModStore_Sum',
+        'mechanism_b': 'ModStore_More',
+        'relation_type': 'stacks_with',
+        'direction': 'both',
+        'description': 'Sum(BASE)先加法叠加基础值, Sum(INC)加法叠加百分比, 然后More乘法独立叠加. 计算顺序: base × (1 + ΣInc/100) × ΠMore',
+    },
+    {
+        'mechanism_a': 'ModStore_Override',
+        'mechanism_b': 'ModStore_Sum',
+        'relation_type': 'overrides',
+        'direction': 'a_to_b',
+        'description': 'Override优先级最高, 存在Override时跳过Sum/More计算直接使用覆盖值',
+    },
+    {
+        'mechanism_a': 'ModStore_Override',
+        'mechanism_b': 'ModStore_More',
+        'relation_type': 'overrides',
+        'direction': 'a_to_b',
+        'description': 'Override优先级最高, 存在Override时跳过Sum/More计算直接使用覆盖值',
+    },
+    {
+        'mechanism_a': 'ModStore_EvalMod',
+        'mechanism_b': 'ModStore_Sum',
+        'relation_type': 'modifies',
+        'direction': 'a_to_b',
+        'description': 'EvalMod评估条件标签后决定modifier是否参与Sum/More/Flag聚合',
+    },
+    {
+        'mechanism_a': 'ModStore_EvalMod',
+        'mechanism_b': 'ModStore_More',
+        'relation_type': 'modifies',
+        'direction': 'a_to_b',
+        'description': 'EvalMod评估条件标签后决定modifier是否参与Sum/More/Flag聚合',
+    },
+    {
+        'mechanism_a': 'ModStore_EvalMod',
+        'mechanism_b': 'ModStore_Flag',
+        'relation_type': 'modifies',
+        'direction': 'a_to_b',
+        'description': 'EvalMod评估条件标签后决定modifier是否参与Sum/More/Flag聚合',
+    },
 ]
 
 
@@ -695,16 +792,22 @@ class BehaviorExtractor:
     - Flag: 扫描 modDB:Flag(nil, "FlagName") 检查点
     - Numeric: 扫描 modDB:Sum("BASE"|"INC") + modDB:More() 使用点
     - Trigger: 解析 CalcTriggers.configTable 中的触发器配置
+    - Aggregation: 扫描 Classes/ModStore.lua 中的聚合方法定义
     """
     
-    def __init__(self, pob_modules_path: Path):
+    def __init__(self, pob_modules_path: Path, pob_classes_path: Path = None):
         self.modules_path = pob_modules_path
+        self.classes_path = pob_classes_path or pob_modules_path.parent / 'Classes'
         self._file_cache: Dict[str, str] = {}
     
     def _read_file(self, filename: str) -> str:
-        """读取并缓存 Lua 文件"""
+        """读取并缓存 Lua 文件（支持 Modules/ 和 Classes/ 路径）"""
         if filename not in self._file_cache:
+            # 先尝试 Modules/ 目录
             filepath = self.modules_path / filename
+            if not filepath.exists() and self.classes_path:
+                # 再尝试 Classes/ 目录
+                filepath = self.classes_path / filename
             if filepath.exists():
                 with open(filepath, 'r', encoding='utf-8') as f:
                     self._file_cache[filename] = f.read()
@@ -824,9 +927,65 @@ class BehaviorExtractor:
         
         return f'[CalcTriggers.lua configTable["{trigger_key_lower}"]]\n' + '\n'.join(config_lines)
     
+    def extract_aggregation_behavior(self, mech_id: str) -> Optional[str]:
+        """
+        提取 Aggregation 型机制的行为描述。
+        从 Classes/ModStore.lua 提取方法定义及关键实现。
+        """
+        content = self._read_file('ModStore.lua')
+        if not content:
+            return None
+        
+        # 从 mech_id 提取方法名：ModStore_Sum → Sum, ModStore_EvalMod → EvalMod
+        method_name = mech_id.replace('ModStore_', '')
+        
+        lines = content.split('\n')
+        in_method = False
+        method_lines = []
+        depth = 0
+        
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            
+            if not in_method:
+                # 匹配 function ModStoreClass:MethodName(
+                if f'function ModStoreClass:{method_name}(' in stripped:
+                    in_method = True
+                    depth = 1
+                    method_lines = [f'  L{i+1}: {stripped}']
+                    continue
+            
+            if in_method:
+                method_lines.append(f'  L{i+1}: {stripped}')
+                
+                # 追踪 function/if/for/while...end 嵌套
+                for word in re.findall(r'\b(function|if|for|while|do|repeat|end|until)\b', stripped):
+                    if word in ('function', 'if', 'for', 'while', 'repeat'):
+                        depth += 1
+                    elif word in ('end', 'until'):
+                        depth -= 1
+                
+                if depth <= 0:
+                    break
+                
+                # 安全限制
+                if len(method_lines) > 80:
+                    method_lines.append('  ... (截断)')
+                    break
+        
+        if not method_lines:
+            return None
+        
+        return f'[Classes/ModStore.lua: {method_name}()]\n' + '\n'.join(method_lines)
+    
     def extract_behavior(self, mech_id: str, mech_info: Dict) -> Optional[str]:
         """根据行为类型提取对应的行为描述"""
         behavior_type = mech_info.get('behavior_type', 'flag')
+        category = mech_info.get('category', '')
+        
+        # aggregation 类型：从 ModStore.lua 提取
+        if category == 'aggregation' or mech_id.startswith('ModStore_'):
+            return self.extract_aggregation_behavior(mech_id)
         
         if behavior_type == 'flag':
             return self.extract_flag_behavior(mech_id)
@@ -1125,12 +1284,13 @@ class MechanismExtractor:
         print("提取机制行为描述...")
         
         modules_path = self.pob_path / 'Modules'
+        classes_path = self.pob_path / 'Classes'
         if not modules_path.exists():
             print(f"  [WARN] POB Modules 目录不存在: {modules_path}")
             print(f"         跳过行为提取")
             return
         
-        self._behavior_extractor = BehaviorExtractor(modules_path)
+        self._behavior_extractor = BehaviorExtractor(modules_path, classes_path)
         
         extracted = 0
         for mech_id in self.mechanisms:

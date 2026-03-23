@@ -391,7 +391,14 @@ class FormulaExtractor:
         return all_functions
 
     def _parse_lua_file(self, file_path: Path) -> List[LuaFunction]:
-        """解析Lua文件，提取所有函数定义"""
+        """解析Lua文件，提取所有函数定义
+        
+        支持的函数签名格式：
+        - local function name(...)
+        - function name(...)
+        - function namespace.name(...)
+        - function ClassName:method(...)  (OOP冒号语法，Classes/目录)
+        """
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
@@ -556,7 +563,9 @@ class FormulaExtractor:
         """提取公式并分析特征"""
         features = self._extract_features(func.body)
 
-        formula_id = f"{source_file.stem}_{func.name}"
+        # 冒号替换为下划线（OOP方法名如 Item:BuildModListForSlotNum → Item_BuildModListForSlotNum）
+        safe_name = func.name.replace(':', '_')
+        formula_id = f"{source_file.stem}_{safe_name}"
 
         formula = {
             'id': formula_id,
@@ -641,6 +650,18 @@ class FormulaExtractor:
         # 模式14: NewMod
         for m in re.finditer(r'(?:skillModList|modDB):NewMod\(\s*"(\w+)"', code):
             stats.add(m.group(1))
+
+        # 模式15: calcLocal (Item.lua OOP方法中的本地modifier提取)
+        for m in re.finditer(r'calcLocal\(\s*\w+\s*,\s*"(\w+)"', code):
+            stats.add(m.group(1))
+
+        # 模式16: modList:List (Item.lua中的列表查询)
+        for m in re.finditer(r'modList:List\(\s*[^,]+,\s*"(\w+)"', code):
+            stats.add(m.group(1))
+
+        # 模式17: modDB方法调用的宽泛匹配（Classes/ModStore.lua中自身定义的方法体）
+        for m in re.finditer(r'self\.list\[name\]|self\.parent\.list\[name\]', code):
+            stats.add('ModStore_list_access')
 
         filter_words = {
             'nil', 'true', 'false', 'self', 'env', 'actor', 'player', 'enemy',

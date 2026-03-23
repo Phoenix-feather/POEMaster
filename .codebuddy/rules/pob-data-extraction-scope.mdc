@@ -152,6 +152,26 @@ POBData/GameVersions.lua
 - 获取POB版本
 - 用于版本检测和知识库更新
 
+### 5. POBData/Classes/ 目录（白名单文件）
+
+**选择性扫描** — 仅包含经分析确认含游戏逻辑（非UI控件）的文件：
+
+```
+POBData/Classes/
+├── Item.lua            # ★ 物品数值计算公式（武器DPS/护甲/药剂/品质/calcLocal）
+├── ModStore.lua        # ★ Modifier聚合引擎（Sum/More/Flag/Override/EvalMod）
+├── PassiveSpec.lua     # 天赋分配逻辑（路径搜索/集群珠宝/AllocNode）
+└── PassiveTree.lua     # 天赋节点modifier解析（ProcessStats）
+```
+
+**白名单依据**：
+- `Item.lua`: 100%游戏逻辑，0% UI。包含武器DPS(1542-1601)、护甲(1602-1637)、药剂(1638-1672)公式
+- `ModStore.lua`: 计算系统基石。Sum/More/Flag/Override 4种聚合语义 + EvalMod条件评估
+- `PassiveSpec.lua`: 天赋分配算法（BFS路径搜索、集群珠宝子图构建）
+- `PassiveTree.lua`: ProcessStats 将节点文本转换为ModList
+
+**禁止扫描 Classes/ 中的其他文件**（约53个纯UI控件文件）
+
 ## 提取策略
 
 ### Phase 1: 元数据提取
@@ -227,6 +247,7 @@ entity_types = {
    - 必须扫描Data目录下的所有.lua文件
    - 必须扫描Modules目录下的所有.lua文件
    - 必须扫描最新版本的天赋树
+   - 必须扫描Classes/白名单文件（Item.lua, ModStore.lua, PassiveSpec.lua, PassiveTree.lua）
 
 2. **禁止扫描旧版本天赋树**
    - 只扫描最新版本（语义版本最大的）
@@ -236,10 +257,16 @@ entity_types = {
    - SkillStatMap.lua必须处理
    - CalcTriggers.lua必须处理
    - GameVersions.lua必须处理
+   - Classes/Item.lua必须处理（物品计算公式）
+   - Classes/ModStore.lua必须处理（聚合引擎）
 
 4. **禁止部分扫描**
    - 不能只扫描部分子目录
    - 不能跳过某个类型的文件
+
+5. **禁止扫描Classes/白名单以外的文件**
+   - Classes/目录约67个文件，仅4个含游戏逻辑
+   - 其余均为UI控件（*Control.lua, *Tab.lua等），不包含游戏知识
 
 ## 验证清单
 
@@ -249,8 +276,11 @@ entity_types = {
 - [ ] 最新天赋树版本已确定
 - [ ] Data目录所有.lua文件已扫描
 - [ ] Modules目录所有.lua文件已扫描
+- [ ] Classes/白名单文件已扫描（4个）
 - [ ] SkillStatMap.lua已处理
 - [ ] CalcTriggers.lua已处理
+- [ ] Classes/Item.lua已处理（公式提取器）
+- [ ] Classes/ModStore.lua已处理（机制提取器）
 - [ ] 天赋树仅扫描了最新版本
 - [ ] 所有实体类型都有数据
 - [ ] 版本信息已记录

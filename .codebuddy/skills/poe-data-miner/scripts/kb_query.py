@@ -1261,6 +1261,348 @@ class KnowledgeBaseQuery:
         result['reason'] = '所有维度匹配'
         return result
 
+    # ========== 升华效果查询 (6.3.2) ==========
+
+    # 维度→中文标签映射
+    _DIMENSION_LABELS = {
+        'damage': '🗡️ 伤害',
+        'speed': '⏱️ 速度',
+        'crit': '🎯 暴击',
+        'defense': '🛡️ 防御',
+        'resource': '💎 资源',
+        'utility': '🔧 工具',
+        'qualitative': '⚡ 机制',
+    }
+
+    # 维度排序优先级
+    _DIMENSION_ORDER = ['damage', 'crit', 'speed', 'defense', 'resource', 'utility', 'qualitative']
+
+    def query_ascendancy(self, ascendancy_name: str) -> Dict[str, Any]:
+        """
+        查询指定升华的全部效果，按维度分组返回结构化摘要。
+
+        Args:
+            ascendancy_name: 升华名称（如 "Stormweaver"）
+
+        Returns:
+            {
+                'ascendancy_name': str,
+                'total_nodes': int,
+                'notable_nodes': [...],
+                'small_nodes': [...],
+                'effects_by_dimension': {
+                    'damage': { 'label': '🗡️ 伤害', 'quantitative': [...], 'qualitative': [...] },
+                    ...
+                },
+                'summary': {
+                    'total_mods': int,
+                    'quantitative_count': int,
+                    'qualitative_count': int,
+                    'dimension_distribution': {...},
+                },
+                'response_type': 'ascendancy_effects',
+            }
+        """
+        conn = sqlite3.connect(self.entities_db)
+        cursor = conn.cursor()
+
+        # 模糊匹配升华名称
+        cursor.execute(
+            "SELECT DISTINCT ascendancy_name FROM entities "
+            "WHERE type='passive_node' AND ascendancy_name IS NOT NULL AND ascendancy_name != ''"
+        )
+        all_asc_names = [r[0] for r in cursor.fetchall()]
+        
+        # 精确匹配 → 大小写不敏感匹配 → 子串匹配
+        matched_name = None
+        name_lower = ascendancy_name.lower()
+        for asc in all_asc_names:
+            if asc == ascendancy_name:
+                matched_name = asc
+                break
+        if not matched_name:
+            for asc in all_asc_names:
+                if asc.lower() == name_lower:
+                    matched_name = asc
+                    break
+        if not matched_name:
+            for asc in all_asc_names:
+                if name_lower in asc.lower():
+                    matched_name = asc
+                    break
+        
+        if not matched_name:
+            conn.close()
+            return {
+                'ascendancy_name': ascendancy_name,
+                'error': f'升华 "{ascendancy_name}" 不存在',
+                'available': sorted(all_asc_names),
+                'response_type': 'ascendancy_effects',
+            }
+
+        # 查询该升华的所有节点
+        cursor.execute(
+            "SELECT id, name, is_notable, is_keystone, stats_node, parsed_mods "
+            "FROM entities "
+            "WHERE type='passive_node' AND ascendancy_name = ? "
+            "ORDER BY is_keystone DESC, is_notable DESC, name",
+            (matched_name,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        notable_nodes = []
+        small_nodes = []
+        effects_by_dim: Dict[str, Dict[str, list]] = {}
+        total_mods = 0
+        quant_count = 0
+        qual_count = 0
+        dim_dist: Dict[str, int] = {}
+
+        for row in rows:
+            node_id, node_name, is_notable, is_keystone, stats_node_raw, parsed_mods_raw = row
+
+            # 解析原始 stats
+            stats_text = []
+            if stats_node_raw:
+                try:
+                    stats_text = json.loads(stats_node_raw)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            # 解析 parsed_mods
+            mods = []
+            if parsed_mods_raw:
+                try:
+                    mods = json.loads(parsed_mods_raw)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            node_type = 'keystone' if is_keystone else ('notable' if is_notable else 'small')
+            node_info = {
+                'id': node_id,
+                'name': node_name,
+                'node_type': node_type,
+                'stats': stats_text,
+                'mod_count': len(mods),
+            }
+
+            if is_notable or is_keystone:
+                # 添加解析后的 mods 摘要
+                node_info['effects'] = []
+                for idx, mod in enumerate(mods):
+                    orig_text = stats_text[idx] if idx < len(stats_text) else ''
+                    eff = self._format_ascendancy_mod(mod, original_text=orig_text)
+                    node_info['effects'].append(eff)
+                notable_nodes.append(node_info)
+            else:
+                small_nodes.append(node_info)
+
+            # 按维度归类所有 mods
+            for i, mod in enumerate(mods):
+                total_mods += 1
+                dim = mod.get('dimension', 'utility')
+                dim_dist[dim] = dim_dist.get(dim, 0) + 1
+
+                if dim not in effects_by_dim:
+                    effects_by_dim[dim] = {'quantitative': [], 'qualitative': []}
+
+                source_node = node_name
+                is_quant = mod.get('type') in ('MORE', 'INC', 'BASE', 'PEN', 'CHANCE',
+                                                'EXTRA_DAMAGE', 'CONVERSION', 'DAMAGE_SHIFT',
+                                                'REGENPERCENT', 'REGENFLAT',
+                                                'DMGBOTH', 'DMGSPELLS', 'DMGATTACKS', 'DMG',
+                                                'OVERRIDE') and mod.get('value') is not None
+
+                if is_quant:
+                    quant_count += 1
+                    entry = {
+                        'type': mod['type'],
+                        'value': mod['value'],
+                        'name': mod.get('name', ''),
+                        'source_node': source_node,
+                        'original': stats_text[i] if i < len(stats_text) else '',
+                    }
+                    if mod.get('conditions'):
+                        entry['conditions'] = mod['conditions']
+                    effects_by_dim[dim]['quantitative'].append(entry)
+                else:
+                    qual_count += 1
+                    # 定性效果：保留原始文本
+                    original = ''
+                    if mod.get('special_data', {}).get('text'):
+                        original = mod['special_data']['text']
+                    elif mod.get('special_data', {}).get('skill_name'):
+                        original = f"Grants Skill: {mod['special_data']['skill_name']}"
+                    elif mod.get('original'):
+                        original = mod['original']
+                    elif i < len(stats_text):
+                        original = stats_text[i]
+
+                    entry = {
+                        'special': mod.get('special', 'qualitative'),
+                        'text': original,
+                        'source_node': source_node,
+                    }
+                    if mod.get('special_data') and mod['special_data'] != {'text': original}:
+                        entry['special_data'] = mod['special_data']
+                    effects_by_dim[dim]['qualitative'].append(entry)
+
+        # 构建排序后的维度结果
+        sorted_effects = {}
+        for dim in self._DIMENSION_ORDER:
+            if dim in effects_by_dim:
+                sorted_effects[dim] = {
+                    'label': self._DIMENSION_LABELS.get(dim, dim),
+                    'quantitative': effects_by_dim[dim]['quantitative'],
+                    'qualitative': effects_by_dim[dim]['qualitative'],
+                }
+
+        return {
+            'ascendancy_name': matched_name,
+            'total_nodes': len(rows),
+            'notable_nodes': notable_nodes,
+            'small_nodes': small_nodes,
+            'effects_by_dimension': sorted_effects,
+            'summary': {
+                'total_mods': total_mods,
+                'quantitative_count': quant_count,
+                'qualitative_count': qual_count,
+                'dimension_distribution': {
+                    self._DIMENSION_LABELS.get(d, d): c
+                    for d, c in sorted(dim_dist.items(),
+                                       key=lambda x: self._DIMENSION_ORDER.index(x[0])
+                                       if x[0] in self._DIMENSION_ORDER else 99)
+                },
+            },
+            'response_type': 'ascendancy_effects',
+        }
+
+    def _format_ascendancy_mod(self, mod: dict, original_text: str = '') -> dict:
+        """将单个 parsed mod 格式化为人类可读的效果描述。
+        
+        Args:
+            mod: parsed mod dict
+            original_text: 原始 stat 描述文本（从 stats_node 获取）
+        """
+        result = {
+            'dimension': mod.get('dimension', 'utility'),
+        }
+
+        mod_type = mod.get('type', '')
+        value = mod.get('value')
+        name = mod.get('name', '')
+        special = mod.get('special', '')
+
+        if special == 'grants_skill':
+            skill_name = mod.get('special_data', {}).get('skill_name', '?')
+            result['desc'] = f"赋予技能: {skill_name}"
+            result['effect_type'] = 'grants_skill'
+            return result
+
+        if special == 'contributes_to':
+            text = mod.get('special_data', {}).get('text', '')
+            result['desc'] = text
+            result['effect_type'] = 'contributes_to'
+            return result
+
+        if special == 'trigger':
+            data = mod.get('special_data', {})
+            result['desc'] = f"触发 {data.get('skill', '?')}（{data.get('condition', '?')}）"
+            result['effect_type'] = 'trigger'
+            return result
+
+        if mod_type in ('CONVERSION', 'DAMAGE_SHIFT', 'EXTRA_DAMAGE'):
+            data = mod.get('special_data', {})
+            if mod_type == 'EXTRA_DAMAGE':
+                result['desc'] = f"获得 {data.get('percent', 0)}% {data.get('source', '?')} 额外 {data.get('as', '?')}"
+            elif mod_type == 'CONVERSION':
+                result['desc'] = f"{data.get('percent', 0)}% {data.get('from', '?')} 转化为 {data.get('to', '?')}"
+            else:
+                result['desc'] = f"{data.get('percent', 0)}% {data.get('from', '?')} 视为 {data.get('to', '?')}"
+            result['effect_type'] = mod_type.lower()
+            result['value'] = value
+            return result
+
+        if value is not None and mod_type in ('MORE', 'INC', 'BASE', 'PEN', 'CHANCE'):
+            # 量化效果
+            type_label = {
+                'MORE': 'MORE' if value >= 0 else 'LESS',
+                'INC': 'increased' if value >= 0 else 'reduced',
+                'BASE': '+' if value >= 0 else '',
+                'PEN': 'penetrates',
+                'CHANCE': 'chance',
+            }.get(mod_type, mod_type)
+
+            if mod_type == 'MORE':
+                result['desc'] = f"{abs(value)}% {'more' if value >= 0 else 'less'} {name}"
+            elif mod_type == 'INC':
+                result['desc'] = f"{abs(value)}% {'increased' if value >= 0 else 'reduced'} {name}"
+            elif mod_type == 'BASE':
+                sign = '+' if value > 0 else ''
+                result['desc'] = f"{sign}{value} {name}"
+            elif mod_type == 'PEN':
+                result['desc'] = f"穿透 {abs(value)}% {name}"
+            elif mod_type == 'CHANCE':
+                result['desc'] = f"{abs(value)}% chance {name}"
+            else:
+                result['desc'] = f"{mod_type} {value} {name}"
+
+            result['effect_type'] = 'quantitative'
+            result['value'] = value
+            result['mod_type'] = mod_type
+            result['mod_name'] = name
+
+            if mod.get('conditions'):
+                conds = mod['conditions']
+                cond_text = ', '.join(f"{c['type']}: {c['text']}" for c in conds)
+                result['desc'] += f" ({cond_text})"
+                result['conditions'] = conds
+
+            return result
+
+        # 定性效果
+        if mod.get('special_data', {}).get('text'):
+            result['desc'] = mod['special_data']['text']
+        elif mod.get('original'):
+            result['desc'] = mod['original']
+        elif original_text:
+            result['desc'] = original_text
+        else:
+            result['desc'] = f"{mod_type} {name}" if name else str(mod)
+
+        result['effect_type'] = special or 'qualitative'
+        return result
+
+    def list_ascendancies(self) -> List[Dict[str, Any]]:
+        """列出所有升华及其节点统计。"""
+        conn = sqlite3.connect(self.entities_db)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT ascendancy_name,
+                   COUNT(*) as total,
+                   SUM(CASE WHEN is_notable = 1 OR is_keystone = 1 THEN 1 ELSE 0 END) as notables,
+                   SUM(CASE WHEN is_notable = 0 AND is_keystone = 0 THEN 1 ELSE 0 END) as smalls
+            FROM entities
+            WHERE type = 'passive_node'
+              AND ascendancy_name IS NOT NULL AND ascendancy_name != ''
+            GROUP BY ascendancy_name
+            ORDER BY ascendancy_name
+        """)
+
+        results = []
+        for r in cursor.fetchall():
+            results.append({
+                'name': r[0],
+                'total_nodes': r[1],
+                'notable_nodes': r[2],
+                'small_nodes': r[3],
+            })
+
+        conn.close()
+        return results
+
     # ========== 对比查询 (6.4) ==========
 
     def compare_entities(self, id1: str, id2: str,
@@ -1704,6 +2046,11 @@ def main():
     support_parser.add_argument('--detail', dest='detail_id', default=None,
                                 help='(dps模式) 展开指定辅助ID的完整详情')
     
+    # 升华查询 (6.3.2)
+    asc_parser = subparsers.add_parser('ascendancy', help='升华效果查询')
+    asc_parser.add_argument('name', nargs='?', help='升华名称（支持模糊匹配）')
+    asc_parser.add_argument('--list', '-l', action='store_true', help='列出所有升华')
+    
     # 对比查询 (6.4)
     compare_parser = subparsers.add_parser('compare', help='对比两个实体')
     compare_parser.add_argument('id1', help='第一个实体ID')
@@ -1780,6 +2127,18 @@ def main():
                 print(f"Mechanism not found: {args.id}")
         else:
             print("Please specify --all, --search, or a mechanism ID")
+    
+    elif args.command == 'ascendancy':
+        if getattr(args, 'list', False):
+            ascs = kb.list_ascendancies()
+            print(f"=== 升华列表 ({len(ascs)}) ===")
+            for a in ascs:
+                print(f"  {a['name']}: {a['total_nodes']} 节点 ({a['notable_nodes']} notable, {a['small_nodes']} small)")
+        elif args.name:
+            result = kb.query_ascendancy(args.name)
+            print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        else:
+            print("请指定升华名称或使用 --list 列出所有升华")
     
     elif args.command == 'supports':
         result = kb.query_supports(

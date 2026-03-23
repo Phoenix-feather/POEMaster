@@ -513,15 +513,17 @@ class POBDataScanner:
                     'data_type': 'minion_definition'
                 },
                 'mod_affix': {
-                    'score_threshold': 3,
+                    'score_threshold': 2,
                     'features': [
-                        r'\[\s*"[A-Z][a-zA-Z0-9_]+"\s*\]\s*=\s*\{\s*type\s*=',  # 词缀ID格式
-                        r'type\s*=\s*"(Prefix|Suffix|Corrupted)"\s*,',
+                        r'\[\s*"[A-Z][a-zA-Z0-9_]+"\s*\]\s*=\s*\{\s*type\s*=',  # 有 type 的词缀ID格式
+                        r'type\s*=\s*"(Prefix|Suffix|Corrupted|Rune)"\s*,',
                         r'affix\s*=\s*"[^"]*"',
                         r'statOrder\s*=\s*\{',
                         r'weightKey\s*=\s*\{',
                         r'modTags\s*=\s*\{',
                         r'tradeHash\s*=',
+                        r'\[\s*"[A-Z][a-zA-Z0-9_]+"\s*\]\s*=\s*\{\s*affix\s*=',  # 无 type 但有 affix（ModIncursionLimb）
+                        r'rank\s*=\s*\{',  # ModRunes 特有
                     ],
                     'data_type': 'mod_affix'
                 },
@@ -574,7 +576,7 @@ class POBDataScanner:
                     'priority': 0
                 },
                 'mod_affix': {
-                    'patterns': [r'type\s*=\s*"(Prefix|Suffix|Corrupted)"'],
+                    'patterns': [r'type\s*=\s*"(Prefix|Suffix|Corrupted|Rune)"'],
                     'data_type': 'mod_affix',
                     'priority': 0
                 }
@@ -1680,18 +1682,54 @@ class POBDataScanner:
         match = re.search(r'hidden\s*=\s*true', table_content)
         return bool(match)
     
+    def _extract_lua_subtable(self, table_content: str, field_name: str) -> Optional[str]:
+        """
+        提取 Lua 嵌套子表内容
+        
+        处理 field = { key1 = val1, key2 = val2 } 格式。
+        使用括号平衡算法支持嵌套表。
+        
+        Args:
+            table_content: 外层表内容
+            field_name: 子表字段名
+            
+        Returns:
+            子表内容字符串（含花括号），不存在返回 None
+        """
+        match = re.search(rf'{field_name}\s*=\s*\{{', table_content)
+        if not match:
+            return None
+        brace_start = match.end() - 1
+        return self.extract_lua_table(table_content, brace_start)
+    
+    def _extract_subtable_int(self, subtable: str, key: str) -> Optional[int]:
+        """从子表字符串中提取整数值"""
+        m = re.search(rf'{key}\s*=\s*(\d+)', subtable)
+        return int(m.group(1)) if m else None
+    
+    def _extract_subtable_float(self, subtable: str, key: str) -> Optional[float]:
+        """从子表字符串中提取浮点数值"""
+        m = re.search(rf'{key}\s*=\s*(-?[\d.]+)', subtable)
+        return float(m.group(1)) if m else None
+    
     def _extract_item_bases(self, content: str) -> List[Dict[str, Any]]:
         """
         提取装备基础数据
         
-        格式:
-        itemBases["Crimson Amulet"] = {
-            type = "Amulet",
-            tags = { "amulet" },
-            armour = 0,
-            evasion = 0,
-            energyShield = 0,
-            ...
+        真实 POB 格式:
+        itemBases["Iron Greatsword"] = {
+            type = "Two Handed Sword",
+            subType = "Armour",
+            quality = 20,
+            socketLimit = 3,
+            tags = { sword = true, weapon = true, default = true },
+            implicit = "+25% to Cold Resistance",
+            implicitModTypes = { { "elemental", "cold", "resistance" } },
+            req = { level = 10, str = 20, dex = 14 },
+            weapon = { PhysicalMin = 6, PhysicalMax = 9, CritChanceBase = 5, AttackRateBase = 1.55, Range = 11 },
+            armour = { Armour = 208, Evasion = 184, EnergyShield = 97, BlockChance = 26, MovementPenalty = 0.05 },
+            flask = { life = 920, duration = 5, chargesUsed = 10, chargesMax = 75 },
+            charm = { duration = 3, chargesUsed = 40, chargesMax = 40, buff = { "Immune to Freeze" } },
         }
         """
         bases = []
@@ -1709,11 +1747,10 @@ class POBDataScanner:
             if not table_content:
                 continue
             
-            # 提取属性
+            # 提取通用属性
             item_type = self._extract_field(table_content, 'type')
             tags = self._extract_array(table_content, 'tags')
             
-            # 提取基础属性
             base = {
                 'id': name,
                 'name': name,
@@ -1722,37 +1759,154 @@ class POBDataScanner:
                 'tags': tags,
             }
             
-            # 提取防御属性
-            armour_match = re.search(r'armour\s*=\s*(\d+)', table_content)
-            if armour_match:
-                base['armour'] = int(armour_match.group(1))
+            # --- 新增通用字段 ---
+            sub_type = self._extract_field(table_content, 'subType')
+            if sub_type:
+                base['sub_type'] = sub_type
             
-            evasion_match = re.search(r'evasion\s*=\s*(\d+)', table_content)
-            if evasion_match:
-                base['evasion'] = int(evasion_match.group(1))
+            quality = self._extract_int(table_content, 'quality')
+            if quality is not None:
+                base['quality'] = quality
             
-            es_match = re.search(r'energyShield\s*=\s*(\d+)', table_content)
-            if es_match:
-                base['energy_shield'] = int(es_match.group(1))
+            socket_limit = self._extract_int(table_content, 'socketLimit')
+            if socket_limit is not None:
+                base['socket_limit'] = socket_limit
             
-            # 提取武器属性
-            damage_match = re.search(r'weaponDamage\s*=\s*\{\s*(\d+)\s*,\s*(\d+)\s*\}', table_content)
-            if damage_match:
-                base['weapon_damage_min'] = int(damage_match.group(1))
-                base['weapon_damage_max'] = int(damage_match.group(2))
+            charm_limit = self._extract_int(table_content, 'charmLimit')
+            if charm_limit is not None:
+                base['charm_limit'] = charm_limit
             
-            # 提取要求
-            req_str_match = re.search(r'reqStr\s*=\s*(\d+)', table_content)
-            if req_str_match:
-                base['req_str'] = int(req_str_match.group(1))
+            # implicit 描述文本（字符串）
+            implicit_text = self._extract_field(table_content, 'implicit')
+            if implicit_text:
+                base['implicit'] = implicit_text
             
-            req_dex_match = re.search(r'reqDex\s*=\s*(\d+)', table_content)
-            if req_dex_match:
-                base['req_dex'] = int(req_dex_match.group(1))
+            # implicitModTypes 嵌套数组
+            imt_subtable = self._extract_lua_subtable(table_content, 'implicitModTypes')
+            if imt_subtable:
+                # 解析 { { "attr1", "attr2" }, { "attr3" } } → [["attr1","attr2"], ["attr3"]]
+                inner_tables = re.findall(r'\{([^{}]+)\}', imt_subtable)
+                implicit_mod_types = []
+                for inner in inner_tables:
+                    tags_in = re.findall(r'"([^"]+)"', inner)
+                    if tags_in:
+                        implicit_mod_types.append(tags_in)
+                    elif inner.strip():
+                        # 空内层表 → 空列表
+                        implicit_mod_types.append([])
+                if implicit_mod_types:
+                    base['implicit_mod_types'] = implicit_mod_types
             
-            req_int_match = re.search(r'reqInt\s*=\s*(\d+)', table_content)
-            if req_int_match:
-                base['req_int'] = int(req_int_match.group(1))
+            # --- req 子表: req = { level = 10, str = 20, dex = 14, int = 50 } ---
+            req_subtable = self._extract_lua_subtable(table_content, 'req')
+            if req_subtable:
+                req_level = self._extract_subtable_int(req_subtable, 'level')
+                if req_level is not None:
+                    base['requires_level'] = req_level
+                req_str = self._extract_subtable_int(req_subtable, 'str')
+                if req_str is not None:
+                    base['req_str'] = req_str
+                req_dex = self._extract_subtable_int(req_subtable, 'dex')
+                if req_dex is not None:
+                    base['req_dex'] = req_dex
+                req_int = self._extract_subtable_int(req_subtable, 'int')
+                if req_int is not None:
+                    base['req_int'] = req_int
+            
+            # --- weapon 子表: weapon = { PhysicalMin=6, PhysicalMax=9, CritChanceBase=5, AttackRateBase=1.55, Range=11 } ---
+            weapon_subtable = self._extract_lua_subtable(table_content, 'weapon')
+            if weapon_subtable:
+                phys_min = self._extract_subtable_int(weapon_subtable, 'PhysicalMin')
+                phys_max = self._extract_subtable_int(weapon_subtable, 'PhysicalMax')
+                if phys_min is not None:
+                    base['weapon_physical_min'] = phys_min
+                if phys_max is not None:
+                    base['weapon_physical_max'] = phys_max
+                
+                crit_base = self._extract_subtable_float(weapon_subtable, 'CritChanceBase')
+                if crit_base is not None:
+                    base['weapon_crit_chance'] = crit_base
+                
+                attack_rate = self._extract_subtable_float(weapon_subtable, 'AttackRateBase')
+                if attack_rate is not None:
+                    base['weapon_attack_rate'] = attack_rate
+                
+                weapon_range = self._extract_subtable_int(weapon_subtable, 'Range')
+                if weapon_range is not None:
+                    base['weapon_range'] = weapon_range
+                
+                # 部分武器有 ReloadTimeBase（如弩）
+                reload_time = self._extract_subtable_float(weapon_subtable, 'ReloadTimeBase')
+                if reload_time is not None:
+                    base['weapon_reload_time'] = reload_time
+            
+            # --- armour 子表: armour = { Armour=208, Evasion=184, EnergyShield=97, BlockChance=26, MovementPenalty=0.05 } ---
+            armour_subtable = self._extract_lua_subtable(table_content, 'armour')
+            if armour_subtable:
+                armour_val = self._extract_subtable_int(armour_subtable, 'Armour')
+                if armour_val is not None:
+                    base['armour'] = armour_val
+                
+                evasion_val = self._extract_subtable_int(armour_subtable, 'Evasion')
+                if evasion_val is not None:
+                    base['evasion'] = evasion_val
+                
+                es_val = self._extract_subtable_int(armour_subtable, 'EnergyShield')
+                if es_val is not None:
+                    base['energy_shield'] = es_val
+                
+                block_val = self._extract_subtable_int(armour_subtable, 'BlockChance')
+                if block_val is not None:
+                    base['block_chance'] = block_val
+                
+                move_penalty = self._extract_subtable_float(armour_subtable, 'MovementPenalty')
+                if move_penalty is not None:
+                    base['movement_penalty'] = move_penalty
+            
+            # --- flask 子表: flask = { life=920, mana=165, duration=5, chargesUsed=10, chargesMax=75 } ---
+            flask_subtable = self._extract_lua_subtable(table_content, 'flask')
+            if flask_subtable:
+                flask_life = self._extract_subtable_int(flask_subtable, 'life')
+                if flask_life is not None:
+                    base['flask_life'] = flask_life
+                
+                flask_mana = self._extract_subtable_int(flask_subtable, 'mana')
+                if flask_mana is not None:
+                    base['flask_mana'] = flask_mana
+                
+                flask_duration = self._extract_subtable_float(flask_subtable, 'duration')
+                if flask_duration is not None:
+                    base['flask_duration'] = flask_duration
+                
+                flask_charges_used = self._extract_subtable_int(flask_subtable, 'chargesUsed')
+                if flask_charges_used is not None:
+                    base['flask_charges_used'] = flask_charges_used
+                
+                flask_charges_max = self._extract_subtable_int(flask_subtable, 'chargesMax')
+                if flask_charges_max is not None:
+                    base['flask_charges_max'] = flask_charges_max
+            
+            # --- charm 子表: charm = { duration=3, chargesUsed=40, chargesMax=40, buff={ "Immune to Freeze" } } ---
+            charm_subtable = self._extract_lua_subtable(table_content, 'charm')
+            if charm_subtable:
+                charm_duration = self._extract_subtable_float(charm_subtable, 'duration')
+                if charm_duration is not None:
+                    base['charm_duration'] = charm_duration
+                
+                charm_charges_used = self._extract_subtable_int(charm_subtable, 'chargesUsed')
+                if charm_charges_used is not None:
+                    base['charm_charges_used'] = charm_charges_used
+                
+                charm_charges_max = self._extract_subtable_int(charm_subtable, 'chargesMax')
+                if charm_charges_max is not None:
+                    base['charm_charges_max'] = charm_charges_max
+                
+                # buff = { "text1", "text2" }
+                buff_match = re.search(r'buff\s*=\s*\{([^}]+)\}', charm_subtable)
+                if buff_match:
+                    buffs = re.findall(r'"([^"]+)"', buff_match.group(1))
+                    if buffs:
+                        base['charm_buff'] = buffs
             
             bases.append(base)
         
@@ -1902,11 +2056,17 @@ class POBDataScanner:
         match = re.search(rf'{field}\s*=\s*(-?[\d.]+)', content)
         return float(match.group(1)) if match else None
     
+    def _extract_int(self, content: str, field: str) -> Optional[int]:
+        """提取整数字段"""
+        match = re.search(rf'{field}\s*=\s*(\d+)', content)
+        return int(match.group(1)) if match else None
+    
     def _extract_mod_affix(self, content: str) -> List[Dict[str, Any]]:
         """
         提取词缀定义数据
         
-        格式:
+        标准格式 (ModItem.lua, ModJewel.lua, ModCorrupted.lua, ModItemExclusive.lua,
+                   ModFlask.lua, ModCharm.lua, ModVeiled.lua, ModScalability.lua):
         ["AffixID"] = {
             type = "Prefix"/"Suffix"/"Corrupted",
             affix = "of the Brute",
@@ -1920,7 +2080,9 @@ class POBDataScanner:
             tradeHash = 4080418644,
         }
         
-        来源文件: ModItem.lua, ModJewel.lua, ModCorrupted.lua, ModItemExclusive.lua
+        无 type 字段的格式 (ModIncursionLimb.lua):
+        ["IncursionLeg1"] = { affix = "", "(20-30)% increased Evasion Rating", statOrder = { 866 }, ... }
+        → type 字段缺失，使用 "Incursion" 作为默认 affix_type
         """
         affixes = []
         
@@ -1937,29 +2099,61 @@ class POBDataScanner:
             if not table_content:
                 continue
             
-            # 检查是否有 type = "Prefix"/"Suffix"/"Corrupted"
-            type_match = re.search(r'type\s*=\s*"([^"]+)"', table_content)
-            if not type_match:
+            # 检查内容是否为嵌套子表格式（ModRunes 三层结构）
+            # ModRunes 的第二层是 ["helmet"] = { ... } 等装备槽位
+            # 跳过这种顶层条目（由 _extract_mod_runes 单独处理）
+            inner_table_check = re.search(r'\[\s*"[a-z][^"]*"\s*\]\s*=\s*\{', table_content)
+            if inner_table_check and not re.search(r'statOrder\s*=', table_content[:inner_table_check.start()]):
+                # 这是嵌套结构的外层（如 ModRunes），跳过
                 continue
             
-            affix_type = type_match.group(1)
+            # 提取 type 字段 — 不再强制要求
+            type_match = re.search(r'type\s*=\s*"([^"]+)"', table_content)
+            if type_match:
+                affix_type = type_match.group(1)
+            else:
+                # 无 type 字段：根据 ID 前缀推断类型，如 IncursionLeg/IncursionArm
+                affix_type = 'Implicit'  # 默认分类为隐式词缀
+            
+            # 验证：必须有 statOrder 或描述文本（排除纯结构性条目）
+            if not re.search(r'statOrder\s*=', table_content):
+                continue
             
             # 提取 affix 名称
             affix_name = self._extract_field(table_content, 'affix') or ''
             
-            # 提取描述文本（通常是表中的字符串字段）
-            # 格式: "+(5-8) to Strength" 或 "(5-15)% increased Damage"
-            desc_patterns = [
-                r'"([^"]*\d[^"]*)"',  # 包含数字的字符串
-            ]
+            # 提取描述文本（Lua 位置参数，即无 key 的字符串值）
+            # 位置参数在 Lua 表中表现为：{ affix = "", "描述文本1", "描述文本2", statOrder = {...} }
+            # 特征：字符串前面不是 = 号（不是键值对的值），也不在 {} 数组内部
             descriptions = []
-            for dp in desc_patterns:
-                desc_matches = re.findall(dp, table_content)
-                for d in desc_matches:
-                    # 过滤掉非描述性文本
-                    if any(c in d for c in ['%', '+', '-', 'to', 'with', 'when', 'on']):
-                        if len(d) > 5 and len(d) < 200:
-                            descriptions.append(d)
+            
+            # 使用 [^"]* (允许空字符串) 确保引号对齐正确
+            # 然后按上下文过滤
+            for sm in re.finditer(r'"([^"]*)"', table_content):
+                s = sm.group(1)
+                if not s or len(s) <= 5:
+                    continue  # 跳过空字符串和过短的
+                
+                pos = sm.start()
+                prefix = table_content[:pos].rstrip()
+                
+                # 排除 key = "value" 格式（前面有 = 号）
+                if prefix.endswith('='):
+                    continue
+                
+                # 排除数组元素（在 modTags/weightKey 等数组 { } 内部的标签）
+                last_brace = prefix.rfind('{')
+                if last_brace >= 0:
+                    before_brace = prefix[:last_brace].rstrip()
+                    if before_brace.endswith('='):
+                        array_match = re.search(r'(\w+)\s*=$', before_brace)
+                        if array_match and array_match.group(1) in (
+                            'modTags', 'weightKey', 'weightVal', 'statOrder', 'rank',
+                            'tags', 'buff'
+                        ):
+                            continue
+                
+                descriptions.append(s)
             
             # 提取 statOrder
             stat_order = []
@@ -1969,22 +2163,22 @@ class POBDataScanner:
             
             # 提取 level
             level_match = re.search(r'level\s*=\s*(\d+)', table_content)
-            level = int(level_match.group(1)) if level_match else 1
+            level = int(level_match.group(1)) if level_match else 0
             
             # 提取 group
             group = self._extract_field(table_content, 'group') or ''
             
             # 提取 modTags
             mod_tags = []
-            tags_match = re.search(r'modTags\s*=\s*\{([^}]+)\}', table_content)
+            tags_match = re.search(r'modTags\s*=\s*\{([^}]*)\}', table_content)
             if tags_match:
-                mod_tags = [t.strip().strip('"') for t in tags_match.group(1).split(',') if t.strip()]
+                mod_tags = [t.strip().strip('"') for t in tags_match.group(1).split(',') if t.strip().strip('"')]
             
             # 提取 weightKey（哪些装备类型可以出现这个词缀）
             weight_keys = []
-            weight_match = re.search(r'weightKey\s*=\s*\{([^}]+)\}', table_content)
+            weight_match = re.search(r'weightKey\s*=\s*\{([^}]*)\}', table_content)
             if weight_match:
-                weight_keys = [w.strip().strip('"') for w in weight_match.group(1).split(',') if w.strip()]
+                weight_keys = [w.strip().strip('"') for w in weight_match.group(1).split(',') if w.strip().strip('"')]
             
             # 提取 tradeHash
             trade_hash = None
@@ -1996,9 +2190,9 @@ class POBDataScanner:
                 'id': affix_id,
                 'name': affix_name,
                 'type': 'mod_affix',
-                'affix_type': affix_type,  # Prefix/Suffix/Corrupted
-                'descriptions': descriptions[:3] if descriptions else [],  # 最多保留3个
-                'stat_descriptions': descriptions[:3] if descriptions else [],  # [v2新增] 统一描述文本字段
+                'affix_type': affix_type,  # Prefix/Suffix/Corrupted/Rune/Implicit
+                'descriptions': descriptions[:5] if descriptions else [],  # 最多保留5个
+                'stat_descriptions': descriptions[:5] if descriptions else [],  # [v2新增] 统一描述文本字段
                 'stat_order': stat_order,
                 'level': level,
                 'group': group,
@@ -2009,7 +2203,113 @@ class POBDataScanner:
             
             affixes.append(affix)
         
+        # 处理 ModRunes 三层嵌套格式: ["RuneName"]["slot"] = { type="Rune", ... }
+        affixes.extend(self._extract_mod_runes(content))
+        
         return affixes
+    
+    def _extract_mod_runes(self, content: str) -> List[Dict[str, Any]]:
+        """
+        提取 ModRunes.lua 的三层嵌套格式
+        
+        格式:
+        ["Hayoxi's Soul Core of Heatproofing"] = {
+            ["helmet"] = {
+                type = "Rune",
+                "+40% of Armour also applies to Cold Damage",
+                statOrder = { 4512 },
+                rank = { 50 },
+            },
+        },
+        
+        同一个 Soul Core 可有多个装备槽位的独立效果
+        """
+        runes = []
+        
+        # 匹配顶层 ["RuneName"] = { 格式（名称包含空格和特殊字符，非大写ID）
+        # Soul Core 名称包含 's, 空格等
+        pattern = r'\[\s*"([^"]+(?:Soul Core|Rune)[^"]*)"\s*\]\s*=\s*\{'
+        
+        # 更通用的检测：找到所有顶层条目，检查内部是否是嵌套 ["slot"] = { } 格式
+        all_entries = re.finditer(r'\[\s*"([^"]+)"\s*\]\s*=\s*\{', content)
+        
+        for entry_match in all_entries:
+            entry_name = entry_match.group(1)
+            entry_start = entry_match.end() - 1
+            
+            # 提取外层表
+            outer_table = self.extract_lua_table(content, entry_start)
+            if not outer_table:
+                continue
+            
+            # 检查是否含有嵌套 ["slot"] = { ... type = "Rune" ... } 结构
+            slot_pattern = r'\[\s*"([^"]+)"\s*\]\s*=\s*\{'
+            slot_matches = list(re.finditer(slot_pattern, outer_table))
+            
+            if not slot_matches:
+                continue
+            
+            # 检查第一个内层是否有 type = "Rune"
+            first_slot_start = slot_matches[0].end() - 1
+            first_inner = self.extract_lua_table(outer_table, first_slot_start)
+            if not first_inner or not re.search(r'type\s*=\s*"Rune"', first_inner):
+                continue
+            
+            # 解析每个槽位
+            for slot_match in slot_matches:
+                slot_name = slot_match.group(1)
+                slot_start = slot_match.end() - 1
+                
+                inner_table = self.extract_lua_table(outer_table, slot_start)
+                if not inner_table:
+                    continue
+                
+                # 提取描述文本（位置参数 — 无 key 的字符串）
+                descriptions = []
+                for sm in re.finditer(r'"([^"]*)"', inner_table):
+                    s = sm.group(1)
+                    if not s or len(s) <= 3:
+                        continue
+                    pos = sm.start()
+                    prefix = inner_table[:pos].rstrip()
+                    # 排除 key = "value" 格式
+                    if prefix.endswith('='):
+                        continue
+                    descriptions.append(s)
+                
+                # 提取 statOrder
+                stat_order = []
+                so_match = re.search(r'statOrder\s*=\s*\{([^}]+)\}', inner_table)
+                if so_match:
+                    stat_order = [int(x.strip()) for x in so_match.group(1).split(',') if x.strip().isdigit()]
+                
+                # 提取 rank
+                rank = []
+                rank_match = re.search(r'rank\s*=\s*\{([^}]+)\}', inner_table)
+                if rank_match:
+                    rank = [int(x.strip()) for x in rank_match.group(1).split(',') if x.strip().isdigit()]
+                
+                # 生成唯一 ID: RuneName::slot
+                rune_id = f"{entry_name}::{slot_name}"
+                
+                rune = {
+                    'id': rune_id,
+                    'name': entry_name,
+                    'type': 'mod_affix',
+                    'affix_type': 'Rune',
+                    'descriptions': descriptions[:5] if descriptions else [],
+                    'stat_descriptions': descriptions[:5] if descriptions else [],
+                    'stat_order': stat_order,
+                    'level': 0,
+                    'group': f"Rune_{slot_name}",
+                    'mod_tags': ['rune'],
+                    'weight_keys': [slot_name],
+                    'trade_hash': None,
+                }
+                
+                runes.append(rune)
+        
+        return runes
     
     def _extract_version(self) -> Optional[str]:
         """提取版本信息"""

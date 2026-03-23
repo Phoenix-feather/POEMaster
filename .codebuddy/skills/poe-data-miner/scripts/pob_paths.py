@@ -12,9 +12,14 @@ POB路径和文件范围管理 — 强制执行 POB数据提取范围规则
     2. POBData/Modules/      所有.lua（不递归）
     3. POBData/TreeData/X_Y/ tree.lua（仅最新版本）
     4. POBData/GameVersions.lua
+    5. POBData/Classes/      白名单文件（游戏逻辑，非UI控件）
+       - Item.lua            物品数值计算公式（武器DPS/护甲/药剂/品质）
+       - ModStore.lua         Modifier聚合引擎（Sum/More/Flag/Override）
+       - PassiveSpec.lua      天赋分配逻辑（路径搜索/集群珠宝）
+       - PassiveTree.lua      天赋节点modifier解析（ProcessStats）
 
 禁止扫描:
-    - Classes/    （UI控件）
+    - Classes/ 中除白名单以外的文件（UI控件）
     - lua/        （第三方库）
     - 根目录工具文件 (Launch.lua, UpdateCheck.lua 等)
     - TreeData/ 旧版本
@@ -97,6 +102,16 @@ def get_latest_tree_version(pob_path: Optional[Path] = None) -> Optional[str]:
     return versions[0][2]
 
 
+
+# Classes/ 白名单：经分析确认包含游戏逻辑（非UI控件）的文件
+CLASSES_WHITELIST = [
+    'Item.lua',          # 物品数值计算公式（武器DPS/护甲/药剂/品质/calcLocal）
+    'ModStore.lua',      # Modifier聚合引擎（Sum/More/Flag/Override/EvalMod）
+    'PassiveSpec.lua',   # 天赋分配逻辑（路径搜索/集群珠宝/AllocNode）
+    'PassiveTree.lua',   # 天赋节点modifier解析（ProcessStats）
+]
+
+
 def collect_lua_files(pob_path: Optional[Path] = None, verbose: bool = False) -> List[Path]:
     """按POB数据提取范围规则收集所有Lua文件
     
@@ -107,6 +122,7 @@ def collect_lua_files(pob_path: Optional[Path] = None, verbose: bool = False) ->
         2. Modules/      所有.lua（不递归）
         3. TreeData/X_Y/ tree.lua（仅最新版本）
         4. GameVersions.lua
+        5. Classes/      白名单文件（游戏逻辑）
     
     Args:
         pob_path: POB数据目录，默认自动检测
@@ -160,6 +176,22 @@ def collect_lua_files(pob_path: Optional[Path] = None, verbose: bool = False) ->
         if verbose:
             print(f"  GameVersions.lua: 已包含")
     
+    # 5. Classes/ 白名单（游戏逻辑文件）
+    classes_dir = pob_path / 'Classes'
+    if classes_dir.exists():
+        classes_count = 0
+        for fname in CLASSES_WHITELIST:
+            fpath = classes_dir / fname
+            if fpath.exists():
+                lua_files.append(fpath)
+                classes_count += 1
+            elif verbose:
+                print(f"  [WARN] Classes/{fname} 不存在")
+        if verbose:
+            print(f"  Classes/: {classes_count} 个白名单文件 (共 {len(CLASSES_WHITELIST)} 个)")
+    elif verbose:
+        print("  [WARN] Classes/ 目录不存在")
+    
     return lua_files
 
 
@@ -167,7 +199,7 @@ def get_file_scope_summary(pob_path: Optional[Path] = None) -> Dict[str, int]:
     """获取文件范围统计摘要
     
     Returns:
-        {'data': N, 'modules': N, 'tree': 0|1, 'game_versions': 0|1, 'total': N}
+        {'data': N, 'modules': N, 'tree': 0|1, 'game_versions': 0|1, 'classes': N, 'total': N}
     """
     if pob_path is None:
         pob_path = get_pob_path()
@@ -177,6 +209,7 @@ def get_file_scope_summary(pob_path: Optional[Path] = None) -> Dict[str, int]:
         'modules': 0,
         'tree': 0,
         'game_versions': 0,
+        'classes': 0,
         'total': 0
     }
     
@@ -194,6 +227,10 @@ def get_file_scope_summary(pob_path: Optional[Path] = None) -> Dict[str, int]:
     
     if (pob_path / 'GameVersions.lua').exists():
         summary['game_versions'] = 1
+    
+    classes_dir = pob_path / 'Classes'
+    if classes_dir.exists():
+        summary['classes'] = sum(1 for f in CLASSES_WHITELIST if (classes_dir / f).exists())
     
     summary['total'] = sum(summary.values())
     return summary
@@ -234,6 +271,11 @@ def validate_pob_path(pob_path: Path) -> Tuple[bool, List[str]]:
     for f in critical_files:
         if not (pob_path / f).exists():
             warnings.append(f"缺少关键文件: {f}")
+    
+    # Classes/ 白名单文件检查
+    for f in CLASSES_WHITELIST:
+        if not (pob_path / 'Classes' / f).exists():
+            warnings.append(f"缺少Classes白名单文件: Classes/{f}")
     
     # TreeData检查
     latest = get_latest_tree_version(pob_path)

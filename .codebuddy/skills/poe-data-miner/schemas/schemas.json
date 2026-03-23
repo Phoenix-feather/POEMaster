@@ -4,8 +4,8 @@
   "description": "POEMaster v2 数据结构定义中心",
   "schemas": {
     "ScanResult": {
-      "hash": null,
-      "last_modified": null,
+      "hash": "v2.0-extraction-fix-item-bases-mod-affixes",
+      "last_modified": "2026-03-20T18:00:00",
       "definition": {
         "file": "data_scanner.py",
         "type": "dataclass",
@@ -102,13 +102,13 @@
       "consumers": []
     },
     "mechanisms": {
-      "hash": "v2.0-enrichment-friendly_name-behavior_description-mechanism_category-formula_abstract-affected_stats",
-      "last_modified": "2026-03-19T14:00:00",
+      "hash": "v2.1-aggregation-classes-modstore",
+      "last_modified": "2026-03-20T22:00:00",
       "definition": {
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
         "table_name": "mechanisms",
-        "notes": "v2.0: 新增 friendly_name/behavior_description/mechanism_category/formula_abstract/affected_stats 5个字段; KNOWN_MECHANISMS 44个机制定义; BehaviorExtractor 三型行为提取; YAML 补充描述"
+        "notes": "v2.1: 新增5个ModStore聚合机制(Sum/More/Flag/Override/EvalMod)和6个机制间关系; KNOWN_MECHANISMS 49个; BehaviorExtractor扩展Classes/目录搜索+extract_aggregation_behavior方法; aggregation分类新增"
       },
       "consumers": [
         {
@@ -122,8 +122,8 @@
       ]
     },
     "mechanism_sources": {
-      "hash": "v2.0-unchanged",
-      "last_modified": "2026-03-19T14:00:00",
+      "hash": "v2.1-classes-modstore-sources",
+      "last_modified": "2026-03-20T22:00:00",
       "definition": {
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
@@ -137,13 +137,13 @@
       ]
     },
     "mechanism_relations": {
-      "hash": "v1.0-initial",
-      "last_modified": "2026-03-19T14:00:00",
+      "hash": "v1.1-aggregation-relations",
+      "last_modified": "2026-03-20T22:00:00",
       "definition": {
         "file": "mechanism_extractor.py",
         "type": "sqlite_table",
         "table_name": "mechanism_relations",
-        "notes": "v1.0: 新表，存储机制间关系; 6种关系类型: mutually_exclusive/modifies/requires/overrides/converts/stacks_with; 方向: a_to_b/b_to_a/both"
+        "notes": "v1.1: 新增6个ModStore聚合引擎内部关系(Sum↔More stacks_with, Override→Sum/More overrides, EvalMod→Sum/More/Flag modifies); 6种关系类型: mutually_exclusive/modifies/requires/overrides/converts/stacks_with; 方向: a_to_b/b_to_a/both"
       },
       "consumers": [
         {
@@ -221,12 +221,13 @@
       ]
     },
     "gap_formulas": {
-      "hash": null,
-      "last_modified": null,
+      "hash": "v1.1-classes-oop-stat-patterns",
+      "last_modified": "2026-03-20T22:00:00",
       "definition": {
         "file": "formula_extractor.py",
         "type": "sqlite_table",
-        "table_name": "gap_formulas"
+        "table_name": "gap_formulas",
+        "notes": "v1.1: OOP冒号语法(ClassName:method)支持,冒号替换下划线生成formula_id; 新增3个stat提取模式(calcLocal/modList:List/self.list); Classes/白名单文件提取"
       },
       "consumers": [
         {
