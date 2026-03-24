@@ -298,6 +298,28 @@ POB 桌面版使用 LuaJIT（5.1 兼容），Spike 使用 Lua 5.4。已修复：
 
 ## 版本历史
 
+### v1.0.15 (2026-03-24)
+
+构筑缓存系统 + 表格格式报告：
+
+- **`BuildCache` 构筑缓存管理器**（`build_cache.py`）：
+  - `save(share_code)` → 解码 XML + 生成 `{class}_{ascendancy}_Lv{level}_{hash[:8]}` ID + 缓存到 `cache/builds/`
+  - `current.txt` 指针文件标识当前活跃构筑
+  - `meta.json` 存储元信息 + 静态提取的技能列表（不启动 Lua）
+  - LRU 自动淘汰（默认保留 10 个），幂等保存（XML hash 去重）
+  - 序号删除（"3", "2-5", "1,3,5"）+ 全部清理
+
+- **`POBCalculator` 缓存便捷入口**：
+  - `save_build(share_code)` → 保存到缓存
+  - `from_current()` → 从当前活跃构筑创建计算器（无需 share code）
+  - `from_build_id(build_id)` → 指定构筑加载
+  - `list_builds()` → 格式化表格（含 ★ 标记当前构筑）
+  - `remove_builds(indices)` / `clear_builds()` → 清理
+
+- **`format_report(data)` 表格格式报告**：
+  - 所有详细来源均以 `| 来源 | 类别 | 值 |` 表格展示
+  - 6 个 section：基线概览、DPS 来源拆解、灵敏度分析、天赋价值、天赋探索、珠宝诊断
+
 ### v1.0.14 (2026-03-24)
 
 主技能指定 — 支持自然语言指定分析目标技能：

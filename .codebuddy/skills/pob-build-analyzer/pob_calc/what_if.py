@@ -2743,3 +2743,238 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
         "jewel_diagnosis": jewel_diag,
         "dps_breakdown": dps_bd,
     }
+
+
+# =============================================================================
+# 报告格式化（Markdown 表格）
+# =============================================================================
+
+
+def format_report(data: dict) -> str:
+    """将 full_analysis() 返回的数据格式化为 Markdown 表格报告。
+
+    所有详细来源均以表格形式展示，提高可读性。
+
+    Args:
+        data: full_analysis() 的返回值
+
+    Returns:
+        完整的 Markdown 格式报告字符串
+    """
+    lines = []
+
+    baseline = data.get("baseline", {})
+    main_skill = data.get("main_skill", {})
+    skill_flags = data.get("skill_flags", {})
+    sensitivity = data.get("sensitivity", [])
+    talent_value = data.get("talent_value", [])
+    talent_exploration = data.get("talent_exploration", [])
+    jewel_diag = data.get("jewel_diagnosis", [])
+    dps_bd = data.get("dps_breakdown", {})
+
+    skill_name = main_skill.get("name", "未知")
+    total_dps = baseline.get("TotalDPS", 0)
+    avg_hit = baseline.get("AverageHit", 0)
+    speed = baseline.get("Speed", 0)
+    crit_chance = baseline.get("CritChance", 0)
+    crit_multi = baseline.get("CritMultiplier", 0)
+    total_ehp = baseline.get("TotalEHP", 0)
+
+    # --- 标题 ---
+    lines.append(f"# {skill_name} 构筑 DPS 优化报告")
+    lines.append("")
+
+    # --- Section 1: 基线概览 ---
+    lines.append("## 1. 基线概览")
+    lines.append("")
+    lines.append("| 指标 | 数值 |")
+    lines.append("|------|------|")
+    lines.append(f"| 主技能 | {skill_name} |")
+
+    flag_tags = []
+    if skill_flags.get("is_spell"):
+        flag_tags.append("法术")
+    if skill_flags.get("is_attack"):
+        flag_tags.append("攻击")
+    if skill_flags.get("is_projectile"):
+        flag_tags.append("投射物")
+    if skill_flags.get("is_dot"):
+        flag_tags.append("DOT")
+    if flag_tags:
+        lines.append(f"| 技能类型 | {', '.join(flag_tags)} |")
+
+    lines.append(f"| TotalDPS | **{total_dps:,.0f}** |")
+    lines.append(f"| AverageHit | {avg_hit:,.0f} |")
+    lines.append(f"| Speed | {speed:.2f}/s |")
+    if crit_chance:
+        lines.append(f"| CritChance | {crit_chance:.1f}% |")
+    if crit_multi:
+        lines.append(f"| CritMultiplier | {crit_multi:.2f}x |")
+    lines.append(f"| TotalEHP | {total_ehp:,.0f} |")
+    lines.append("")
+
+    # --- Section 2: DPS 来源拆解 ---
+    lines.append("## 2. DPS 来源拆解")
+    lines.append("")
+
+    formula_items = dps_bd.get("formula_items", [])
+    active_types = dps_bd.get("active_damage_types", [])
+    if active_types:
+        lines.append(f"活跃伤害类型: {', '.join(active_types)}")
+        lines.append("")
+
+    for fi in formula_items:
+        fname = fi["formula_name"]
+        dval = fi["display_value"]
+        lines.append(f"### {fname} = {dval}")
+        lines.append("")
+
+        # 类别汇总
+        cat_sum = fi.get("category_summary", {})
+        if cat_sum:
+            lines.append("**类别汇总**: " + " | ".join(
+                f"{cat}: {val:+.1f}" for cat, val in
+                sorted(cat_sum.items(), key=lambda x: abs(x[1]), reverse=True)
+            ))
+            lines.append("")
+
+        # 详细来源表格
+        sources = fi.get("sources", [])
+        if sources:
+            lines.append("| 来源 | 类别 | 值 |")
+            lines.append("|------|------|-----|")
+            for s in sources:
+                label = s.get("label", s.get("source", "?"))
+                cat = s.get("category", "?")
+                val = s.get("value", 0)
+                detail = s.get("detail", "")
+                if detail:
+                    val_str = f"{val:+.1f} ({detail})"
+                else:
+                    val_str = f"{val:+.1f}"
+                lines.append(f"| {label} | {cat} | {val_str} |")
+            lines.append("")
+
+    # --- Section 3: 灵敏度分析 ---
+    lines.append("## 3. 灵敏度分析")
+    lines.append("")
+
+    effective = [s for s in sensitivity if s.get("needed_value") is not None]
+    unreachable = [s for s in sensitivity if s.get("needed_value") is None]
+
+    if effective:
+        lines.append("### 有效维度（按性价比排序）")
+        lines.append("")
+        lines.append("| # | 维度 | 类型 | 所需值 | 单位 | DPS/单位 | 当前值 | 公式 |")
+        lines.append("|---|------|------|--------|------|----------|--------|------|")
+        for i, s in enumerate(effective, 1):
+            key = s.get("key", "?")
+            mod_type = s.get("mod_type", "?")
+            needed = s.get("needed_value", 0)
+            unit = s.get("unit", "")
+            dpu = s.get("dps_per_unit", 0)
+            cur = s.get("current_total", 0)
+            formula = s.get("formula", "")
+            lines.append(
+                f"| {i} | {key} | {mod_type} | "
+                f"{needed:+.1f}{unit} | {unit} | "
+                f"{dpu:.2f}%/{unit if unit else '1'} | "
+                f"{cur:.0f} | {formula} |"
+            )
+        lines.append("")
+
+    if unreachable:
+        lines.append("### 无影响维度")
+        lines.append("")
+        lines.append("| 维度 | 类型 | 说明 |")
+        lines.append("|------|------|------|")
+        for s in unreachable:
+            key = s.get("key", "?")
+            mod_type = s.get("mod_type", "?")
+            desc = s.get("description", "无法达到目标")
+            lines.append(f"| {key} | {mod_type} | {desc} |")
+        lines.append("")
+
+    # --- Section 4: 天赋价值 ---
+    lines.append("## 4. 已分配天赋价值")
+    lines.append("")
+
+    dps_talents = [t for t in talent_value if abs(t.get("dps_pct", 0)) > 0.1]
+    def_talents = [t for t in talent_value
+                   if abs(t.get("dps_pct", 0)) <= 0.1 and abs(t.get("ehp_pct", 0)) > 0.1]
+    zero_talents = [t for t in talent_value
+                    if abs(t.get("dps_pct", 0)) <= 0.1 and abs(t.get("ehp_pct", 0)) <= 0.1]
+
+    if dps_talents:
+        lines.append("### DPS 影响天赋")
+        lines.append("")
+        lines.append("| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 |")
+        lines.append("|---|------|------|-------------|-------------|------|")
+        for i, t in enumerate(dps_talents, 1):
+            lines.append(
+                f"| {i} | {t['name']} | {t['type']} | "
+                f"{t['dps_pct']:+.1f}% | {t.get('ehp_pct', 0):+.1f}% | "
+                f"{t['category']} |"
+            )
+        lines.append("")
+
+    if def_talents:
+        lines.append("### 纯防御天赋")
+        lines.append("")
+        lines.append("| 天赋 | 移除后 EHP% |")
+        lines.append("|------|-------------|")
+        for t in def_talents:
+            lines.append(f"| {t['name']} | {t.get('ehp_pct', 0):+.1f}% |")
+        lines.append("")
+
+    if zero_talents:
+        lines.append(f"### 无效天赋 ({len(zero_talents)} 个)")
+        lines.append("")
+        names = ", ".join(t["name"] for t in zero_talents)
+        lines.append(f"{names}")
+        lines.append("")
+
+    # --- Section 5: 天赋探索 ---
+    lines.append("## 5. 未分配天赋探索")
+    lines.append("")
+
+    if talent_exploration:
+        lines.append("| # | 天赋 | 类型 | DPS% | EHP% | 分类 |")
+        lines.append("|---|------|------|------|------|------|")
+        for i, t in enumerate(talent_exploration, 1):
+            lines.append(
+                f"| {i} | {t['name']} | {t['type']} | "
+                f"{t['dps_pct']:+.1f}% | {t.get('ehp_pct', 0):+.1f}% | "
+                f"{t['category']} |"
+            )
+        lines.append("")
+    else:
+        lines.append("无有意义的候选天赋。")
+        lines.append("")
+
+    # --- Section 6: 珠宝诊断 ---
+    lines.append("## 6. 珠宝诊断")
+    lines.append("")
+
+    if jewel_diag:
+        lines.append("| 珠宝 | 基底 | Mods | DPS% | 状态 | 备注 |")
+        lines.append("|------|------|------|------|------|------|")
+        for j in jewel_diag:
+            name = j.get("name", "?")
+            base = j.get("base_type", "?")
+            mc = j.get("mod_count", 0)
+            dp = j.get("dps_pct", 0)
+            status = j.get("status", "?")
+            notes = ""
+            gp = j.get("granted_passives", [])
+            if gp:
+                notes = f"Grants: {', '.join(gp)}"
+            lines.append(
+                f"| {name} | {base} | {mc} | {dp:+.1f}% | {status} | {notes} |"
+            )
+        lines.append("")
+    else:
+        lines.append("无珠宝。")
+        lines.append("")
+
+    return "\n".join(lines)

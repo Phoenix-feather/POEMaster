@@ -1,0 +1,202 @@
+{
+  "build_id": "Monk_Invoker_Lv98_f18d7181",
+  "class_name": "Monk",
+  "ascendancy": "Invoker",
+  "level": 98,
+  "hash": "f18d7181",
+  "created_at": "2026-03-24T07:17:14+00:00",
+  "last_used": "2026-03-24T07:18:04+00:00",
+  "main_socket_group": 11,
+  "skills": [
+    {
+      "group": 1,
+      "gems": [
+        "Purity of Fire",
+        "Vitality II",
+        "Mysticism II",
+        "Warm Blooded",
+        "Herbalism II",
+        "Cool Headed"
+      ]
+    },
+    {
+      "group": 2,
+      "gems": [
+        "Frost Wall",
+        "Arcane Surge",
+        "Magnified Area II",
+        "Arbiter's Ignition",
+        "Spell Cascade",
+        "Rising Tempest"
+      ]
+    },
+    {
+      "group": 3,
+      "gems": [
+        "Frost Bomb",
+        "Cooldown Recovery II",
+        "Short Fuse II",
+        "Spell Echo",
+        "Overabundance II",
+        "Harmonic Remnants II"
+      ]
+    },
+    {
+      "group": 4,
+      "gems": [
+        "Cast on Critical",
+        "Living Bomb",
+        "Comet",
+        "Spell Cascade",
+        "Energy Retention",
+        "Boundless Energy II"
+      ]
+    },
+    {
+      "group": 5,
+      "gems": [
+        "Elemental Invocation",
+        "Comet",
+        "Spell Cascade",
+        "Energy Capacitor",
+        "Energy Retention",
+        "Boundless Energy II"
+      ]
+    },
+    {
+      "group": 6,
+      "gems": [
+        "Cast on Elemental Ailment",
+        "Elemental Weakness",
+        "Doedre's Undoing",
+        "Ritualistic Curse",
+        "Pinpoint Critical",
+        "Boundless Energy II"
+      ]
+    },
+    {
+      "group": 7,
+      "gems": [
+        "Spark",
+        "Vilenta's Propulsion",
+        "Pierce III",
+        "Zenith II",
+        "Rising Tempest",
+        "Deliberation"
+      ]
+    },
+    {
+      "group": 8,
+      "gems": [
+        "Unbound Avatar",
+        "Prolonged Duration II",
+        "Cooldown Recovery II",
+        "Fire Mastery"
+      ]
+    },
+    {
+      "group": 9,
+      "gems": [
+        "Pinnacle of Power",
+        "Heightened Charges",
+        "Prolonged Duration II",
+        "Cooldown Recovery II"
+      ]
+    },
+    {
+      "group": 10,
+      "gems": [
+        "Life Remnants",
+        "Khatal's Rejuvenation",
+        "Remnant Potency III",
+        "Harmonic Remnants II"
+      ]
+    },
+    {
+      "group": 11,
+      "gems": [
+        "Siphon Elements",
+        "Harmonic Remnants II",
+        "Fire Mastery",
+        "Remnant Potency I"
+      ]
+    },
+    {
+      "group": 12,
+      "gems": [
+        "Trinity",
+        "Dialla's Desire",
+        "Uhtred's Omen"
+      ]
+    },
+    {
+      "group": 13,
+      "gems": [
+        "Charge Regulation",
+        "Uhtred's Exodus"
+      ]
+    },
+    {
+      "group": 14,
+      "gems": [
+        "Blink",
+        "Atziri's Impatience"
+      ]
+    },
+    {
+      "group": 15,
+      "gems": [
+        "Elemental Conflux",
+        "Lightning Mastery"
+      ]
+    },
+    {
+      "group": 16,
+      "gems": [
+        "Power Siphon"
+      ]
+    },
+    {
+      "group": 17,
+      "gems": [
+        "Cackling Companions"
+      ]
+    },
+    {
+      "group": 18,
+      "gems": [
+        "Unbound Avatar"
+      ]
+    },
+    {
+      "group": 19,
+      "gems": [
+        "Power Siphon"
+      ]
+    },
+    {
+      "group": 20,
+      "gems": [
+        "Pinnacle of Power"
+      ]
+    },
+    {
+      "group": 21,
+      "gems": [
+        "Cackling Companions"
+      ]
+    },
+    {
+      "group": 22,
+      "gems": [
+        "Purity of Fire"
+      ]
+    },
+    {
+      "group": 23,
+      "gems": [
+        "Life Remnants"
+      ]
+    }
+  ]
+}

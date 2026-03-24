@@ -3,20 +3,30 @@
 POB Build Analyzer — 统一 API
 
 用法:
+    # 方式 1: 直接传 share code（首次使用）
     from pob_calc import POBCalculator
+    bid = POBCalculator.save_build(share_code)      # 缓存到磁盘
+    calc = POBCalculator.from_current()              # 从缓存加载
 
-    calc = POBCalculator(share_code="eNrtfWlz4ziyJv...")
-    result = calc.calculate()
-    diff = calc.what_if_nodes(add=[48524])
+    # 方式 2: 已有缓存，直接加载
+    calc = POBCalculator.from_current()
+    result = calc.full_analysis(skill_name="spark")
+
+    # 方式 3: 传统方式（不使用缓存）
+    calc = POBCalculator(share_code="eNrt...")
 """
 from pathlib import Path
 
 from .decoder import decode_share_code
 from .build_parser import parse_build_xml
+from .build_cache import BuildCache, format_build_list
 from .runtime import create_runtime
 from .build_loader import load_all
 from . import calculator as _calc
 from . import what_if as _whatif
+
+# 模块级单例缓存管理器
+_cache = BuildCache()
 
 
 class POBCalculator:
@@ -24,6 +34,11 @@ class POBCalculator:
 
     从 share code 或 XML 加载构筑，驱动 POB 原生计算引擎。
     支持 What-If 分析（天赋点增删、装备替换、modifier 注入）。
+
+    推荐使用缓存工厂方法:
+        POBCalculator.save_build(share_code)  → 缓存 share code
+        POBCalculator.from_current()          → 从当前缓存加载
+        POBCalculator.list_builds()           → 查看缓存列表
 
     Args:
         share_code: POB 分享码（Base64 编码字符串）
@@ -59,6 +74,66 @@ class POBCalculator:
 
         # 缓存基线结果
         self._baseline = None
+
+    # === 缓存工厂方法 ===
+
+    @classmethod
+    def save_build(cls, share_code: str) -> str:
+        """保存 share code 到缓存并设为当前活跃构筑。
+
+        Args:
+            share_code: POB 分享码
+
+        Returns:
+            build_id 字符串
+        """
+        return _cache.save(share_code)
+
+    @classmethod
+    def from_current(cls, pob_path: str = None) -> "POBCalculator":
+        """从当前活跃缓存构筑创建计算器。
+
+        Raises:
+            FileNotFoundError: 无活跃构筑
+        """
+        xml_text = _cache.load_current()
+        return cls(xml_text=xml_text, pob_path=pob_path)
+
+    @classmethod
+    def from_build_id(cls, build_id: str,
+                      pob_path: str = None) -> "POBCalculator":
+        """从指定缓存构筑创建计算器。
+
+        Args:
+            build_id: 构筑 ID
+        """
+        xml_text = _cache.load(build_id)
+        return cls(xml_text=xml_text, pob_path=pob_path)
+
+    @staticmethod
+    def list_builds() -> str:
+        """列出所有缓存构筑（格式化表格）。"""
+        builds = _cache.list()
+        return format_build_list(builds)
+
+    @staticmethod
+    def remove_builds(indices: str) -> list[str]:
+        """按序号删除缓存构筑。
+
+        序号基于 list_builds() 显示的顺序（1-based）。
+        支持: "3", "2-5", "1,3,5", "2-4,7"
+        """
+        return _cache.remove(indices)
+
+    @staticmethod
+    def clear_builds():
+        """清空全部构筑缓存。"""
+        _cache.clear_all()
+
+    @staticmethod
+    def set_current_build(build_id: str):
+        """切换当前活跃构筑。"""
+        _cache.set_current(build_id)
 
     @property
     def build_info(self) -> dict:
@@ -363,3 +438,17 @@ class POBCalculator:
         # 更新缓存的基线
         self._baseline = result["baseline"]
         return result
+
+    @staticmethod
+    def format_report(data: dict) -> str:
+        """将 full_analysis() 返回的数据格式化为 Markdown 表格报告。
+
+        所有详细来源均以表格展示，提高可读性。
+
+        Args:
+            data: full_analysis() 的返回值
+
+        Returns:
+            完整的 Markdown 报告字符串
+        """
+        return _whatif.format_report(data)
