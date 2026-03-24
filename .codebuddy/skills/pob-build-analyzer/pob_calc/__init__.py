@@ -227,3 +227,139 @@ class POBCalculator:
             dps_stat=dps_stat,
             ehp_stat=ehp_stat,
         )
+
+    def passive_node_exploration(self, dps_stat: str = "TotalDPS",
+                                 ehp_stat: str = "TotalEHP",
+                                 min_dps_pct: float = 0.5) -> list[dict]:
+        """天赋探索：逐个添加未分配的 Notable/Keystone 天赋，评估 DPS 和 EHP 收益。
+
+        使用 POB 原生 override.addNodes 机制，不修改 build 对象。
+        注意：绕过了路径连通性检查，部分节点实际游戏中可能无法直接点出。
+
+        Args:
+            dps_stat: DPS 指标名（默认 TotalDPS）
+            ehp_stat: EHP 指标名（默认 TotalEHP）
+            min_dps_pct: 最小变化百分比阈值（低于此不返回，默认 0.5%）
+
+        Returns:
+            按 DPS 增益降序排列的列表，每项包含:
+            - id, name, type (Notable/Keystone)
+            - dps_before, dps_after, dps_delta, dps_pct
+            - ehp_before, ehp_after, ehp_delta, ehp_pct
+            - category: "进攻" / "防御" / "混合" / "无效"
+        """
+        return _whatif.passive_node_exploration(
+            self._lua, self._calcs,
+            baseline=self.get_baseline(),
+            dps_stat=dps_stat,
+            ehp_stat=ehp_stat,
+            min_dps_pct=min_dps_pct,
+        )
+
+    def diagnose_jewels(self, dps_stat: str = "TotalDPS") -> list[dict]:
+        """诊断构筑中所有珠宝的加载状态和 DPS 贡献。
+
+        检查每个珠宝是否正确加载、mod 是否被解析、是否影响 DPS。
+        特别关注 Megalomaniac 等通过 "Allocates" 分配天赋的珠宝。
+
+        对于 GrantedPassive 珠宝，会同时测试：
+        1. 移除物品后的 DPS 变化（item_mods 贡献）
+        2. 移除 granted 节点后的 DPS 变化（granted_passives 贡献）
+        取两者中影响更大的作为 dps_pct。
+
+        Returns:
+            [{slot_name, node_id, item_id, name, base_type, rarity,
+              mod_count, mods, granted_passives,
+              dps_pct (总 DPS 贡献),
+              granted_dps_pct (仅 granted 节点的 DPS 贡献, 仅 GrantedPassive 珠宝有),
+              dps_source ("item_mods" / "granted_passives"),
+              status}, ...]
+            status: "ok" / "empty" / "no_base" / "no_mods"
+        """
+        return _whatif.diagnose_jewels(
+            self._lua, self._calcs,
+            baseline=self.get_baseline(),
+            dps_stat=dps_stat,
+        )
+
+    def dps_breakdown(self) -> dict:
+        """DPS 来源拆解 — 将当前 DPS 的每个公式项拆解到具体来源。
+
+        Output-driven：从 output.* 非零值判断活跃公式组件，
+        对每个组件调用 skillModList:Tabulate() 获取 mod 来源。
+        两层粒度：按公式项分组，每组内按 source 分类。
+        Label 可读化：天赋→名称，装备→物品名，技能→宝石名。
+
+        Returns:
+            {
+                "total_dps": float,
+                "average_hit": float,
+                "speed": float,
+                "combined_dps": float,
+                "active_damage_types": [str],      # 如 ["Lightning", "Cold"]
+                "formula_items": [
+                    {
+                        "key": str,                 # 如 "Lightning_Damage_INC"
+                        "formula_name": str,        # 如 "Lightning Damage INC"
+                        "total_value": float,       # 汇总值
+                        "display_value": str,       # 可读展示（如 "137%", "x 1.39"）
+                        "category_summary": {       # 按来源类别汇总
+                            "Tree": float,
+                            "Item": float,
+                            "Skill": float,
+                            ...
+                        },
+                        "sources": [                # 逐条来源明细
+                            {
+                                "source": str,      # 原始 source 标识
+                                "label": str,       # 可读名称（天赋名/物品名/宝石名）
+                                "category": str,    # Tree/Item/Skill/Base/Config/Other
+                                "value": float,     # 贡献值
+                                "mod_name": str,    # mod 名称
+                            }, ...
+                        ]
+                    }, ...
+                ]
+            }
+        """
+        return _whatif.dps_breakdown(
+            self._lua, self._calcs,
+            baseline=self.get_baseline(),
+        )
+
+    def full_analysis(self, target_pct: float = 20.0,
+                      exploration_min_pct: float = 0.5,
+                      skill_name: str = None) -> dict:
+        """完整构筑分析流程 — 一次调用完成所有分析。
+
+        包含：基线计算、灵敏度分析、天赋价值分析、天赋探索、珠宝诊断、DPS 来源拆解。
+        结果可直接用于构筑优化决策，无需临时脚本。
+
+        Args:
+            target_pct: 灵敏度分析 DPS 增幅目标（默认 20%）
+            exploration_min_pct: 天赋探索最低 DPS 变化阈值（默认 0.5%）
+            skill_name: 指定主技能名称（自然语言，大小写不敏感，支持部分匹配）。
+                        例如 "ball lightning"、"Comet"、"ball"。
+                        若为 None，使用构筑默认主技能；若默认 DPS=0 则自动选最高 DPS 技能。
+
+        Returns:
+            {
+                "baseline": {stat: value},
+                "main_skill": {"name": str, "castTime": float},
+                "skill_flags": {"is_spell": bool, ...},
+                "sensitivity": [灵敏度排序列表, 含 dps_per_unit],
+                "talent_value": [已分配天赋价值列表],
+                "talent_exploration": [未分配天赋探索列表],
+                "jewel_diagnosis": [珠宝诊断列表],
+                "dps_breakdown": {DPS 来源拆解，详见 dps_breakdown()},
+            }
+        """
+        result = _whatif.full_analysis(
+            self._lua, self._calcs,
+            target_pct=target_pct,
+            exploration_min_pct=exploration_min_pct,
+            skill_name=skill_name,
+        )
+        # 更新缓存的基线
+        self._baseline = result["baseline"]
+        return result

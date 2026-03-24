@@ -18,7 +18,9 @@ description: POB构筑分析器 - 解码POB分享码，通过Python驱动POB的L
 - **构筑加载与计算**：解码 POB 分享码 → 加载天赋/装备/技能/配置 → 运行 POB 计算引擎 → 获取完整 output
 - **数值精度验证**：将计算结果与 POB 桌面版 PlayerStats 逐项对比
 - **What-If 分析**：临时增删天赋点、替换装备、修改技能宝石，对比前后数值变化
-- **灵敏度分析**：向 modDB 注入 modifier，使用 26 个语义正确的 profile 覆盖伤害/暴击/速度/穿透/投射物等维度，等基准对比（固定 DPS 目标反算所需投入）
+- **灵敏度分析**：向 modDB 注入 modifier，使用 33 个语义正确的 profile 覆盖伤害/暴击/速度/穿透/投射物等维度（含 flag-based 类型如 spell/attack/melee/projectile/dot damage 和 cast/attack speed），等基准对比（固定 DPS 目标反算所需投入），含每单位 DPS 贡献率
+- **完整分析流程**：`full_analysis()` 一次调用完成灵敏度 + 天赋价值 + 天赋探索 + 珠宝诊断
+- **珠宝诊断**：检查每个珠宝的加载状态、mod 解析、GrantedPassive（Megalomaniac 等）、DPS 贡献
 - **多构筑对比**：加载多个分享码，横向对比 DPS/EHP/生存等维度
 
 ### ❌ 不能做什么
@@ -116,6 +118,23 @@ diff = calc.what_if_item("Helmet", "Rarity: Unique\nName: ...")
 # modDB 注入
 diff = calc.what_if_mod("Life", "BASE", 100)
 diff = calc.what_if_mod("Evasion", "INC", 50)
+```
+
+### 完整分析（一次调用）
+
+```python
+# 完整分析：灵敏度 + 天赋价值 + 天赋探索 + 珠宝诊断
+report = calc.full_analysis(target_pct=20.0)
+
+# 灵敏度排序（含每单位 DPS 贡献）
+for r in report["sensitivity"]:
+    print(f"{r['label']:40s} {r['mod_type']:4s} needed={r['needed_value']}{r['unit']}  "
+          f"dps/unit={r['dps_per_unit']:.3f}%")
+
+# 珠宝诊断（检查 Megalomaniac 等）
+for j in report["jewel_diagnosis"]:
+    print(f"{j['name']:25s} mods={j['mod_count']}  DPS={j['dps_pct']:+.1f}%  "
+          f"granted={j['granted_passives']}")
 ```
 
 ### 精度验证
@@ -278,6 +297,188 @@ POB 桌面版使用 LuaJIT（5.1 兼容），Spike 使用 Lua 5.4。已修复：
 ---
 
 ## 版本历史
+
+### v1.0.14 (2026-03-24)
+
+主技能指定 — 支持自然语言指定分析目标技能：
+
+- **`skill_name` 参数**：`full_analysis(skill_name="ball lightning")` 按名称模糊匹配技能组
+  - 大小写不敏感，支持部分匹配（"ball" 可匹配 "Ball Lightning"）
+  - 精确匹配优先，部分匹配在多候选时选 DPS 最高者
+  - 未找到匹配时 fallback 到默认逻辑（构筑默认 → 自动最高 DPS）
+- **三级优先级**：用户指定 skill_name > 构筑 XML 默认 mainSocketGroup > 自动扫描最高 DPS
+- **API 签名变更**：
+  - `what_if.full_analysis(lua, calcs, ..., skill_name=None)`
+  - `POBCalculator.full_analysis(..., skill_name=None)`
+
+### v1.0.13 (2026-03-24)
+
+DPS 来源拆解优化 — INC 按伤害类型分组 + Item 部位标注 + 珠宝来源分类修复：
+
+- **INC/MORE 按 mod 类别分组（不再按伤害类型重复）**：
+  - 旧逻辑：对每个活跃伤害类型（Lightning/Cold/Fire）分别 Tabulate，产生 3 组几乎相同的 INC 来源（共享 `Damage` + `ElementalDamage`），15 个 formula items
+  - 新逻辑：按 mod 名称类别（`Damage` / `ElementalDamage` / `ColdDamage` 等）独立 Tabulate，每类只出现一次，13 个 formula items
+  - 每个类别标注影响的伤害类型，如 `通用伤害 INC (Lightning,Cold,Fire)`、`冰霜伤害 INC (Cold)`
+  - 还原了 POB 的 INC 合并语义：`Damage INC` 对所有类型生效，`ElementalDamage INC` 对元素类型生效，`ColdDamage INC` 仅对冰霜生效
+
+- **Item 来源加部位标注**：
+  - 通过 `build.itemsTab.orderedSlots` 建立物品名 → slot 映射（因 mod source 中 itemId 恒为 -1）
+  - label 格式：`"Rapture Shard, Sapphire (Jewel)"`, `"Damnation Grip, Unset Ring (Ring 2)"`, `"Adonia's Ego, Siphoning Wand (Weapon 1)"`
+  - 珠宝 slot 名简化：`"Jewel 61834"` → `"Jewel"`
+
+- **v1.0.12 珠宝来源分类修复（同版合入）**：
+  - GrantedPassive 珠宝 mod（如 Megalomaniac "Allocates X"）使用 `source="Tree:{grantedNodeId}"`，其中 grantedNodeId 是天赋节点自身 ID 而非珠宝插槽 nodeId
+  - 扩展 Lua `jewelNodeMap`：遍历 `jItem.modList` 找 GrantedPassive，通过 `tree.notableMap` 查找 granted 节点 ID
+  - `_classify_source()` 新增 `jewel_node_ids` 参数，正确分类为 `"Jewel"` 而非 `"Tree"`
+  - Lucky Hits 现在正确标记为 `[Jewel] Megalomaniac, Diamond → The Spring Hare`
+
+### v1.0.11 (2026-03-24)
+
+DPS 来源拆解（DPS Source Breakdown）：
+
+- **`dps_breakdown()` 新增 API**：
+  - 将当前 DPS 的每个公式项拆解到具体来源（天赋/装备/宝石/配置）
+  - **Output-driven**：从 `output.*` 非零值判断活跃公式组件，跳过未激活的部分
+  - **两层粒度**：
+    - 第一层：按公式项分组（Base Damage / Damage INC / Damage MORE / Speed / CritChance / CritMultiplier / Lucky Hits）
+    - 第二层：每组内逐条列出 mod 来源和贡献值
+  - **Label 可读化**：通过 Lua 端查表将 `Tree:58016` → `"Arcane Intensity"`，`Item:3:xxx` → 物品名，`Skill:xxx` → 宝石名
+  - **category_summary**：每个公式项按来源类别（Tree/Item/Skill/Base/Config）汇总贡献值
+  - 支持独立调用 `calc.dps_breakdown()` 和 `full_analysis()` 集成调用
+
+- **Base Damage 完整拆解**：
+  - 三来源分离：宝石/武器基础 + added flat damage（可 Tabulate）+ baseMultiplier
+  - 公式：`base = (gem + Σ added × addedMult) × baseMultiplier`
+  - Added damage 的 Min/Max 合并为均值展示，每条来源标注 `+min-max` 范围
+
+- **Tabulate API 利用**：
+  - 核心依赖 `ModStore:Tabulate(modType, cfg, ...)` 返回 `[{value, mod}]` 对
+  - `entry.value` 是条件评估后的值（非原始 `mod.value`）
+  - MORE 类型 `entry.value` 是百分比原值（如 39 = "39% more"），非乘数
+
+- **集成到 `full_analysis()`**：新增 step 8，返回 `dps_breakdown` 字段
+
+- **已知限制**：
+  - 仅拆解 DPS 相关公式项，不含 EHP/防御
+  - Lucky Hits 的 Flag-based 触发（如 LuckyHits/CritLucky）显示为固定 100%
+  - damageStatsForTypes 合并逻辑在 Lua 端复现，与 CalcOffence.lua:52-63 一致
+
+- **代码质量修复**（6 项）：
+  1. **分隔符冲突**：`line.split('|')` 无限分割 → 按 section 类型使用 `maxsplit` 保护最后一个含 Tabulate 数据的字段
+  2. **同 source 多 mod 覆盖**：`_merge_added_damage_sources` 中同一来源的多条 mod 从直接覆盖改为累加
+  3. **CritChance 缺宝石基础暴击率**：`Tabulate("BASE", "CritChance")` 不含技能固有 baseCrit，新增专用解析器 `_parse_crit_base`，读取 `ms.skillData.CritChance` 作为 "技能基础暴击率" 显示
+  4. **Speed 缺基础速度**：新增 `Speed_BASE` 公式项，攻击技能取 weaponData.AttackRate、法术取 1/castTime、触发技能取 output.Speed（computed trigger rate）
+  5. **Lua `source` 变量名混淆**：重命名为 `damageSource`，避免与 mod source 概念冲突
+  6. **`_is_base` 浮点保护**：`_parse_base_damage` 添加 `total_avg < 0.01` 阈值检查
+
+### v1.0.10 (2026-03-24)
+
+珠宝诊断修复 + GrantedPassive DPS 测试 + removeNodes key 格式修复：
+
+- **`what_if_nodes()` removeNodes key 格式修复**：
+  - 根因：CalcSetup.lua 中 `override.removeNodes` 使用**两种不同的 key 格式**：
+    - 第 734 行（普通天赋）：`removeNodes[node]` — 使用节点**对象**作为 key
+    - 第 1291 行（GrantedPassive）：`removeNodes[node.id]` — 使用整数 **node.id** 作为 key
+  - 之前 `what_if_nodes()` 只设置了 `[node]=true`，对 GrantedPassive 天赋无效
+  - 修复：同时设置两种 key（`removeNodes[node]=true` + `removeNodes[node.id]=true`），两条代码路径均可匹配
+  - 影响：Megalomaniac 分配的天赋（The Spring Hare / Savoured Blood 等）现在可以正确通过 `what_if_nodes(remove=[...])` 移除并测试 DPS 影响
+
+- **`diagnose_jewels()` 珠宝移除方式修复**：
+  - 普通珠宝：同时清除 `slot.selItemId=0` **和** `build.spec.jewels[nodeId]=nil`（之前只清除 selItemId，CalcSetup 仍可能从 spec.jewels 读取物品数据）
+  - 修复后稀有珠宝的 DPS 贡献正确反映（如 Chimeric Spark -4.5%, Rapture Shard -4.8%）
+
+- **`diagnose_jewels()` GrantedPassive 珠宝 DPS 测试**：
+  - 对包含 `GrantedPassive` 的珠宝（如 Megalomaniac），移除物品不会影响 DPS（天赋已分配）
+  - 新增**节点移除测试**：通过 `notableMap[passive]` 查找 granted 节点，用 `override.removeNodes` 移除
+  - 返回新增字段：
+    - `granted_dps_pct`: 仅移除 granted 节点的 DPS 变化
+    - `dps_source`: `"item_mods"` / `"granted_passives"`（标识主要 DPS 来源）
+  - `dps_pct` 取物品移除和节点移除中影响更大的值
+
+- **临时文件清理**：删除 `_diag_jewel.py` 和 `_diag_jewel2.py`
+
+### v1.0.9 (2026-03-24)
+
+完整分析流程 + 珠宝诊断 + 每单位 DPS 贡献：
+
+- **`full_analysis()` 完整分析流程**：
+  - 一次调用完成所有分析：基线计算 → 灵敏度分析 → 天赋价值 → 天赋探索 → 珠宝诊断
+  - 消除了之前每次都需要临时生成脚本的问题
+  - 返回结构化 dict，可直接用于构筑优化决策
+  - API: `calc.full_analysis(target_pct=20.0, exploration_min_pct=0.5)`
+
+- **`diagnose_jewels()` 珠宝诊断**：
+  - 检查每个珠宝的加载状态：物品是否解析成功、mod 数量、GrantedPassive 列表
+  - 特别关注 Megalomaniac 等通过 "Allocates" 分配天赋的珠宝
+  - 通过替换空物品测试每个珠宝对 DPS 的贡献
+  - 返回 variant 信息（Megalomaniac 的 3-variant 系统）
+  - 状态标记：ok / empty / no_base / no_mods
+
+- **`dps_per_unit` 每单位 DPS 贡献**：
+  - 灵敏度分析结果新增 `dps_per_unit` 字段
+  - 计算方式：`actual_pct / needed_value`（即每 1 单位注入带来多少 % DPS）
+  - 例：CritChance BASE 的 dps_per_unit = 20% / 3.5 = 5.71，而 Fire Damage INC = 20% / 155 = 0.13
+  - 值越大 = 每单位投资回报越高
+
+### v1.0.8 (2026-03-23)
+
+Flag-based profiles 补全 + 技能类型精确排除 + 天赋探索误报修复：
+
+- **新增 5 个 flag-based profiles**：
+  - `cast_speed_inc`: 施法速度 (`Speed INC + ModFlag.Cast=0x10`)，法术构筑专属
+  - `attack_speed_inc`: 攻击速度 (`Speed INC + ModFlag.Attack=0x01`)，攻击构筑专属
+  - `melee_damage_inc`: 近战伤害 (`Damage INC + ModFlag.Melee=0x100`)，攻击构筑专属
+  - `projectile_damage_inc`: 投射物伤害 (`Damage INC + ModFlag.Projectile=0x400`)，投射物技能专属
+  - `dot_damage_inc`: 持续伤害 (`Damage INC + ModFlag.Dot=0x08`)，DOT 构筑专属
+  - POB 中 "cast speed" 不是 `CastSpeed INC`，而是 `Speed INC` + `flags=ModFlag.Cast`
+  - POB 中 "melee damage" 不是 `MeleeDamage INC`，而是 `Damage INC` + `flags=ModFlag.Melee`
+  - 其余同理，均通过 ModParser.lua modNameList 确认
+
+- **`_detect_skill_flags()` 精确排除**：
+  - 新增完整技能 flag 检测：从 `skillCfg.flags` 位运算提取 spell/attack/dot/cast/melee/projectile/area
+  - CalcActiveSkill.lua:446-467 确认：非攻击技能自动加 `ModFlag.Cast`，法术再加 `ModFlag.Spell`
+  - 排除逻辑从简单的 spell/attack 二分 → 精确的多维排除：
+    - 法术构筑：排除攻击/近战/flat damage + attack speed
+    - 攻击构筑：排除法术/施法速度
+    - 非投射物：排除 projectile damage
+    - 非 DOT：排除 dot damage
+
+- **天赋探索误报修复**：
+  - v1.0.7 中报告的 "Doom Cast" (+15.8%), "Cruel Implement" (+14.2%), "Devastating Blows" (+14.2%) 误报已消失
+  - 根因：v1.0.3 多行 stat 合并修复后，Keystone 的条件 tag 被正确解析，POB mod 系统的 flag/condition/SkillType 匹配正确过滤了不适用的 mod
+  - 确认：POB 的 `SumInternal` + `EvalMod`（ModStore.lua）通过 `band(cfg.flags, mod.flags) == mod.flags` 匹配 ModFlag、通过 SkillType tag 匹配技能类型、通过 Condition tag 匹配装备条件
+  - 验证：Spark 构筑 Top 20 未分配天赋全部合理（Arcane Intensity +18.9%, Stand and Deliver +17.4%, Heavy Ammunition +16.8%）
+
+- **珠宝/涂油/妄想症审计**：
+  - ✅ 珠宝已正确加载：`build_parser.py` 提取 socket 数据，`build_loader.py` 创建动态 `Jewel {nodeId}` 槽位，`CalcSetup.lua` 处理半径/Timeless 珠宝
+  - ⚠️ 星团珠宝（Cluster Jewel）子图未构建：`BuildClusterJewelGraphs()` 未被调用，星团珠宝合成节点不会被创建（已知 gap）
+  - ✅ POE2 没有涂油（Anoint）机制
+  - ✅ "Allocates \<node\>" 装备词缀已正确处理：ModParser.lua 解析 → `GrantedPassive` mod → CalcSetup.lua 自动分配天赋节点
+
+- **Profile 总数**: 26 → 33 个（新增 5 个 flag-based + 之前已有的 spell_damage 和 attack_damage）
+
+### v1.0.7 (2026-03-23)
+
+Spell/Attack Damage profile + 所需值单位 + 天赋探索：
+
+- **新增 Spell/Attack Damage profile**：
+  - `spell_damage_inc`: 法术伤害增加 (`Damage INC + ModFlag.Spell`)，法术构筑专属
+  - `attack_damage_inc`: 攻击伤害增加 (`Damage INC + ModFlag.Attack`)，攻击构筑专属
+  - POB 中 "increased spell damage" 不是 `SpellDamage INC`，而是 `Damage INC` + `flags=ModFlag.Spell(0x02)`
+  - `_inject_profile()` 新增 `flags` 参数支持，通过 `env.modDB:NewMod(..., flags)` 注入带标志的 mod
+  - 自动排除逻辑双向化：法术排除攻击专属，攻击排除法术专属
+
+- **所需值单位**：
+  - 每个 profile 新增 `unit` 字段（`"%"` / `""`）
+  - `sensitivity_analysis()` 返回结果包含 `unit` 字段
+  - INC/MORE/BASE(暴击/穿透等) → `"%"`，投射物/flat damage → `""`
+
+- **天赋探索 (`passive_node_exploration`)**：
+  - 新增 `_get_unallocated_notable_nodes()`: 获取全部未分配 Notable/Keystone（排除不同升华的节点）
+  - 新增 `passive_node_exploration()`: 逐个添加未分配天赋，评估 DPS/EHP 收益
+  - 使用 POB 原生 `override.addNodes` 机制，非破坏性
+  - 支持 `min_dps_pct` 阈值过滤低影响节点
+  - 发现该构筑 top 潜力天赋：Doom Cast (+15.8%), Cruel Implement (+14.2%), Devastating Blows (+14.2%)
 
 ### v1.0.6 (2026-03-23)
 
