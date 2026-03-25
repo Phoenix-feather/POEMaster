@@ -3594,7 +3594,7 @@ def _rebuild_config_tab_modlist(lua):
     ''')
 
 
-def _set_config_and_rebuild(lua, calcs, config_var: str, config_type: str, value):
+def _set_config_and_rebuild(lua, config_var: str, config_type: str, value):
     """设置一个 ConfigTab 配置值并重建 modList。
 
     Args:
@@ -3747,7 +3747,7 @@ def _inject_ifskill_defaults(lua, calcs,
             return tostring(_spike_build.configTab.input["{config_var}"] or "nil")
         ''')
         if str(current) == "nil":
-            _set_config_and_rebuild(lua, calcs, config_var, config_type, mid)
+            _set_config_and_rebuild(lua, config_var, config_type, mid)
             logger.info("已注入 %s %s=%d（范围 0~%d）",
                         cfg["aura_name"], config_var, mid, int(actual_max))
 
@@ -3791,15 +3791,19 @@ def _test_aura_config_range(lua, calcs, aura_name: str,
         mid = int(actual_max / 2)
 
         for endpoint_name, endpoint_val in [("min", 0), ("max", actual_max)]:
-            _set_config_and_rebuild(lua, calcs, config_var, config_type, endpoint_val)
+            _set_config_and_rebuild(lua, config_var, config_type, endpoint_val)
             output = calc_fn(lua, calcs)
             eps_dps = output.get("TotalDPS", 0)
             dps_pct = ((eps_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
             cfg[f"dps_{endpoint_name}"] = eps_dps
             cfg[f"dps_pct_{endpoint_name}"] = dps_pct
+            # 同时读取 Speed，用于检测门槛效果和计算边际收益
+            eps_speed = output.get("Speed", 0)
+            if eps_speed and eps_speed > 0:
+                cfg[f"speed_{endpoint_name}"] = eps_speed
 
         # 恢复中间值
-        _set_config_and_rebuild(lua, calcs, config_var, config_type, mid)
+        _set_config_and_rebuild(lua, config_var, config_type, mid)
         cfg["mid"] = mid
 
         results.append(cfg)
@@ -4600,7 +4604,8 @@ def _test_add_spirit_support(lua, calcs, support: dict,
 
 
 def aura_spirit_analysis(lua, calcs, baseline: dict = None,
-                         skill_flags: dict = None) -> dict:
+                         skill_flags: dict = None,
+                         dps_breakdown: dict = None) -> dict:
     """Section 7: 光环与精魄分析。
 
     7A: 现有光环/精魄移除测试 — 逐一禁用构筑中的光环，测量 DPS 贡献
@@ -4613,14 +4618,7 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         calcs: POB calcs 模块
         baseline: 基线 output
         skill_flags: 技能 flags（用于过滤攻击/法术专属）
-
-    Returns:
-        {
-            "existing_auras": [8A 结果],
-            "candidate_auras": [8B 结果],
-            "spirit_support_tests": [8C 结果],
-            "spirit_budget": {total, reserved, recommended_total, available},
-        }
+        dps_breakdown: DPS 拆解数据（含构筑已有 modifier 总量，如 Speed_INC）
     """
     from .calculator import calculate as calc_fn
 
@@ -4776,11 +4774,23 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         "recommended_remaining": available_spirit - recommended_spirit,
     }
 
+    # === 提取构筑已有 modifier 总量（来自 dps_breakdown） ===
+    build_modifiers = {}
+    if dps_breakdown:
+        for item in dps_breakdown.get("formula_items", []):
+            key = item.get("key", "")
+            total = item.get("total_value", 0)
+            display = item.get("display_value", "")
+            # 提取关键 modifier：Speed_INC, ElementalDamage_INC, ElementalDamage_MORE 等
+            if key and total:
+                build_modifiers[key] = {"total": total, "display": display}
+
     return {
         "existing_auras": existing_auras,
         "candidate_auras": candidate_auras,
         "spirit_support_tests": spirit_support_tests,
         "spirit_budget": spirit_budget,
+        "build_modifiers": build_modifiers,
     }
 
 
@@ -4877,9 +4887,10 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
     dps_bd = dps_breakdown(lua, calcs, baseline=baseline)
     logger.info("DPS 拆解完成: %d 个公式项", len(dps_bd["formula_items"]))
 
-    # 7. 光环与精魄分析
+    # 7. 光环与精魄分析（传入 dps_breakdown 以引用构筑已有 modifier）
     aura_spirit = aura_spirit_analysis(
-        lua, calcs, baseline=baseline, skill_flags=skill_flags)
+        lua, calcs, baseline=baseline, skill_flags=skill_flags,
+        dps_breakdown=dps_bd)
     logger.info("光环与精魄分析完成")
 
     return {
@@ -4901,12 +4912,18 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
 
 
 def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
-                    baseline: dict):
+                    baseline: dict, build_modifiers: dict = None):
     """格式化 Section 7: 光环与精魄分析。"""
     existing_auras = aura_data.get("existing_auras", [])
     candidate_auras = aura_data.get("candidate_auras", [])
     spirit_tests = aura_data.get("spirit_support_tests", [])
     budget = aura_data.get("spirit_budget", {})
+
+    # 从 build_modifiers 提取构筑已有 modifier 总量
+    bm = build_modifiers or {}
+    speed_inc = bm.get("Speed_INC", {}).get("total", 0)
+    # Damage_MORE 是所有 MORE 修饰符的汇总乘数（如 ×1.20 表示 20% MORE）
+    total_more = bm.get("Damage_MORE", {}).get("total", 1)
 
     lines.append("## 7. 光环与精魄分析")
     lines.append("")
@@ -4937,16 +4954,25 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                 parts = []
                 for cr in ranges:
                     label = cr.get("label", cr["config_var"])
-                    # 去掉 label 末尾的冒号（如果有）
                     label = label.rstrip(":")
                     actual_max = int(cr["actual_max"])
                     pct_min = cr.get("dps_pct_min", 0)
                     pct_max = cr.get("dps_pct_max", 0)
-                    # DPS 贡献基于注入的中间值（mid），标注在括号中
                     mid = cr.get("mid", 0)
                     dp_str += f" (条件: {label}={mid})"
-                    # 条件范围：参数从 0 到 max 时的 DPS 变化
-                    parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%")
+
+                    # 动态检测 Speed 门槛效果：比较 min 和 max 端点的 Speed
+                    marginal_note = ""
+                    speed_min = cr.get("speed_min", 0)
+                    speed_max = cr.get("speed_max", 0)
+                    if speed_min > 0 and speed_max > speed_min:
+                        # Speed 发生跳变（门槛效果触发）
+                        actual_speed_inc = (speed_max - speed_min) / speed_min * 100
+                        # 边际收益 = 新增 INC / (1 + 已有 INC)
+                        marginal = actual_speed_inc / (1 + speed_inc / 100) if speed_inc > 0 else actual_speed_inc
+                        marginal_note = f" (Speed门槛+{actual_speed_inc:.1f}%, 边际≈{marginal:.1f}%)"
+
+                    parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%{marginal_note}")
                 range_str = "; ".join(parts)
             else:
                 range_str = "-"
@@ -4983,7 +5009,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("")
             lines.append("- **等级前提**：所有光环模拟均基于 Level 20 数据")
             lines.append("- **DPS 贡献计算**：移除光环后 DPS 变化（分母=当前有光环 DPS）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中")
-            lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS，展示该光环在不同条件下的 DPS 贡献范围")
+            lines.append(f"- **构筑已有 modifier**：施法速度 INC {speed_inc:.0f}%，总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
+            lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。自动检测 Speed 门槛效果（端点间 Speed 跳变）并标注实际边际收益")
             lines.append("- **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）")
             lines.append("")
 
@@ -5407,7 +5434,9 @@ def format_report(data: dict) -> str:
 
     # --- Section 7: 光环与精魄分析 ---
     aura_data = data.get("aura_spirit", {})
-    _format_section7(lines, aura_data, skill_flags, baseline)
+    bm = aura_data.get("build_modifiers", {})
+    _format_section7(lines, aura_data, skill_flags, baseline,
+                    build_modifiers=bm)
 
     # --- Section 8: 总结与建议 ---
     lines.append("## 8. 总结与建议")

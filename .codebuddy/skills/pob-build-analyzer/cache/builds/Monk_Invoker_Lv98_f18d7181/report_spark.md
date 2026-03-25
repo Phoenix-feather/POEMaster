@@ -375,7 +375,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 | # | 光环 | DPS 贡献 | EHP 贡献 | 精魄消耗 | 条件参数范围 |
 |---|------|----------|----------|----------|-------------|
-| 1 | Trinity | -25.9% (条件: Total Resonance Count=150) | +0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% |
+| 1 | Trinity | -25.9% (条件: Total Resonance Count=150) | +0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% (Speed门槛+13.7%, 边际≈7.8%) |
 | 2 | Charge Infusion | -23.5% ⚠️模拟 | -7.0% | 30 | - |
 | 3 | Elemental Conflux | -16.7% ⚠️模拟 | +0.0% | 60 | - |
 | 4 | Purity of Fire | +0.0% | +0.0% | 130 | - |
@@ -389,7 +389,8 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 - **等级前提**：所有光环模拟均基于 Level 20 数据
 - **DPS 贡献计算**：移除光环后 DPS 变化（分母=当前有光环 DPS）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中
-- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS，展示该光环在不同条件下的 DPS 贡献范围
+- **构筑已有 modifier**：施法速度 INC 75%，总 MORE ×1.20。INC 叠加为加法（新增边际递减），MORE 叠加为乘法
+- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。自动检测 Speed 门槛效果（端点间 Speed 跳变）并标注实际边际收益
 - **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）
 
 **DPS/EHP 影响未检测到** (1 个)：
