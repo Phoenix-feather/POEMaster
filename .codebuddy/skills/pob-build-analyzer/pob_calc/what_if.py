@@ -376,6 +376,13 @@ _PROJECTILE_ONLY_PROFILES = {
     "projectile_damage_inc",
 }
 
+# 来源固定 profile 集合（升华/光环/辅助宝石提供，无法通过装备/天赋灵活优化）
+# 这些维度在灵敏度分析中默认排除，因为不具备可操作的优化空间
+_FIXED_SOURCE_PROFILES = {
+    "damage_more",     # more Damage — 主要来自升华、光环、辅助宝石
+    "speed_more",      # more Speed — 同上
+}
+
 
 def _inject_and_calc(lua, calcs, mod_lines_lua: str, baseline: dict,
                      buff_mode: str = "MAIN") -> dict:
@@ -553,6 +560,11 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
             # 非 DOT 技能排除 DOT 专属 profile
             excluded |= _DOT_ONLY_PROFILES
             logger.info("非DOT技能：排除 dot_damage_inc")
+
+        # 排除来源固定的维度（升华/光环/辅助宝石，无法通过装备/天赋灵活优化）
+        excluded |= _FIXED_SOURCE_PROFILES
+        logger.info("排除 %d 个来源固定 profile (升华/光环): %s",
+                     len(_FIXED_SOURCE_PROFILES), ", ".join(_FIXED_SOURCE_PROFILES))
 
         profiles = [p for p in profiles if p not in excluded]
 
@@ -1605,6 +1617,125 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
             except Exception as e:
                 logger.warning("GrantedPassive DPS 诊断失败 %s: %s", slot_name, e)
 
+    # 逐 mod DPS 测试：对每颗有效珠宝的每个 mod 逐个禁用后计算 DPS
+    for jewel in jewels:
+        if jewel["status"] != "ok" or base_dps == 0:
+            continue
+        if not jewel.get("mods"):
+            continue
+
+        node_id = jewel["node_id"]
+        slot_name = jewel["slot_name"]
+        mods = jewel["mods"]
+
+        # 分离 GrantedPassive 和普通 mod
+        granted_names = []
+        granted_indices = []
+        normal_indices = []
+        for i, m in enumerate(mods):
+            if m.get("name") == "GrantedPassive" and m.get("type") == "LIST":
+                granted_names.append(m.get("value", ""))
+                granted_indices.append(i)
+            else:
+                normal_indices.append(i)
+
+        # 普通 mod：在 Lua 端对 item.modList 逐个禁用测试
+        if normal_indices:
+            # 构建 Lua 端需要测试的索引列表（1-based）
+            lua_indices = ",".join(str(i + 1) for i in normal_indices)
+            try:
+                per_mod_result = lua.execute(f'''
+                    local build = _spike_build
+                    local slot = build.itemsTab.slots['{slot_name}']
+                    if not slot then return "" end
+                    local item = build.itemsTab.items[slot.selItemId]
+                    if not item or not item.modList then return "" end
+
+                    local results = {{}}
+                    local ml = item.modList
+                    local testIndices = {{{lua_indices}}}
+
+                    for _, idx in ipairs(testIndices) do
+                        local m = ml[idx]
+                        if not m then
+                            results[#results+1] = "ERR"
+                        else
+                            local origVal = m.value
+                            local origType = m.type
+                            local canZero = (origType == "BASE" or origType == "INC"
+                                             or origType == "MORE")
+                                            and type(origVal) == "number"
+                            if canZero then
+                                m.value = 0
+                                local ok, dps = pcall(function()
+                                    local env = calcs.initEnv(build, "MAIN")
+                                    calcs.perform(env)
+                                    return env.player.output.TotalDPS or 0
+                                end)
+                                m.value = origVal
+                                results[#results+1] = ok and tostring(dps) or "ERR"
+                            else
+                                table.remove(ml, idx)
+                                local ok, dps = pcall(function()
+                                    local env = calcs.initEnv(build, "MAIN")
+                                    calcs.perform(env)
+                                    return env.player.output.TotalDPS or 0
+                                end)
+                                table.insert(ml, idx, m)
+                                results[#results+1] = ok and tostring(dps) or "ERR"
+                            end
+                        end
+                    end
+                    return table.concat(results, ",")
+                ''')
+
+                if per_mod_result:
+                    dps_values = str(per_mod_result).split(",")
+                    for j, dps_str in enumerate(dps_values):
+                        if j < len(normal_indices) and dps_str != "ERR":
+                            try:
+                                after = float(dps_str)
+                                delta_pct = round((after - base_dps) / base_dps * 100, 2)
+                                mods[normal_indices[j]]["dps_pct"] = delta_pct
+                            except (ValueError, ZeroDivisionError):
+                                mods[normal_indices[j]]["dps_pct"] = None
+                        elif j < len(normal_indices):
+                            mods[normal_indices[j]]["dps_pct"] = None
+            except Exception as e:
+                logger.warning("珠宝普通 mod DPS 诊断失败 %s: %s", slot_name, e)
+
+        # GrantedPassive mod：用 override.removeNodes 逐个天赋节点移除
+        for gi, gname in zip(granted_indices, granted_names):
+            if not gname:
+                mods[gi]["dps_pct"] = None
+                continue
+            try:
+                # 用单行 Lua 避免多行字符串嵌套问题
+                lua_code = (
+                    'local build = _spike_build; '
+                    'local tree = build.spec.tree; '
+                    f'local node = tree.notableMap["{gname}"]; '
+                    'if not node then return "NOT_FOUND" end; '
+                    'local removeNodes = {}; '
+                    'removeNodes[node] = true; '
+                    'removeNodes[node.id] = true; '
+                    'local override = { removeNodes = removeNodes }; '
+                    'local env = calcs.initEnv(build, "CALCULATOR", override); '
+                    'calcs.perform(env); '
+                    'return tostring(env.player.output.TotalDPS or 0)'
+                )
+                r = lua.execute(lua_code)
+                if r and str(r) != "NOT_FOUND":
+                    after = float(str(r))
+                    delta_pct = round((after - base_dps) / base_dps * 100, 2)
+                    mods[gi]["dps_pct"] = delta_pct
+                else:
+                    mods[gi]["dps_pct"] = None
+            except Exception as e:
+                logger.warning("GrantedPassive 逐条 DPS 诊断失败 %s[%s]: %s",
+                               slot_name, gname, e)
+                mods[gi]["dps_pct"] = None
+
     # 按 DPS 贡献降序排列（绝对值最大的在前）
     jewels.sort(key=lambda x: abs(x["dps_pct"]), reverse=True)
     return jewels
@@ -2204,6 +2335,171 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             end
         end
 
+        -- === 8. Conversion & Gain 表 ===
+        -- 只输出对当前构筑有实际 DPS 贡献的条目
+        -- 判断依据：fromType 有基础伤害（output[fromType.."MinBase"] > 0）
+        -- 注意：Self-Gain（如 Cold→Cold 15%）是 POB 支持的机制
+        --       calcGainedDamage() 遍历所有 otherType（包括 self），
+        --       DamageGainAsCold 等通用 mod 会产生 gainTable[Cold][Cold] > 0
+        local isElemental = {Lightning=true, Cold=true, Fire=true}
+        if ms.conversionTable and ms.gainTable then
+            -- 收集每种 fromType 是否有基础伤害
+            local hasBase = {}
+            for _, dt in ipairs(dmgTypes) do
+                local minB = output[dt.."MinBase"] or 0
+                local maxB = output[dt.."MaxBase"] or 0
+                hasBase[dt] = (minB > 0 or maxB > 0)
+            end
+            for _, fromType in ipairs(dmgTypes) do
+                if hasBase[fromType] then
+                    for _, toType in ipairs(dmgTypes) do
+                        -- Conversion: 跳过 self（同类型转换无意义）
+                        -- Gain: 允许 self（Cold→Cold self-gain 是真实机制）
+                        local convPct = 0
+                        local gainPct = 0
+                        if fromType ~= toType and ms.conversionTable[fromType] then
+                            convPct = (ms.conversionTable[fromType][toType] or 0) * 100
+                        end
+                        if ms.gainTable[fromType] then
+                            gainPct = (ms.gainTable[fromType][toType] or 0) * 100
+                        end
+                        if convPct > 0.01 or gainPct > 0.01 then
+                            -- Gain mod 来源 Tabulate
+                            local gainTab = ""
+                            if gainPct > 0.01 then
+                                -- 通用 Gain mods（对所有 fromType→toType 都生效，包括 self-gain）
+                                local gainMods = {
+                                    "DamageAs"..toType,
+                                    "DamageGainAs"..toType,
+                                }
+                                -- 特定类型 Gain mods（仅 fromType != toType 时有意义）
+                                if fromType ~= toType then
+                                    gainMods[#gainMods+1] = fromType.."DamageAs"..toType
+                                    gainMods[#gainMods+1] = fromType.."DamageGainAs"..toType
+                                end
+                                if isElemental[fromType] then
+                                    gainMods[#gainMods+1] = "ElementalDamageAs"..toType
+                                    gainMods[#gainMods+1] = "ElementalDamageGainAs"..toType
+                                end
+                                if fromType ~= "Chaos" then
+                                    gainMods[#gainMods+1] = "NonChaosDamageAs"..toType
+                                    gainMods[#gainMods+1] = "NonChaosDamageGainAs"..toType
+                                end
+                                gainTab = tabStr("BASE", table.unpack(gainMods))
+                            end
+                            local labelSuffix = (fromType == toType) and " (Self-Gain)" or ""
+                            lines[#lines+1] = "CONV_GAIN|" .. fromType .. "|" .. toType .. "|"
+                                .. string.format("%.2f", convPct) .. "|"
+                                .. string.format("%.2f", gainPct) .. "|"
+                                .. gainTab
+                        end
+                    end
+                    -- convMult（未转换比例）
+                    if ms.conversionTable[fromType] then
+                        local convMult = ms.conversionTable[fromType].mult or 1
+                        if convMult < 0.999 then
+                            lines[#lines+1] = "CONV_MULT|" .. fromType .. "|" .. string.format("%.4f", convMult)
+                        end
+                    end
+                end
+            end
+        end
+
+        -- === 9. effMult（穿透 / 抗性 / 受伤增加） ===
+        -- 从 MAIN 模式 env 直接读取数据（避免 CALCS 模式的 Lua 5.4 兼容问题）
+        -- env.mode_effective = true（MAIN 模式默认），所以抗性/穿透计算已生效
+        local enemyDB = env.enemyDB
+
+        if enemyDB and env.mode_effective then
+            for _, dt in ipairs(activeDT) do
+                local takenInc = enemyDB:Sum("INC", cfg, "DamageTaken", dt.."DamageTaken")
+                local takenMore = enemyDB:More(cfg, "DamageTaken", dt.."DamageTaken")
+                local resist = 0
+                local pen = 0
+                -- 元素追加 ElementalDamageTaken
+                if isElemental[dt] then
+                    takenInc = takenInc + enemyDB:Sum("INC", cfg, "ElementalDamageTaken")
+                    pen = skillModList:Sum("BASE", cfg, dt.."Penetration", "ElementalPenetration")
+                elseif dt == "Chaos" then
+                    pen = skillModList:Sum("BASE", cfg, "ChaosPenetration")
+                end
+                -- 获取敌人抗性
+                if dt == "Physical" then
+                    resist = enemyDB:Sum("BASE", nil, "PhysicalDamageReduction")
+                else
+                    resist = enemyDB:Sum("BASE", nil, dt.."Resist")
+                end
+                -- 计算 effMult（与 CalcOffence.lua:3816-3821 一致）
+                local effectiveResist = resist > 0 and math.max(resist - pen, 0) or resist
+                local effMult = (1 + takenInc / 100) * takenMore * (1 - effectiveResist / 100)
+                if effMult ~= 0 and (math.abs(effMult - 1) > 0.001 or pen > 0) then
+                    -- 格式: EFF_MULT|dt|effMult|resist|pen|takenInc|takenMore
+                    lines[#lines+1] = "EFF_MULT|" .. dt .. "|"
+                        .. string.format("%.6f", effMult) .. "|"
+                        .. string.format("%.1f", resist) .. "|"
+                        .. string.format("%.1f", pen) .. "|"
+                        .. string.format("%.1f", takenInc) .. "|"
+                        .. string.format("%.6f", takenMore)
+                end
+            end
+        end
+
+        -- === 10. Double/Triple Damage ===
+        local doubleDmgChance = output.DoubleDamageChance or 0
+        local tripleDmgChance = output.TripleDamageChance or 0
+        local scaledDmgEffect = output.ScaledDamageEffect or 1
+        if scaledDmgEffect ~= 1 or doubleDmgChance > 0 or tripleDmgChance > 0 then
+            lines[#lines+1] = "DOUBLE_TRIPLE|"
+                .. string.format("%.1f", doubleDmgChance) .. "|"
+                .. string.format("%.1f", tripleDmgChance) .. "|"
+                .. string.format("%.6f", scaledDmgEffect)
+        end
+
+        -- === 11. HitChance ===
+        local hitChance = output.HitChance or 100
+        if hitChance < 100 then
+            local accHitChance = output.AccuracyHitChance or 100
+            local enemyBlock = output.enemyBlockChance or 0
+            lines[#lines+1] = "HITCHANCE|"
+                .. string.format("%.2f", hitChance) .. "|"
+                .. string.format("%.2f", accHitChance) .. "|"
+                .. string.format("%.2f", enemyBlock)
+        end
+
+        -- === 12. DPS Multiplier ===
+        local dpsMultiplier = ms.skillData and ms.skillData.dpsMultiplier or 1
+        if dpsMultiplier ~= 1 then
+            lines[#lines+1] = "DPS_MULT|" .. string.format("%.4f", dpsMultiplier)
+        end
+
+        -- === 13. CombinedDPS 构成 ===
+        do
+            local globalOutput = env.player.output
+            local totalDPS = globalOutput.TotalDPS or 0
+            local totalDotDPS = globalOutput.TotalDotDPS or 0
+            local impaleDPS = globalOutput.ImpaleDPS or 0
+            local mirageDPS = globalOutput.MirageDPS or 0
+            local cullMult = globalOutput.CullMultiplier or 1
+            local resDpsMult = globalOutput.ReservationDpsMultiplier or 1
+            local combinedDPS = globalOutput.CombinedDPS or 0
+            local bleedDPS = globalOutput.BleedDPS or globalOutput.TotalBleedDPS or 0
+            local poisonDPS = globalOutput.PoisonDPS or globalOutput.TotalPoisonDPS or 0
+            local igniteDPS = globalOutput.IgniteDPS or globalOutput.TotalIgniteDPS or 0
+            if combinedDPS > totalDPS or totalDotDPS > 0 or impaleDPS > 0 or cullMult > 1 then
+                lines[#lines+1] = "COMBINED_DPS|"
+                    .. string.format("%.1f", totalDPS) .. "|"
+                    .. string.format("%.1f", totalDotDPS) .. "|"
+                    .. string.format("%.1f", impaleDPS) .. "|"
+                    .. string.format("%.1f", mirageDPS) .. "|"
+                    .. string.format("%.6f", cullMult) .. "|"
+                    .. string.format("%.6f", resDpsMult) .. "|"
+                    .. string.format("%.1f", combinedDPS) .. "|"
+                    .. string.format("%.1f", bleedDPS) .. "|"
+                    .. string.format("%.1f", poisonDPS) .. "|"
+                    .. string.format("%.1f", igniteDPS)
+            end
+        end
+
         return table.concat(lines, "\n")
     '''
 
@@ -2212,6 +2508,7 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
     active_types = []
     jewel_node_ids = set()  # 珠宝槽位节点 ID 集合
     formula_items = []
+    _conv_mult_data = {}  # fromType → convMult（未转换比例）
 
     if not result:
         return _empty_breakdown(baseline)
@@ -2327,12 +2624,50 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             parts = line.split('|', 4)
             _parse_crit_base(parts, formula_items, jewel_node_ids)
 
+        elif section == "CONV_GAIN":
+            # 格式: CONV_GAIN|fromType|toType|convPct|gainPct|gainTab
+            parts = line.split('|', 5)
+            _parse_conv_gain(parts, formula_items, jewel_node_ids)
+
+        elif section == "CONV_MULT":
+            # 格式: CONV_MULT|fromType|convMult
+            # 存储为元信息，不作为 formula_item
+            parts = line.split('|')
+            if len(parts) >= 3:
+                _conv_mult_data[parts[1]] = float(parts[2])
+
+        elif section == "EFF_MULT":
+            # 格式: EFF_MULT|dt|effMult|resist|pen|takenInc|takenMore
+            parts = line.split('|')
+            _parse_eff_mult(parts, formula_items)
+
+        elif section == "DOUBLE_TRIPLE":
+            # 格式: DOUBLE_TRIPLE|doublePct|triplePct|scaledEffect
+            parts = line.split('|')
+            _parse_double_triple(parts, formula_items)
+
+        elif section == "HITCHANCE":
+            # 格式: HITCHANCE|hitChance|accHitChance|enemyBlock
+            parts = line.split('|')
+            _parse_hitchance(parts, formula_items)
+
+        elif section == "DPS_MULT":
+            # 格式: DPS_MULT|multiplier
+            parts = line.split('|')
+            _parse_dps_mult(parts, formula_items)
+
+        elif section == "COMBINED_DPS":
+            # 格式: COMBINED_DPS|totalDPS|dotDPS|impaleDPS|mirageDPS|cullMult|resDpsMult|combinedDPS|bleedDPS|poisonDPS|igniteDPS
+            parts = line.split('|')
+            _parse_combined_dps(parts, formula_items)
+
     # 过滤掉没有来源的非 base-damage 空项
     formula_items = [fi for fi in formula_items
-                     if fi.get("_is_base") or fi["sources"]]
+                     if fi.get("_is_base") or fi.get("_no_sources_ok") or fi["sources"]]
     # 清理内部标记
     for fi in formula_items:
         fi.pop("_is_base", None)
+        fi.pop("_no_sources_ok", None)
 
     return {
         "total_dps": baseline.get("TotalDPS", 0),
@@ -2629,6 +2964,409 @@ def _parse_speed_base(parts: list, formula_items: list):
     })
 
 
+def _parse_conv_gain(parts: list, formula_items: list,
+                     jewel_node_ids: set = None):
+    """解析 CONV_GAIN 行（伤害转换与增益）。
+
+    格式: CONV_GAIN|fromType|toType|convPct|gainPct|gainTab
+    """
+    if len(parts) < 5:
+        return
+    try:
+        from_type = parts[1]
+        to_type = parts[2]
+        conv_pct = float(parts[3])
+        gain_pct = float(parts[4])
+    except (ValueError, IndexError):
+        return
+
+    sources = []
+
+    if conv_pct > 0.01:
+        sources.append({
+            "source": "conversion",
+            "label": f"{from_type} → {to_type} 转换",
+            "category": "Conversion",
+            "value": conv_pct,
+            "mod_name": f"{from_type}DamageConvertTo{to_type}",
+        })
+
+    if gain_pct > 0.01:
+        # 解析 gain mod 来源
+        gain_tab = parts[5] if len(parts) > 5 else ""
+        if gain_tab:
+            for entry in gain_tab.split('\2'):
+                p = entry.split('\1')
+                if len(p) >= 3:
+                    try:
+                        val = float(p[2])
+                    except ValueError:
+                        continue
+                    label = p[3] if len(p) > 3 else _source_label_fallback(p[1])
+                    sources.append({
+                        "source": p[1],
+                        "label": label,
+                        "category": _classify_source(p[1], jewel_node_ids),
+                        "value": val,
+                        "mod_name": p[0],
+                        "detail": f"Gain as {to_type}",
+                    })
+        else:
+            # 没有详细来源，用总值
+            sources.append({
+                "source": "gain",
+                "label": f"{from_type} → {to_type} 额外获得",
+                "category": "Gain",
+                "value": gain_pct,
+                "mod_name": f"{from_type}DamageGainAs{to_type}",
+            })
+
+    if not sources:
+        return
+
+    sources.sort(key=lambda s: abs(s["value"]), reverse=True)
+    cat_sum = {}
+    for s in sources:
+        cat = s["category"]
+        cat_sum[cat] = cat_sum.get(cat, 0.0) + s["value"]
+
+    total = conv_pct + gain_pct
+    display_parts = []
+    if conv_pct > 0.01:
+        display_parts.append(f"转换 {conv_pct:.1f}%")
+    if gain_pct > 0.01:
+        display_parts.append(f"增益 {gain_pct:.1f}%")
+    if from_type == to_type:
+        display = f"{from_type} Self-Gain: {' + '.join(display_parts)}"
+    else:
+        display = f"{from_type} → {to_type}: {' + '.join(display_parts)}"
+
+    key_suffix = "SelfGain" if from_type == to_type else "ConvGain"
+    formula_items.append({
+        "key": f"{from_type}_to_{to_type}_{key_suffix}",
+        "formula_name": f"{from_type} → {to_type} {'Self-Gain' if from_type == to_type else 'Conversion/Gain'}",
+        "total_value": total,
+        "display_value": display,
+        "category_summary": cat_sum,
+        "sources": sources,
+        "_no_sources_ok": True,
+    })
+
+
+def _parse_eff_mult(parts: list, formula_items: list):
+    """解析 EFF_MULT 行（有效 DPS 乘数：穿透/抗性/受伤增加）。
+
+    格式: EFF_MULT|dt|effMult|resist|pen|takenInc|takenMore
+    """
+    if len(parts) < 7:
+        return
+    try:
+        dt = parts[1]
+        eff_mult = float(parts[2])
+        resist = float(parts[3])
+        pen = float(parts[4])
+        taken_inc = float(parts[5])
+        taken_more = float(parts[6])
+    except (ValueError, IndexError):
+        return
+
+    sources = []
+
+    if resist != 0:
+        sources.append({
+            "source": "enemy",
+            "label": f"敌人 {dt} 抗性",
+            "category": "Enemy",
+            "value": resist,
+            "mod_name": f"{dt}Resist",
+        })
+
+    if pen != 0:
+        sources.append({
+            "source": "player",
+            "label": f"{dt} 穿透",
+            "category": "Penetration",
+            "value": pen,
+            "mod_name": f"{dt}Penetration",
+        })
+
+    if taken_inc != 0:
+        sources.append({
+            "source": "enemy",
+            "label": f"敌人受到 {dt} 伤害增加",
+            "category": "Enemy",
+            "value": taken_inc,
+            "mod_name": f"{dt}DamageTaken_INC",
+        })
+
+    if taken_more != 1:
+        sources.append({
+            "source": "enemy",
+            "label": f"敌人受到 {dt} 伤害 MORE",
+            "category": "Enemy",
+            "value": (taken_more - 1) * 100,
+            "mod_name": f"{dt}DamageTaken_MORE",
+        })
+
+    # 公式: effMult = (1 + takenInc/100) × takenMore × (1 - max(resist-pen, 0)/100)
+    formula_detail = f"(1+{taken_inc:.0f}/100) × {taken_more:.4f}"
+    if resist != 0 or pen != 0:
+        effective_resist = max(resist - pen, 0)
+        formula_detail += f" × (1-{effective_resist:.0f}/100)"
+
+    formula_items.append({
+        "key": f"{dt}_EffMult",
+        "formula_name": f"{dt} Effective DPS Multiplier",
+        "total_value": eff_mult,
+        "display_value": f"x{eff_mult:.4f}",
+        "category_summary": {s["category"]: s["value"] for s in sources},
+        "sources": sources,
+        "_no_sources_ok": True,
+        "formula_detail": formula_detail,
+    })
+
+
+def _parse_double_triple(parts: list, formula_items: list):
+    """解析 DOUBLE_TRIPLE 行。
+
+    格式: DOUBLE_TRIPLE|doublePct|triplePct|scaledEffect
+    """
+    if len(parts) < 4:
+        return
+    try:
+        double_pct = float(parts[1])
+        triple_pct = float(parts[2])
+        scaled_effect = float(parts[3])
+    except (ValueError, IndexError):
+        return
+
+    if scaled_effect == 1 and double_pct == 0 and triple_pct == 0:
+        return
+
+    sources = []
+    if double_pct > 0:
+        sources.append({
+            "source": "player",
+            "label": f"双倍伤害 {double_pct:.1f}%",
+            "category": "DoubleDamage",
+            "value": double_pct,
+            "mod_name": "DoubleDamageChance",
+        })
+    if triple_pct > 0:
+        sources.append({
+            "source": "player",
+            "label": f"三倍伤害 {triple_pct:.1f}%",
+            "category": "TripleDamage",
+            "value": triple_pct,
+            "mod_name": "TripleDamageChance",
+        })
+
+    formula_items.append({
+        "key": "ScaledDamageEffect",
+        "formula_name": "Scaled Damage Effect (Double/Triple)",
+        "total_value": scaled_effect,
+        "display_value": f"x{scaled_effect:.4f}",
+        "category_summary": {s["category"]: s["value"] for s in sources},
+        "sources": sources,
+        "_no_sources_ok": True,
+    })
+
+
+def _parse_hitchance(parts: list, formula_items: list):
+    """解析 HITCHANCE 行。
+
+    格式: HITCHANCE|hitChance|accHitChance|enemyBlock
+    """
+    if len(parts) < 4:
+        return
+    try:
+        hit_chance = float(parts[1])
+        acc_hit_chance = float(parts[2])
+        enemy_block = float(parts[3])
+    except (ValueError, IndexError):
+        return
+
+    sources = []
+    if acc_hit_chance < 100:
+        sources.append({
+            "source": "player",
+            "label": "命中率（准确度）",
+            "category": "Accuracy",
+            "value": acc_hit_chance,
+            "mod_name": "AccuracyHitChance",
+        })
+    if enemy_block > 0:
+        sources.append({
+            "source": "enemy",
+            "label": "敌人格挡率",
+            "category": "Enemy",
+            "value": -enemy_block,
+            "mod_name": "enemyBlockChance",
+        })
+
+    formula_items.append({
+        "key": "HitChance",
+        "formula_name": "Hit Chance",
+        "total_value": hit_chance,
+        "display_value": f"{hit_chance:.1f}%",
+        "category_summary": {s["category"]: s["value"] for s in sources},
+        "sources": sources,
+        "_no_sources_ok": True,
+    })
+
+
+def _parse_dps_mult(parts: list, formula_items: list):
+    """解析 DPS_MULT 行。
+
+    格式: DPS_MULT|multiplier
+    """
+    if len(parts) < 2:
+        return
+    try:
+        mult = float(parts[1])
+    except (ValueError, IndexError):
+        return
+
+    if mult == 1:
+        return
+
+    sources = [{
+        "source": "skill",
+        "label": "技能 DPS 乘数",
+        "category": "Skill",
+        "value": mult,
+        "mod_name": "dpsMultiplier",
+    }]
+
+    formula_items.append({
+        "key": "DPS_Multiplier",
+        "formula_name": "DPS Multiplier",
+        "total_value": mult,
+        "display_value": f"x{mult:.2f}",
+        "category_summary": {"Skill": mult},
+        "sources": sources,
+        "_no_sources_ok": True,
+    })
+
+
+def _parse_combined_dps(parts: list, formula_items: list):
+    """解析 COMBINED_DPS 行（组合 DPS 构成）。
+
+    格式: COMBINED_DPS|totalDPS|dotDPS|impaleDPS|mirageDPS|cullMult|resDpsMult|combinedDPS|bleedDPS|poisonDPS|igniteDPS
+    """
+    if len(parts) < 8:
+        return
+    try:
+        total_dps = float(parts[1])
+        dot_dps = float(parts[2])
+        impale_dps = float(parts[3])
+        mirage_dps = float(parts[4])
+        cull_mult = float(parts[5])
+        res_dps_mult = float(parts[6])
+        combined_dps = float(parts[7])
+        bleed_dps = float(parts[8]) if len(parts) > 8 else 0
+        poison_dps = float(parts[9]) if len(parts) > 9 else 0
+        ignite_dps = float(parts[10]) if len(parts) > 10 else 0
+    except (ValueError, IndexError):
+        return
+
+    sources = []
+    if total_dps > 0:
+        sources.append({
+            "source": "hit",
+            "label": "Hit DPS",
+            "category": "Hit",
+            "value": total_dps,
+            "mod_name": "TotalDPS",
+        })
+    if bleed_dps > 0:
+        sources.append({
+            "source": "ailment",
+            "label": "流血 DPS",
+            "category": "DOT",
+            "value": bleed_dps,
+            "mod_name": "BleedDPS",
+        })
+    if poison_dps > 0:
+        sources.append({
+            "source": "ailment",
+            "label": "中毒 DPS",
+            "category": "DOT",
+            "value": poison_dps,
+            "mod_name": "PoisonDPS",
+        })
+    if ignite_dps > 0:
+        sources.append({
+            "source": "ailment",
+            "label": "点燃 DPS",
+            "category": "DOT",
+            "value": ignite_dps,
+            "mod_name": "IgniteDPS",
+        })
+    if dot_dps > 0 and (dot_dps - bleed_dps - poison_dps - ignite_dps) > 0.5:
+        other_dot = dot_dps - bleed_dps - poison_dps - ignite_dps
+        sources.append({
+            "source": "dot",
+            "label": "其他 DOT DPS",
+            "category": "DOT",
+            "value": other_dot,
+            "mod_name": "OtherDotDPS",
+        })
+    if impale_dps > 0:
+        sources.append({
+            "source": "impale",
+            "label": "穿刺 DPS",
+            "category": "Impale",
+            "value": impale_dps,
+            "mod_name": "ImpaleDPS",
+        })
+    if mirage_dps > 0:
+        sources.append({
+            "source": "mirage",
+            "label": "幻影 DPS",
+            "category": "Mirage",
+            "value": mirage_dps,
+            "mod_name": "MirageDPS",
+        })
+    if cull_mult > 1:
+        # Cull 额外 DPS
+        base_before_cull = combined_dps / cull_mult / res_dps_mult if cull_mult > 1 else combined_dps
+        cull_dps = base_before_cull * (cull_mult - 1)
+        sources.append({
+            "source": "cull",
+            "label": f"处决 (x{cull_mult:.4f})",
+            "category": "Cull",
+            "value": cull_dps,
+            "mod_name": "CullMultiplier",
+        })
+    if res_dps_mult > 1:
+        base_before_res = combined_dps / res_dps_mult
+        res_dps = base_before_res * (res_dps_mult - 1)
+        sources.append({
+            "source": "reservation",
+            "label": f"保留 DPS 乘数 (x{res_dps_mult:.4f})",
+            "category": "Reservation",
+            "value": res_dps,
+            "mod_name": "ReservationDpsMultiplier",
+        })
+
+    sources.sort(key=lambda s: abs(s["value"]), reverse=True)
+    cat_sum = {}
+    for s in sources:
+        cat = s["category"]
+        cat_sum[cat] = cat_sum.get(cat, 0.0) + s["value"]
+
+    formula_items.append({
+        "key": "CombinedDPS",
+        "formula_name": "Combined DPS",
+        "total_value": combined_dps,
+        "display_value": f"{combined_dps:,.0f}",
+        "category_summary": cat_sum,
+        "sources": sources,
+        "_no_sources_ok": True,
+    })
+
+
 def _empty_breakdown(baseline: dict) -> dict:
     """空结构。"""
     return {
@@ -2638,6 +3376,1411 @@ def _empty_breakdown(baseline: dict) -> dict:
         "combined_dps": baseline.get("CombinedDPS", 0),
         "active_damage_types": [],
         "formula_items": [],
+    }
+
+
+# =============================================================================
+# Section 7: 光环与精魄分析 (Aura & Spirit Analysis)
+# =============================================================================
+#
+# 设计文档（explore 模式确认）：
+#   7A — 现有光环/精魄移除测试
+#   7B — 潜在光环推荐（6 个非 Herald 候选）
+#   7C — 精魄辅助推荐（DPS 相关 + 估算）
+#   7D — Spirit Budget 汇总
+#
+# 机制确认：
+#   - Blasphemy 已排除（太复杂）
+#   - Herald 已排除（攻击构筑特有，用户自带）
+#   - Direstrike Low Life 条件：按满足条件计算，标注
+#   - Refraction III：纳入但标记为估算
+#   - Precision：POB 完整支持 Accuracy → HitChance → DPS 链路
+#   - Deadly Herald：仅限 Herald 技能，8A 已覆盖
+#
+# 候选光环（8B，6 个）：
+#   Trinity(100), Archmage(100), Charge Infusion(60),
+#   Attrition(60), Berserk(60), Elemental Conflux(60)
+#
+# 候选精魄辅助（8C，4+1 个）：
+#   Direstrike I(20), Direstrike II(40), Precision I(10), Precision II(20),
+#   Refraction III(30, 估算)
+
+# 光环预设配置映射（7A 测试时需要启用条件配置）
+# key = 光环名称, value = [{"var": "configVar", "value": bool|int}, ...]
+_AURA_PRE_CONFIGS = {
+    "Charge Infusion": [
+        {"var": "useFrenzyCharges", "value": True},
+        {"var": "overrideFrenzyCharges", "value": 3},
+        {"var": "usePowerCharges", "value": True},
+        {"var": "overridePowerCharges", "value": 3},
+        {"var": "useEnduranceCharges", "value": True},
+        {"var": "overrideEnduranceCharges", "value": 3},
+    ],
+}
+
+# 需要通过注入 mod 模拟的光环（POB 不计算的动态效果）
+# 格式：{"mod": {...}, "expect_factor": 期望系数}
+# expect_factor 用于计算期望收益（如 EC 随机选择元素，期望 = value * 1/3）
+_AURA_INJECT_MODS = {
+    "Elemental Conflux": {
+        "mod": {
+            # Level 20: 59% MORE 单个元素伤害
+            "name": "ElementalDamage", "type": "MORE", "value": 59,
+        },
+        # 每8秒随机选择火/冰/电中一个元素
+        # 对于纯单元素构筑，期望收益 = 59% * 1/3 = 19.7%
+        # 如果构筑有多种元素技能，收益会更高（加权平均）
+        "expect_factor": 1/3,  # 简化：假设构筑只用一种元素
+        "description": "每8秒随机选择火/冰/电，给该元素 59% MORE (Lv20)。期望收益 = 59% * 1/3 ≈ 20%",
+    },
+}
+
+# 光环/精魄候选数据
+_AURA_CANDIDATES = [
+    {
+        "key": "trinity",
+        "name": "Trinity",
+        "name_cn": "三位一体",
+        "skill_id": "TrinityPlayer",
+        "spirit": 100,
+        "description": "三属性穿透（需要 ResonanceCount 配置）",
+    },
+    {
+        "key": "archmage",
+        "name": "Archmage",
+        "name_cn": "大法师",
+        "skill_id": "ArchmagePlayer",
+        "spirit": 100,
+        "description": "Mana 转附加闪电伤害",
+    },
+    {
+        "key": "charge_infusion",
+        "name": "Charge Infusion",
+        "name_cn": "充能灌注",
+        "skill_id": "ChargeRegulationPlayer",
+        "spirit": 60,
+        "description": "Frenzy/Power/Endurance Charge 增益",
+        "charge_configs": [
+            {"var": "useFrenzyCharges", "type": "check", "value": True},
+            {"var": "overrideFrenzyCharges", "type": "count", "value": 3},
+            {"var": "usePowerCharges", "type": "check", "value": True},
+            {"var": "overridePowerCharges", "type": "count", "value": 3},
+            {"var": "useEnduranceCharges", "type": "check", "value": True},
+            {"var": "overrideEnduranceCharges", "type": "count", "value": 3},
+        ],
+    },
+    {
+        "key": "attrition",
+        "name": "Attrition",
+        "name_cn": "损耗",
+        "skill_id": "AttritionPlayer",
+        "spirit": 60,
+        "description": "命中附带 Wither 叠层",
+    },
+    {
+        "key": "berserk",
+        "name": "Berserk",
+        "name_cn": "狂暴",
+        "skill_id": "BerserkPlayer",
+        "spirit": 60,
+        "description": "MORE Damage + 受伤增加",
+    },
+    {
+        "key": "elemental_conflux",
+        "name": "Elemental Conflux",
+        "name_cn": "元素交融",
+        "skill_id": "ElementalConfluxPlayer",
+        "spirit": 60,
+        "description": "元素异常状态同步",
+    },
+]
+
+_SPIRIT_SUPPORT_CANDIDATES = [
+    {
+        "key": "direstrike_1",
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "skill_id": "SupportDirestrikePlayer",
+        "spirit": 20,
+        "description": "攻击伤害 INC 50%",
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+    },
+    {
+        "key": "direstrike_2",
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "skill_id": "SupportDirestrikePlayerTwo",
+        "spirit": 40,
+        "description": "攻击伤害 INC 70%",
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+    },
+    {
+        "key": "precision_1",
+        "name": "Precision I",
+        "name_cn": "精准 I",
+        "skill_id": "SupportPrecisionPlayer",
+        "spirit": 10,
+        "description": "命中 INC 30%",
+        "condition": "仅攻击构筑",
+        "note": "",
+    },
+    {
+        "key": "precision_2",
+        "name": "Precision II",
+        "name_cn": "精准 II",
+        "skill_id": "SupportPrecisionPlayerTwo",
+        "spirit": 20,
+        "description": "命中 INC 50%",
+        "condition": "仅攻击构筑",
+        "note": "",
+    },
+    {
+        "key": "refraction_3",
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "skill_id": "SupportRefractionPlayerThree",
+        "spirit": 30,
+        "description": "每 1000 护甲 +2 元素暴露",
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": True,
+    },
+]
+
+# POB ConfigOptions 中 count 类型的可测试范围上限。
+# apply 函数内部用 m_max(m_min(val, N), 0) 做 clamp，
+# 测试时传入 99999 让 clamp 自动截断，再从 modDB 读回实际值即可得到真实上限。
+_PROBE_MAX = 99999
+
+
+def _rebuild_config_tab_modlist(lua):
+    """重建 build.configTab.modList / enemyModList。
+
+    重新遍历 ConfigOptions 的所有条目，根据当前 configTab.input 值重建 modList。
+    """
+    lua.execute('''
+        local build = _spike_build
+        local configSettings = LoadModule("Modules/ConfigOptions")
+        if not configSettings then return end
+        local modList = new("ModList")
+        local enemyModList = new("ModList")
+        local input = build.configTab.input
+        for _, varData in ipairs(configSettings) do
+            if varData.apply then
+                local varName = varData.var
+                if varData.type == "check" then
+                    local val = input[varName]
+                    if val == nil and varData.defaultState then val = true end
+                    if val then pcall(varData.apply, true, modList, enemyModList, build) end
+                elseif varData.type == "count" or varData.type == "integer" or varData.type == "countAllowZero" or varData.type == "float" then
+                    local val = input[varName]
+                    if val and (val ~= 0 or varData.type ~= "count") then
+                        pcall(varData.apply, val, modList, enemyModList, build)
+                    end
+                elseif varData.type == "list" then
+                    local val = input[varName]
+                    if val == nil and varData.list and varData.defaultIndex then
+                        local defaultEntry = varData.list[varData.defaultIndex]
+                        if defaultEntry then val = defaultEntry.val end
+                    end
+                    if val then pcall(varData.apply, val, modList, enemyModList, build) end
+                end
+            end
+        end
+        build.configTab.modList = modList
+        build.configTab.enemyModList = enemyModList
+    ''')
+
+
+def _set_config_and_rebuild(lua, calcs, config_var: str, config_type: str, value):
+    """设置一个 ConfigTab 配置值并重建 modList。
+
+    Args:
+        config_var: 配置变量名（如 'configResonanceCount'）
+        config_type: 'count' 或 'check' 或 'list'
+        value: 要设置的值
+    """
+    lua.execute(f'_spike_build.configTab.input["{config_var}"] = {value}')
+    _rebuild_config_tab_modlist(lua)
+
+
+def _discover_ifskill_configs(lua, aura_names: set[str]) -> list[dict]:
+    """动态扫描 ConfigOptions，发现所有与构筑光环匹配的 ifSkill count 配置。
+
+    通过 Lua 端遍历 ConfigSettings，匹配 ifSkill 条件（支持字符串和表两种格式），
+    返回所有 count/integer/countAllowZero 类型的配置条目。
+
+    Args:
+        aura_names: 构筑中光环/精魄预留技能的名称集合
+
+    Returns:
+        [{
+            "config_var": str,      # 配置变量名
+            "config_type": str,     # 'count'/'integer'/'countAllowZero'
+            "aura_name": str,       # 匹配的光环名称
+            "label": str,           # POB 配置标签
+            "actual_max": float,    # apply 函数 clamp 后的真实上限
+        }, ...]
+    """
+    if not aura_names:
+        return []
+
+    # 构建 Lua 端的光环名称查找表
+    aura_list = ",".join(aura_names)
+    lua.execute(f'_aura_names_list = "{aura_list}"')
+    result = lua.execute('''
+        local configSettings = LoadModule("Modules/ConfigOptions")
+        if not configSettings then return "" end
+
+        local auraNames = {}
+        for n in _aura_names_list:gmatch("[^,]+") do
+            auraNames[n:match("^%s*(.-)%s*$")] = true
+        end
+
+        local lines = {}
+        for _, varData in ipairs(configSettings) do
+            if not varData.var then goto next end
+
+            -- 只处理 count 类型（有范围的数值参数）
+            if varData.type ~= "count" and varData.type ~= "integer"
+               and varData.type ~= "countAllowZero" then
+                goto next
+            end
+
+            -- 检查 ifSkill 条件是否匹配
+            local matchedAura = nil
+            local ifSkill = varData.ifSkill
+            if type(ifSkill) == "string" then
+                if auraNames[ifSkill] then matchedAura = ifSkill end
+            elseif type(ifSkill) == "table" then
+                for _, s in ipairs(ifSkill) do
+                    if auraNames[s] then matchedAura = s; break end
+                end
+            end
+
+            if matchedAura then
+                lines[#lines+1] = varData.var .. "|" .. varData.type .. "|"
+                    .. matchedAura .. "|" .. tostring(varData.label or "")
+            end
+            ::next::
+        end
+        return table.concat(lines, "\\n")
+    ''')
+
+    configs = []
+    if not result:
+        return configs
+
+    for line in str(result).split('\n'):
+        if not line.strip() or '|' not in line:
+            continue
+        parts = line.split('|')
+        if len(parts) < 4:
+            continue
+        config_var, config_type, aura_name, label = parts[0], parts[1], parts[2], parts[3]
+
+        # 用 _PROBE_MAX 探测真实上限：用临时 ModList 避免污染 configTab.modList
+        # ConfigOptions 的 apply 对 count 类型做 m_max(m_min(val, max), 0)，
+        # Sum(BASE, Multiplier:*) 返回 clamp 后的实际最大值。
+        actual_max = lua.execute(f'''
+            local configSettings = LoadModule("Modules/ConfigOptions")
+            local probeList = new("ModList")
+            for _, varData in ipairs(configSettings) do
+                if varData.apply and varData.var and varData.var == "{config_var}" then
+                    pcall(varData.apply, {_PROBE_MAX}, probeList, nil, _spike_build)
+                    break
+                end
+            end
+            -- Sum 正确合并所有同名 mod（ModList 内部双视图不影响 Sum 值）
+            local s = 0
+            for k, v in pairs(probeList) do
+                if type(v) == "table" then
+                    for _, mod in ipairs(v) do
+                        if type(mod) == "table" and mod.name and mod.name:match("^Multiplier:") then
+                            s = math.max(s, tonumber(mod.value) or 0)
+                        end
+                    end
+                end
+            end
+            return tostring(math.floor(s + 0.5))
+        ''')
+        try:
+            actual_max = float(actual_max)
+        except (ValueError, TypeError):
+            actual_max = 0.0
+
+        # 清除探测值，避免影响后续注入逻辑
+        lua.execute(f'_spike_build.configTab.input["{config_var}"] = nil')
+
+        configs.append({
+            "config_var": config_var,
+            "config_type": config_type,
+            "aura_name": aura_name,
+            "label": label,
+            "actual_max": max(actual_max, 1),
+        })
+
+    return configs
+
+
+def _inject_ifskill_defaults(lua, calcs,
+                              aura_configs: list[dict] | None = None):
+    """为所有条件光环注入参数中间值（基线配置）。
+
+    动态发现或使用已传入的配置列表，对每个 count 配置注入 min~max 的中间值。
+    """
+    if aura_configs is None:
+        # 动态发现构筑中所有光环名称
+        skills_info = _query_active_skills_info(lua, calcs)
+        aura_names = {si["main_skill_name"] for si in skills_info if si["is_aura"]}
+        aura_configs = _discover_ifskill_configs(lua, aura_names)
+
+    for cfg in aura_configs:
+        config_var = cfg["config_var"]
+        config_type = cfg["config_type"]
+        actual_max = cfg["actual_max"]
+        mid = int(actual_max / 2)
+
+        current = lua.execute(f'''
+            return tostring(_spike_build.configTab.input["{config_var}"] or "nil")
+        ''')
+        if str(current) == "nil":
+            _set_config_and_rebuild(lua, calcs, config_var, config_type, mid)
+            logger.info("已注入 %s %s=%d（范围 0~%d）",
+                        cfg["aura_name"], config_var, mid, int(actual_max))
+
+
+def _test_aura_config_range(lua, calcs, aura_name: str,
+                            baseline: dict,
+                            aura_configs: list[dict] | None = None,
+                            no_aura_dps: float = None) -> list[dict]:
+    """测试条件光环所有可配置参数在最小/最大值时的 DPS 范围。
+
+    动态查找该光环的所有 count 类型 ifSkill 配置，逐一测试端点值。
+    百分比计算基准为"无光环"DPS，展示参数变化带来的 DPS 贡献。
+
+    Args:
+        aura_name: 光环名称
+        baseline: 当前 baseline（用于恢复状态）
+        aura_configs: 已发现的配置列表（避免重复扫描）
+        no_aura_dps: 无该光环时的 DPS（作为百分比计算基准）
+
+    Returns:
+        [{"config_var", "label", "aura_name", "actual_max",
+          "dps_pct_min", "dps_pct_max", "dps_min", "dps_max", "mid"}, ...]
+        空列表表示该光环无条件配置。
+    """
+    if aura_configs is None:
+        aura_configs = _discover_ifskill_configs(lua, {aura_name})
+
+    matched = [c for c in aura_configs if c["aura_name"] == aura_name]
+    if not matched:
+        return []
+
+    from .calculator import calculate as calc_fn
+    # 如果没有提供 no_aura_dps，用当前 baseline（兼容旧行为）
+    base_dps = no_aura_dps if no_aura_dps else baseline.get("TotalDPS", 0)
+
+    results = []
+    for cfg in matched:
+        config_var = cfg["config_var"]
+        config_type = cfg["config_type"]
+        actual_max = cfg["actual_max"]
+        mid = int(actual_max / 2)
+
+        for endpoint_name, endpoint_val in [("min", 0), ("max", actual_max)]:
+            _set_config_and_rebuild(lua, calcs, config_var, config_type, endpoint_val)
+            output = calc_fn(lua, calcs)
+            eps_dps = output.get("TotalDPS", 0)
+            dps_pct = ((eps_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+            cfg[f"dps_{endpoint_name}"] = eps_dps
+            cfg[f"dps_pct_{endpoint_name}"] = dps_pct
+
+        # 恢复中间值
+        _set_config_and_rebuild(lua, calcs, config_var, config_type, mid)
+        cfg["mid"] = mid
+
+        results.append(cfg)
+
+    return results
+
+
+def _query_active_skills_info(lua, calcs) -> list[dict]:
+    """查询构筑中所有活跃技能组信息，识别光环和精魄辅助。
+
+    检测逻辑：
+    - is_aura: 基于 skillTypes 判断是否为 Aura/Persistent+Buff 精魄预留技能，
+      或组内包含精魄辅助宝石（spirit support gems）
+    - spirit_cost: 所有宝石的精魄消耗总和
+
+    Returns:
+        [{
+            "group_idx": int,          # 技能组索引 (1-based)
+            "label": str,               # 用户标签
+            "main_skill_name": str,     # 主技能名称
+            "is_aura": bool,            # 是否是光环/精魄预留 (8A 测试目标)
+            "spirit_cost": float,       # 总精魄消耗
+            "gems": [                  # 宝石列表
+                {
+                    "name": str,
+                    "skill_id": str,
+                    "is_support": bool,
+                    "enabled": bool,
+                    "spirit": float,
+                }, ...
+            ],
+            "spirit_supports": [       # 精魄辅助宝石列表
+                {"name": str, "skill_id": str, "spirit": float}, ...
+            ],
+        }, ...]
+    """
+    result = lua.execute('''
+        local build = _spike_build
+        local groups = build.skillsTab.socketGroupList
+        local lines = {}
+
+        for gi = 1, #groups do
+            local group = groups[gi]
+            if not group.enabled then
+                lines[#lines+1] = tostring(gi) .. "||disabled"
+                goto next_group
+            end
+
+            local label = group.label or ""
+            local mainSkillName = ""
+            local totalSpirit = 0
+            local isAuraOrSpiritReserved = false
+
+            -- 收集所有宝石信息
+            local gemInfos = {}
+            local spiritSupports = {}
+
+            for j = 1, #group.gemList do
+                local gem = group.gemList[j]
+                if not gem.enabled then goto next_gem end
+
+                local gName = gem.nameSpec or "?"
+                local gSkillId = gem.skillId or "?"
+                local gSupport = false
+                local gSpirit = 0
+
+                -- 获取技能效果数据
+                local grantedEffect = gem.grantedEffect
+                    or (gem.gemData and gem.gemData.grantedEffect)
+                if not grantedEffect then
+                    if gem.skillId and data.skills[gem.skillId] then
+                        grantedEffect = data.skills[gem.skillId]
+                    end
+                end
+
+                if grantedEffect then
+                    gSupport = grantedEffect.support or false
+                    gName = grantedEffect.name or gName
+
+                    -- 检查精魄消耗（从 levels 中获取 spiritReservationFlat）
+                    local lvl = grantedEffect.levels and grantedEffect.levels[gem.level]
+                    if lvl then
+                        if lvl.spiritReservationFlat then
+                            gSpirit = lvl.spiritReservationFlat
+                        end
+                    end
+
+                    -- 累加总精魄消耗
+                    if gSpirit > 0 then
+                        totalSpirit = totalSpirit + gSpirit
+                    end
+
+                    -- 收集精魄辅助信息（有精魄消耗的辅助宝石）
+                    if gSupport and gSpirit > 0 then
+                        spiritSupports[#spiritSupports+1] = gName .. "|" .. (gem.skillId or "?") .. "|" .. tostring(gSpirit)
+                        -- 有精魄辅助 = 光环/精魄预留组
+                        isAuraOrSpiritReserved = true
+                    end
+
+                    -- 确认是否是主技能
+                    if j == (group.mainActiveSkill or 1) then
+                        mainSkillName = gName
+
+                        -- 判断主技能是否为光环或精魄预留技能
+                        -- 光环定义：
+                        --   1. SkillType.Aura = 传统光环 (如 Purity of Fire)
+                        --   2. Persistent+Buff+HasReservation 但排除：
+                        --      - GeneratesRemnants(183): Life Remnants, Siphon Elements 等残骸技能
+                        --      - DodgeReplacement(229): Blink 等位移替换技能
+                        --      - CreatesMinion: 召唤技能
+                        --      - AppliesCurse(69): 诅咒
+                        --      - Triggered(37): 触发技能
+                        --      - Movement(34): 移动技能
+                        local st = grantedEffect.skillTypes
+                        if st then
+                            local isAuraSkill = (st[SkillType.Aura] ~= nil)
+                            local isPer = (st[SkillType.Persistent] ~= nil)
+                            local isBuff = (st[SkillType.Buff] ~= nil)
+                            local isRes = (st[SkillType.HasReservation] ~= nil)
+                            local isMovement = (st[SkillType.Movement] ~= nil)
+                            local isMinion = (st[SkillType.CreatesMinion] ~= nil)
+                            local isCurse = (st[69] ~= nil)          -- AppliesCurse
+                            local isTriggered = (st[37] ~= nil)      -- Triggered
+                            local isRemnant = (st[183] ~= nil)       -- GeneratesRemnants
+                            local isDodge = (st[229] ~= nil)         -- DodgeReplacement
+
+                            -- 排除项
+                            if isCurse or isTriggered or isMovement or isDodge then
+                                isAuraOrSpiritReserved = false
+                            -- Aura 类型 → 光环
+                            elseif isAuraSkill then
+                                isAuraOrSpiritReserved = true
+                            -- Persistent+Buff+HasReservation（排除残骸/召唤）→ 精魄预留光环
+                            elseif isPer and isBuff and isRes and not isMinion and not isRemnant then
+                                isAuraOrSpiritReserved = true
+                            end
+                        end
+                    end
+                end
+
+                gemInfos[#gemInfos+1] = gName .. "|" .. (gem.skillId or "?") .. "|" .. tostring(gSupport) .. "|true|" .. tostring(gSpirit)
+                ::next_gem::
+            end
+
+            lines[#lines+1] = tostring(gi) .. "||"
+                .. label .. "||"
+                .. mainSkillName .. "||"
+                .. tostring(isAuraOrSpiritReserved) .. "||"
+                .. tostring(totalSpirit) .. "||"
+                .. table.concat(gemInfos, ";;") .. "||"
+                .. table.concat(spiritSupports, ";;")
+
+            ::next_group::
+        end
+
+        return table.concat(lines, "\\n")
+    ''')
+
+    if not result:
+        return []
+
+    skills_info = []
+    for line in str(result).split('\n'):
+        if not line.strip():
+            continue
+        parts = line.split('||')
+        if len(parts) < 7:
+            # disabled 组
+            if len(parts) >= 2 and parts[1] == "disabled":
+                continue
+            continue
+
+        gi = int(parts[0])
+        label = parts[1]
+        main_name = parts[2]
+        is_aura = parts[3] == "true"
+        spirit_cost = float(parts[4])
+
+        gems = []
+        if parts[5]:
+            for gem_str in parts[5].split(';;'):
+                gp = gem_str.split('|')
+                if len(gp) >= 4:
+                    gems.append({
+                        "name": gp[0],
+                        "skill_id": gp[1],
+                        "is_support": gp[2] == "true",
+                        "enabled": gp[3] == "true",
+                        "spirit": float(gp[4]) if len(gp) > 4 and gp[4] else 0,
+                    })
+
+        spirit_supports = []
+        if parts[6]:
+            for ss_str in parts[6].split(';;'):
+                sp = ss_str.split('|')
+                if len(sp) >= 3:
+                    spirit_supports.append({
+                        "name": sp[0],
+                        "skill_id": sp[1],
+                        "spirit": float(sp[2]),
+                    })
+
+        skills_info.append({
+            "group_idx": gi,
+            "label": label,
+            "main_skill_name": main_name,
+            "is_aura": is_aura,
+            "spirit_cost": spirit_cost,
+            "gems": gems,
+            "spirit_supports": spirit_supports,
+        })
+
+    return skills_info
+
+
+def _query_total_spirit(lua, calcs) -> float:
+    """查询构筑的总精魄和已用精魄。
+
+    Returns:
+        (total_spirit, reserved_spirit) 元组
+    """
+    result = lua.execute('''
+        local build = _spike_build
+        local env = calcs.initEnv(build, "MAIN")
+        calcs.perform(env)
+        local total = env.player.output.Spirit or 0
+        local reserved = env.player.output.SpiritReserved or 0
+        return tostring(total) .. "|" .. tostring(reserved)
+    ''')
+    if result:
+        parts = str(result).split('|')
+        try:
+            return float(parts[0]), float(parts[1])
+        except (ValueError, IndexError):
+            pass
+    return 0, 0
+
+
+def _test_remove_skill_group(lua, calcs, group_idx: int,
+                             baseline: dict, skill_name: str = None,
+                             pre_configs: list = None,
+                             inject_mods: list = None) -> dict:
+    """测试禁用指定技能组后的 DPS 变化。
+
+    按主技能名称匹配，禁用所有同名副本组（包括 item-granted 副本）。
+    pre_configs: 预设配置（如 Charge）
+    inject_mods: 需要注入的 mod 列表（用于模拟 POB 不计算的动态效果）
+                [{"name": str, "type": "MORE"|"INC"|"BASE", "value": float}, ...]
+    因为 POB 构筑中同一技能可能存在 socketed 和 item-granted 两个版本。
+
+    Args:
+        group_idx: 技能组索引 (1-based)
+        skill_name: 主技能名称（用于匹配所有副本）。若为 None，只禁用指定组。
+
+    Returns:
+        {"dps_before", "dps_after", "dps_pct", "ehp_pct", "simulated": bool}
+    """
+    base_dps = baseline.get("TotalDPS", 0)
+    base_ehp = baseline.get("TotalEHP", 0)
+
+    # 预设条件配置（如 Charge），并重算 baseline
+    if pre_configs:
+        for cfg in pre_configs:
+            var, val = cfg["var"], cfg["value"]
+            if isinstance(val, bool):
+                lua_val = "true" if val else "false"
+            else:
+                lua_val = val
+            lua.execute(f'_spike_build.configTab.input["{var}"] = {lua_val}')
+        _rebuild_config_tab_modlist(lua)
+        from .calculator import calculate as calc_fn
+        charged_bl = calc_fn(lua, calcs)
+        base_dps = charged_bl.get("TotalDPS", 0)
+        base_ehp = charged_bl.get("TotalEHP", 0)
+
+    # 构建 Lua 代码：按名称禁用所有同名组
+    if skill_name:
+        lua_name = skill_name.replace("\\", "\\\\").replace('"', '\\"')
+        lua_code = f'''
+            local build = _spike_build
+            local targetName = "{lua_name}"
+            local disabled = {{}}
+
+            -- 禁用所有同名组（通过 nameSpec 或 skillId 匹配）
+            -- build_loader 不设 grantedEffect，必须用 nameSpec/skillId
+            for i = 1, #build.skillsTab.socketGroupList do
+                local group = build.skillsTab.socketGroupList[i]
+                if not group.enabled then goto next end
+                local mainIdx = group.mainActiveSkill or 1
+                local gem = group.gemList[mainIdx]
+                if not gem then goto next end
+                -- Try grantedEffect name first (fallback), then nameSpec, then skillId
+                local ge = gem.grantedEffect or (gem.gemData and gem.gemData.grantedEffect)
+                local matched = false
+                if ge and ge.name == targetName then
+                    matched = true
+                elseif gem.nameSpec == targetName then
+                    matched = true
+                elseif gem.skillId == targetName then
+                    matched = true
+                else
+                    -- Also check grantedEffect via data.skills lookup
+                    local sid = gem.skillId
+                    if sid and data.skills[sid] and data.skills[sid].name == targetName then
+                        matched = true
+                    end
+                end
+                if matched then
+                    group.enabled = false
+                    disabled[#disabled+1] = i
+                end
+                ::next::
+            end
+
+            local ok, env = pcall(function()
+                return calcs.initEnv(build, "MAIN")
+            end)
+            local result = ""
+            if ok then
+                pcall(calcs.perform, env)
+                result = tostring(env.player.output.TotalDPS or 0) .. "|" .. tostring(env.player.output.TotalEHP or 0)
+            else
+                result = "ERROR"
+            end
+
+            -- 恢复
+            for _, idx in ipairs(disabled) do
+                build.skillsTab.socketGroupList[idx].enabled = true
+            end
+
+            return result
+        '''
+    else:
+        lua_code = f'''
+            local build = _spike_build
+            local gi = {group_idx}
+            local group = build.skillsTab.socketGroupList[gi]
+            if not group then return "ERROR" end
+            local origEnabled = group.enabled
+            group.enabled = false
+            local ok, env = pcall(function()
+                return calcs.initEnv(build, "MAIN")
+            end)
+            local result = ""
+            if ok then
+                pcall(calcs.perform, env)
+                result = tostring(env.player.output.TotalDPS or 0) .. "|" .. tostring(env.player.output.TotalEHP or 0)
+            else
+                result = "ERROR"
+            end
+            group.enabled = origEnabled
+            return result
+        '''
+
+    result = lua.execute(lua_code)
+
+    def _restore_pre_configs():
+        if pre_configs:
+            for cfg in pre_configs:
+                lua.execute(f'_spike_build.configTab.input["{cfg["var"]}"] = nil')
+            _rebuild_config_tab_modlist(lua)
+
+    if not result or result == "ERROR":
+        _restore_pre_configs()
+        return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": bool(pre_configs)}
+
+    parts = str(result).split('|')
+    try:
+        new_dps = float(parts[0])
+        new_ehp = float(parts[1])
+    except (ValueError, IndexError):
+        _restore_pre_configs()
+        return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": bool(pre_configs)}
+
+    dps_pct = ((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = ((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+
+    _restore_pre_configs()
+    return {
+        "dps_before": base_dps,
+        "dps_after": new_dps,
+        "dps_pct": dps_pct,
+        "ehp_pct": ehp_pct,
+        "simulated": bool(pre_configs),
+    }
+
+
+def _test_mod_effect(lua, calcs, baseline: dict,
+                     aura_config: dict, skill_name: str) -> dict:
+    """测试注入 mod 后的 DPS 变化（用于模拟 POB 不计算的动态效果）。
+
+    用于 Elemental Conflux 等需要手动注入 mod 的光环。
+    对于 EC，会根据主技能的伤害类型分布计算加权期望。
+
+    Args:
+        aura_config: 光环配置
+            {"mod": {"name": str, "type": "MORE"|"INC"|"BASE", "value": float},
+             "expect_factor": float (默认期望系数，会被实际计算覆盖)}
+        skill_name: 光环名称（用于报告）
+
+    Returns:
+        {"dps_before", "dps_after", "dps_pct", "ehp_pct", "simulated": True}
+    """
+    from .calculator import calculate as calc_fn
+
+    mod = aura_config["mod"]
+    default_expect_factor = aura_config.get("expect_factor", 1.0)
+
+    # 对于 EC，动态计算期望系数
+    if skill_name == "Elemental Conflux":
+        # 获取主技能的伤害类型分布
+        damage_breakdown = lua.execute('''
+            local env = calcs.initEnv(_spike_build, "MAIN")
+            calcs.perform(env)
+            local output = env.player.output
+
+            -- 获取各元素的伤害贡献（StoredCombinedAvg 是各元素的平均DPS贡献）
+            local fire = output.FireStoredCombinedAvg or 0
+            local cold = output.ColdStoredCombinedAvg or 0
+            local lightning = output.LightningStoredCombinedAvg or 0
+            local total = fire + cold + lightning
+
+            -- 计算元素伤害占比
+            local fire_pct = total > 0 and (fire / total) or 0
+            local cold_pct = total > 0 and (cold / total) or 0
+            local lightning_pct = total > 0 and (lightning / total) or 0
+
+            -- EC 期望收益 = (火占比 + 冰占比 + 电占比) / 3
+            -- 因为 EC 随机选择一个元素，选中的元素如果主技能用到了，才有收益
+            local expect_factor = (fire_pct + cold_pct + lightning_pct) / 3
+
+            return string.format("%.4f|%.4f|%.4f|%.4f",
+                expect_factor, fire_pct, cold_pct, lightning_pct)
+        ''')
+        parts = str(damage_breakdown).split('|')
+        expect_factor = float(parts[0]) if parts else default_expect_factor
+        fire_pct = float(parts[1]) * 100 if len(parts) > 1 else 0
+        cold_pct = float(parts[2]) * 100 if len(parts) > 2 else 0
+        lightning_pct = float(parts[3]) * 100 if len(parts) > 3 else 0
+    else:
+        expect_factor = default_expect_factor
+        fire_pct = cold_pct = lightning_pct = 0
+
+    # 计算期望值
+    expected_value = mod["value"] * expect_factor
+
+    # 注入期望值 mod 到 modDB
+    lua.execute(f'''
+        local env = calcs.initEnv(_spike_build, "MAIN")
+        -- 注入期望值 mod（已乘期望系数）
+        env.player.modDB:NewMod("{mod["name"]}", "{mod["type"]}", {expected_value}, "{skill_name} (期望)")
+        calcs.perform(env)
+        _spike_base_dps = env.player.output.TotalDPS or 0
+        _spike_base_ehp = env.player.output.TotalEHP or 0
+    ''')
+    base_dps = float(lua.eval('_spike_base_dps') or 0)
+    base_ehp = float(lua.eval('_spike_base_ehp') or 0)
+
+    # 计算无 mod 的 DPS（移除光环后的 DPS）
+    lua.execute('''
+        local env = calcs.initEnv(_spike_build, "MAIN")
+        calcs.perform(env)
+        _spike_no_mod_dps = env.player.output.TotalDPS or 0
+        _spike_no_mod_ehp = env.player.output.TotalEHP or 0
+    ''')
+    no_mod_dps = float(lua.eval('_spike_no_mod_dps') or 0)
+    no_mod_ehp = float(lua.eval('_spike_no_mod_ehp') or 0)
+
+    # 清理临时变量
+    lua.execute('_spike_base_dps, _spike_base_ehp, _spike_no_mod_dps, _spike_no_mod_ehp = nil, nil, nil, nil')
+
+    # 百分比：有 mod vs 无 mod（移除光环 = DPS 下降）
+    dps_pct = ((no_mod_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = ((no_mod_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+
+    result = {
+        "dps_before": base_dps,
+        "dps_after": no_mod_dps,
+        "dps_pct": dps_pct,
+        "ehp_pct": ehp_pct,
+        "simulated": True,
+        "expect_factor": expect_factor,
+        "raw_value": mod["value"],
+    }
+
+    # 对于 EC，记录伤害构成用于报告
+    if skill_name == "Elemental Conflux":
+        result["damage_breakdown"] = {
+            "fire": fire_pct,
+            "cold": cold_pct,
+            "lightning": lightning_pct,
+        }
+
+    return result
+
+
+
+def _test_add_candidate_aura(lua, calcs, aura: dict,
+                              baseline: dict) -> dict:
+    """测试添加候选光环后的 DPS 变化。
+
+    通过向 Lua 添加一个新的 socket group 来测试光环效果。
+    如果 aura 有 charge_configs 字段，在测试前先启用对应的 Charge 配置。
+
+    Returns:
+        {"name", "dps_before", "dps_after", "dps_pct", "spirit", "error"}
+    """
+    base_dps = baseline.get("TotalDPS", 0)
+    base_ehp = baseline.get("TotalEHP", 0)
+    skill_id = aura["skill_id"]
+
+    # 预设 Charge/条件配置（如有）
+    charge_configs = aura.get("charge_configs", [])
+    for cfg in charge_configs:
+        var, val = cfg["var"], cfg["value"]
+        if isinstance(val, bool):
+            lua_val = "true" if val else "false"
+            lua.execute(f'_spike_build.configTab.input["{var}"] = {lua_val}')
+        else:
+            lua.execute(f'_spike_build.configTab.input["{var}"] = {val}')
+
+    # 重建 configTab modList（使预设生效）
+    if charge_configs:
+        _rebuild_config_tab_modlist(lua)
+
+    result = lua.execute(f'''
+        local build = _spike_build
+
+        -- 查找候选光环的 skillId 对应的 grantedEffect
+        local ge = nil
+        -- 先尝试通过 data.gems 查找
+        for gid, gem in pairs(data.gems) do
+            if gem.grantedEffectId == "{skill_id}" then
+                ge = gem.grantedEffect
+                break
+            end
+        end
+        -- 再尝试通过 data.skills 直接查找
+        if not ge and data.skills["{skill_id}"] then
+            ge = data.skills["{skill_id}"]
+        end
+
+        if not ge then
+            return "NOT_FOUND|" .. "{skill_id}"
+        end
+
+        -- 创建新的技能组
+        local maxLevel = 0
+        for lvl, _ in pairs(ge.levels or {{}}) do
+            if lvl > maxLevel then maxLevel = lvl end
+        end
+        if maxLevel == 0 then maxLevel = 1 end
+
+        local newGroup = {{
+            enabled = true,
+            includeInFullDPS = true,
+            label = "[WhatIf] {aura["name"]}",
+            slot = nil,
+            source = nil,
+            mainActiveSkill = 1,
+            mainActiveSkillCalcs = 1,
+            displaySkillList = {{}},
+            displaySkillListCalcs = {{}},
+            displayGemList = {{}},
+            gemList = {{
+                {{
+                    skillId = "{skill_id}",
+                    nameSpec = ge.name or "{aura["name"]}",
+                    level = maxLevel,
+                    quality = 0,
+                    enabled = true,
+                    enableGlobal1 = true,
+                    enableGlobal2 = true,
+                    count = 1,
+                    statSet = {{}},
+                    statSetCalcs = {{}},
+                    skillMinionSkillStatSetIndexLookup = {{}},
+                    skillMinionSkillStatSetIndexLookupCalcs = {{}},
+                    grantedEffect = ge,
+                }},
+            }},
+        }}
+
+        -- 注册到构建
+        local origCount = #build.skillsTab.socketGroupList
+        table.insert(build.skillsTab.socketGroupList, newGroup)
+
+        -- 重新计算
+        local ok, env = pcall(function()
+            return calcs.initEnv(build, "MAIN")
+        end)
+        if not ok then
+            build.skillsTab.socketGroupList[origCount + 1] = nil
+            return "ERROR|" .. tostring(env)
+        end
+
+        pcall(calcs.perform, env)
+        local newDps = env.player.output.TotalDPS or 0
+        local newEhp = env.player.output.TotalEHP or 0
+
+        -- 清理
+        build.skillsTab.socketGroupList[origCount + 1] = nil
+
+        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp)
+    ''')
+
+    def _restore_charge_configs():
+        """恢复 charge 配置并重建 configTab modList。"""
+        if charge_configs:
+            for cfg in charge_configs:
+                lua.execute(f'_spike_build.configTab.input["{cfg["var"]}"] = nil')
+            _rebuild_config_tab_modlist(lua)
+
+    if not result:
+        _restore_charge_configs()
+        return {
+            "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": aura["spirit"], "error": "Lua returned None",
+        }
+
+    parts = str(result).split('|')
+    if parts[0] == "NOT_FOUND" or parts[0] == "ERROR":
+        _restore_charge_configs()
+        return {
+            "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": aura["spirit"],
+            "error": str(result),
+        }
+
+    try:
+        new_dps = float(parts[1])
+        new_ehp = float(parts[2]) if len(parts) > 2 else base_ehp
+    except (ValueError, IndexError):
+        _restore_charge_configs()
+        return {
+            "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": aura["spirit"], "error": "Parse error",
+        }
+
+    _restore_charge_configs()
+
+    dps_pct = ((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = ((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+
+    return {
+        "name": aura["name"],
+        "name_cn": aura.get("name_cn", ""),
+        "description": aura.get("description", ""),
+        "dps_before": base_dps,
+        "dps_after": new_dps,
+        "dps_pct": dps_pct,
+        "ehp_pct": ehp_pct,
+        "spirit": aura["spirit"],
+        "error": None,
+    }
+
+
+def _test_add_spirit_support(lua, calcs, support: dict,
+                             aura_group_idx: int,
+                             baseline: dict) -> dict:
+    """测试向指定光环技能组添加精魄辅助后的 DPS 变化。
+
+    Args:
+        support: 精魄辅助候选数据
+        aura_group_idx: 目标光环技能组索引
+
+    Returns:
+        {"name", "dps_before", "dps_after", "dps_pct", "spirit",
+         "target_aura", "condition", "note", "estimated", "error"}
+    """
+    base_dps = baseline.get("TotalDPS", 0)
+    base_ehp = baseline.get("TotalEHP", 0)
+    skill_id = support["skill_id"]
+
+    result = lua.execute(f'''
+        local build = _spike_build
+        local gi = {aura_group_idx}
+        local group = build.skillsTab.socketGroupList[gi]
+        if not group then return "ERROR|group not found" end
+
+        -- 查找精魄辅助的 grantedEffect
+        local ge = nil
+        for gid, gem in pairs(data.gems) do
+            if gem.grantedEffectId == "{skill_id}" then
+                ge = gem.grantedEffect
+                break
+            end
+        end
+        if not ge and data.skills["{skill_id}"] then
+            ge = data.skills["{skill_id}"]
+        end
+        if not ge then
+            return "NOT_FOUND|{skill_id}"
+        end
+
+        local maxLevel = 0
+        for lvl, _ in pairs(ge.levels or {{}}) do
+            if lvl > maxLevel then maxLevel = lvl end
+        end
+        if maxLevel == 0 then maxLevel = 1 end
+
+        -- 创建精魄辅助宝石对象
+        local supportGem = {{
+            skillId = "{skill_id}",
+            nameSpec = ge.name or "{support["name"]}",
+            level = maxLevel,
+            quality = 0,
+            enabled = true,
+            enableGlobal1 = true,
+            enableGlobal2 = true,
+            count = 1,
+            statSet = {{}},
+            statSetCalcs = {{}},
+            skillMinionSkillStatSetIndexLookup = {{}},
+            skillMinionSkillStatSetIndexLookupCalcs = {{}},
+            grantedEffect = ge,
+            color = "^8",
+        }}
+
+        -- 添加到技能组的 gemList
+        local origGemCount = #group.gemList
+        table.insert(group.gemList, supportGem)
+
+        -- 重新计算
+        local ok, env = pcall(function()
+            return calcs.initEnv(build, "MAIN")
+        end)
+        if not ok then
+            group.gemList[origGemCount + 1] = nil
+            return "ERROR|" .. tostring(env)
+        end
+
+        pcall(calcs.perform, env)
+        local newDps = env.player.output.TotalDPS or 0
+        local newEhp = env.player.output.TotalEHP or 0
+
+        -- 清理
+        group.gemList[origGemCount + 1] = nil
+
+        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp)
+    ''')
+
+    if not result:
+        return {
+            "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "estimated": support.get("estimated", False), "error": "Lua returned None",
+        }
+
+    parts = str(result).split('|')
+    if parts[0] == "NOT_FOUND" or parts[0] == "ERROR":
+        return {
+            "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "estimated": support.get("estimated", False), "error": str(result),
+        }
+
+    try:
+        new_dps = float(parts[1])
+        new_ehp = float(parts[2]) if len(parts) > 2 else base_ehp
+    except (ValueError, IndexError):
+        return {
+            "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
+            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "estimated": support.get("estimated", False), "error": "Parse error",
+        }
+
+    dps_pct = ((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = ((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+
+    # 获取目标光环名称
+    target_aura = ""
+    skills_info = _query_active_skills_info(lua, calcs)
+    for si in skills_info:
+        if si["group_idx"] == aura_group_idx:
+            target_aura = si["main_skill_name"]
+            break
+
+    return {
+        "name": support["name"],
+        "name_cn": support.get("name_cn", ""),
+        "description": support.get("description", ""),
+        "dps_before": base_dps,
+        "dps_after": new_dps,
+        "dps_pct": dps_pct,
+        "ehp_pct": ehp_pct,
+        "spirit": support["spirit"],
+        "target_aura": target_aura,
+        "target_group_idx": aura_group_idx,
+        "condition": support.get("condition", ""),
+        "note": support.get("note", ""),
+        "estimated": support.get("estimated", False),
+        "error": None,
+    }
+
+
+def aura_spirit_analysis(lua, calcs, baseline: dict = None,
+                         skill_flags: dict = None) -> dict:
+    """Section 7: 光环与精魄分析。
+
+    7A: 现有光环/精魄移除测试 — 逐一禁用构筑中的光环，测量 DPS 贡献
+    7B: 潜在光环推荐 — 测试 6 个候选光环的 DPS 收益
+    7C: 精魄辅助推荐 — 测试向现有光环添加精魄辅助的 DPS 收益
+    7D: Spirit Budget 汇总 — 总精魄、已用精魄、推荐精魄
+
+    Args:
+        lua: LuaRuntime
+        calcs: POB calcs 模块
+        baseline: 基线 output
+        skill_flags: 技能 flags（用于过滤攻击/法术专属）
+
+    Returns:
+        {
+            "existing_auras": [8A 结果],
+            "candidate_auras": [8B 结果],
+            "spirit_support_tests": [8C 结果],
+            "spirit_budget": {total, reserved, recommended_total, available},
+        }
+    """
+    from .calculator import calculate as calc_fn
+
+    if baseline is None:
+        baseline = calc_fn(lua, calcs)
+
+    base_dps = baseline.get("TotalDPS", 0)
+    is_attack = skill_flags.get("is_attack", False) if skill_flags else False
+    is_spell = skill_flags.get("is_spell", True) if skill_flags else True
+
+    # 先查询技能信息以获取光环名称列表
+    skills_info = _query_active_skills_info(lua, calcs)
+    aura_names = {si["main_skill_name"] for si in skills_info if si["is_aura"]}
+
+    # 动态发现所有与构筑光环匹配的 ifSkill count 配置
+    aura_configs = _discover_ifskill_configs(lua, aura_names)
+    logger.info("发现 %d 个条件配置: %s",
+                len(aura_configs),
+                ", ".join(f"{c['aura_name']}/{c['config_var']}({int(c['actual_max'])})"
+                          for c in aura_configs))
+
+    # 注入中间值作为基线
+    _inject_ifskill_defaults(lua, calcs, aura_configs=aura_configs)
+    baseline = calc_fn(lua, calcs)
+    base_dps = baseline.get("TotalDPS", 0)
+    logger.info("注入 ifSkill 默认值后基线: TotalDPS=%.0f", base_dps)
+
+    logger.info("技能信息查询完成: %d 个技能组", len(skills_info))
+
+    # 查询精魄
+    total_spirit, reserved_spirit = _query_total_spirit(lua, calcs)
+    logger.info("精魄: 总计 %.0f, 已用 %.0f", total_spirit, reserved_spirit)
+
+    # === 7A: 现有光环/精魄移除测试 ===
+    existing_auras = []
+    seen_aura_names = set()
+    for si in skills_info:
+        if not si["is_aura"]:
+            continue
+        # 跳过精魄消耗为 0 且无精魄辅助的组（重复/无效组）
+        if si["spirit_cost"] <= 0 and not si["spirit_supports"]:
+            continue
+        # 跳过重复组（同名光环只保留第一个）
+        aura_key = si["main_skill_name"]
+        if aura_key in seen_aura_names:
+            continue
+        seen_aura_names.add(aura_key)
+
+        # 检查是否需要预设配置（如 Charge）
+        pre_configs = _AURA_PRE_CONFIGS.get(si["main_skill_name"])
+
+        # 检查是否需要注入 mod 模拟（如 Elemental Conflux）
+        inject_mods = _AURA_INJECT_MODS.get(si["main_skill_name"])
+
+        if inject_mods:
+            # 使用 mod 注入方式测试
+            result = _test_mod_effect(
+                lua, calcs, baseline, inject_mods,
+                skill_name=si["main_skill_name"])
+        else:
+            # 标准测试：禁用技能组
+            result = _test_remove_skill_group(
+                lua, calcs, si["group_idx"], baseline,
+                skill_name=si["main_skill_name"],
+                pre_configs=pre_configs)
+
+        aura_entry = {
+            "name": si["main_skill_name"],
+            "label": si["label"],
+            "group_idx": si["group_idx"],
+            "spirit_cost": si["spirit_cost"],
+            "spirit_supports": si["spirit_supports"],
+            "gems": [g["name"] for g in si["gems"] if g["enabled"]],
+            **result,
+        }
+
+        # 对有条件配置的光环，测试参数范围（min/max 端点）
+        # 使用"无光环"时的 DPS 作为百分比计算基准
+        config_range = _test_aura_config_range(
+            lua, calcs, si["main_skill_name"], baseline,
+            aura_configs=aura_configs,
+            no_aura_dps=result.get("dps_after"))
+        if config_range:
+            aura_entry["config_ranges"] = config_range
+
+        existing_auras.append(aura_entry)
+
+    # 排序：按 DPS 影响绝对值降序
+    existing_auras.sort(key=lambda x: abs(x["dps_pct"]), reverse=True)
+    logger.info("8A 完成: %d 个光环测试", len(existing_auras))
+
+    # === 7B: 潜在光环推荐 ===
+    available_spirit = total_spirit - reserved_spirit
+    candidate_auras = []
+    for aura in _AURA_CANDIDATES:
+        # 跳过构筑中已有的光环
+        if aura["name"] in aura_names:
+            continue
+        result = _test_add_candidate_aura(lua, calcs, aura, baseline)
+        # 标注精魄是否足够
+        if aura["spirit"] > available_spirit:
+            result["spirit_shortfall"] = aura["spirit"] - available_spirit
+            result["error"] = f"精魄不足 (需 {aura['spirit']:.0f}, 缺 {result['spirit_shortfall']:.0f})"
+        candidate_auras.append(result)
+
+    # 排序：按 DPS 增益降序
+    candidate_auras.sort(key=lambda x: x.get("dps_pct", 0), reverse=True)
+    logger.info("8B 完成: %d 个候选光环测试", len(candidate_auras))
+
+    # === 7C: 精魄辅助推荐 ===
+    spirit_support_tests = []
+
+    # 找到所有可以作为精魄辅助目标的光环技能组
+    aura_groups = [si for si in skills_info if si["is_aura"]]
+
+    # 过滤出适合的精魄候选
+    # Precision 仅对攻击构筑有效
+    filtered_supports = []
+    for ss in _SPIRIT_SUPPORT_CANDIDATES:
+        if ss["key"] in ("precision_1", "precision_2") and not is_attack:
+            continue
+        filtered_supports.append(ss)
+
+    for ss in filtered_supports:
+        for aura_si in aura_groups:
+            result = _test_add_spirit_support(
+                lua, calcs, ss, aura_si["group_idx"], baseline)
+            # 标注精魄是否足够
+            if ss["spirit"] > available_spirit:
+                shortfall = ss["spirit"] - available_spirit
+                result["spirit_shortfall"] = shortfall
+                result["error"] = f"精魄不足 (需 {ss['spirit']:.0f}, 缺 {shortfall:.0f})"
+            spirit_support_tests.append(result)
+
+    # 排序：按 DPS 增益降序，非 error 排前面
+    spirit_support_tests.sort(
+        key=lambda x: (x.get("error") is not None, -abs(x.get("dps_pct", 0)))
+    )
+    logger.info("8C 完成: %d 个精魄辅助测试", len(spirit_support_tests))
+
+    # === 7D: Spirit Budget ===
+    # 计算推荐精魄消耗总和
+    recommended_spirit = 0
+    for ca in candidate_auras:
+        if ca.get("dps_pct", 0) > 0.1 and not ca.get("error"):
+            recommended_spirit += ca.get("spirit", 0)
+
+    spirit_budget = {
+        "total": total_spirit,
+        "reserved": reserved_spirit,
+        "available": available_spirit,
+        "recommended_total": recommended_spirit,
+        "recommended_remaining": available_spirit - recommended_spirit,
+    }
+
+    return {
+        "existing_auras": existing_auras,
+        "candidate_auras": candidate_auras,
+        "spirit_support_tests": spirit_support_tests,
+        "spirit_budget": spirit_budget,
     }
 
 
@@ -2670,6 +4813,7 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
             "talent_exploration": [未分配天赋探索列表],
             "jewel_diagnosis": [珠宝诊断列表],
             "dps_breakdown": {DPS 来源拆解},
+            "aura_spirit": {光环与精魄分析, 详见 aura_spirit_analysis()},
         }
     """
     from .calculator import calculate as calc_fn, get_main_skill
@@ -2733,6 +4877,11 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
     dps_bd = dps_breakdown(lua, calcs, baseline=baseline)
     logger.info("DPS 拆解完成: %d 个公式项", len(dps_bd["formula_items"]))
 
+    # 7. 光环与精魄分析
+    aura_spirit = aura_spirit_analysis(
+        lua, calcs, baseline=baseline, skill_flags=skill_flags)
+    logger.info("光环与精魄分析完成")
+
     return {
         "baseline": baseline,
         "main_skill": main_skill,
@@ -2742,12 +4891,252 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
         "talent_exploration": talent_exploration,
         "jewel_diagnosis": jewel_diag,
         "dps_breakdown": dps_bd,
+        "aura_spirit": aura_spirit,
     }
 
 
 # =============================================================================
 # 报告格式化（Markdown 表格）
 # =============================================================================
+
+
+def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
+                    baseline: dict):
+    """格式化 Section 7: 光环与精魄分析。"""
+    existing_auras = aura_data.get("existing_auras", [])
+    candidate_auras = aura_data.get("candidate_auras", [])
+    spirit_tests = aura_data.get("spirit_support_tests", [])
+    budget = aura_data.get("spirit_budget", {})
+
+    lines.append("## 7. 光环与精魄分析")
+    lines.append("")
+
+    # 7A: 现有光环
+    lines.append("### 7A. 现有光环 DPS 贡献")
+    lines.append("")
+
+    if existing_auras:
+        lines.append("| # | 光环 | DPS 贡献 | EHP 贡献 | 精魄消耗 | 条件参数范围 |")
+        lines.append("|---|------|----------|----------|----------|-------------|")
+        for i, a in enumerate(existing_auras, 1):
+            name = a.get("name", "?")
+            dp = a.get("dps_pct", 0)
+            ep = a.get("ehp_pct", 0)
+            sp = a.get("spirit_cost", 0)
+
+
+            # DPS 贡献列：始终展示"移除光环"的百分比（7A 核心结果）
+            dp_str = f"{dp:+.1f}%"
+            if a.get("simulated"):
+                dp_str += " ⚠️模拟"
+
+            # 条件参数范围列：展示参数对 DPS 的影响
+            # 百分比 vs「无光环」状态（no_aura_dps），展示参数变化带来的 DPS 贡献
+            ranges = a.get("config_ranges", [])
+            if ranges:
+                parts = []
+                for cr in ranges:
+                    label = cr.get("label", cr["config_var"])
+                    # 去掉 label 末尾的冒号（如果有）
+                    label = label.rstrip(":")
+                    actual_max = int(cr["actual_max"])
+                    pct_min = cr.get("dps_pct_min", 0)
+                    pct_max = cr.get("dps_pct_max", 0)
+                    # DPS 贡献基于注入的中间值（mid），标注在括号中
+                    mid = cr.get("mid", 0)
+                    dp_str += f" (条件: {label}={mid})"
+                    # 条件范围：参数从 0 到 max 时的 DPS 变化
+                    parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%")
+                range_str = "; ".join(parts)
+            else:
+                range_str = "-"
+
+            lines.append(f"| {i} | {name} | {dp_str} | {ep:+.1f}% | {sp:.0f} | {range_str} |")
+        lines.append("")
+
+        # 模拟值说明
+        simulated_auras = [a for a in existing_auras if a.get("simulated")]
+        if simulated_auras:
+            lines.append("**⚠️模拟值说明：**")
+            lines.append("")
+            for a in simulated_auras:
+                name = a.get("name", "?")
+                if name == "Elemental Conflux":
+                    raw_val = a.get("raw_value", 59)
+                    expect_factor = a.get("expect_factor", 1/3)
+                    breakdown = a.get("damage_breakdown", {})
+                    fire_pct = breakdown.get("fire", 0)
+                    cold_pct = breakdown.get("cold", 0)
+                    lightning_pct = breakdown.get("lightning", 0)
+                    total_elemental = fire_pct + cold_pct + lightning_pct
+                    # 期望收益 = 59% × (火占比 + 冰占比 + 电占比) / 3
+                    expected_more = raw_val * expect_factor
+                    lines.append(f"- **{name}**: Lv20 给选中元素 {raw_val:.0f}% MORE。主技能伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%，元素总占比 {total_elemental:.1f}%。期望收益 = {raw_val:.0f}% × {total_elemental:.1f}% ÷ 3 ≈ {expected_more:.1f}% MORE")
+                elif name == "Charge Infusion":
+                    lines.append(f"- **{name}** (Lv20): 需启用 Frenzy/Power/Endurance Charge 配置才能生效，已模拟 3 个各类型 Charge")
+                else:
+                    lines.append(f"- **{name}** (Lv20): 已模拟条件配置")
+            lines.append("")
+
+            # 通用说明
+            lines.append("**模拟方法说明：**")
+            lines.append("")
+            lines.append("- **等级前提**：所有光环模拟均基于 Level 20 数据")
+            lines.append("- **DPS 贡献计算**：移除光环后 DPS 变化（分母=当前有光环 DPS）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中")
+            lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS，展示该光环在不同条件下的 DPS 贡献范围")
+            lines.append("- **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）")
+            lines.append("")
+
+        # 纯防御光环（移除后 DPS 影响小但 EHP 有影响）
+        def_auras = [a for a in existing_auras
+                     if abs(a.get("dps_pct", 0)) < 0.1
+                     and abs(a.get("ehp_pct", 0)) >= 0.1]
+        if def_auras:
+            lines.append("**纯防御光环**（移除后 EHP 下降）：")
+            lines.append("")
+            for a in def_auras:
+                lines.append(f"- **{a['name']}**: EHP {a['ehp_pct']:+.1f}%, 精魄 {a['spirit_cost']:.0f}")
+            lines.append("")
+
+        dps_auras = [a for a in existing_auras if abs(a.get("dps_pct", 0)) >= 0.1]
+        zero_auras = [a for a in existing_auras
+                      if abs(a.get("dps_pct", 0)) < 0.1
+                      and abs(a.get("ehp_pct", 0)) < 0.1]
+
+        if zero_auras:
+            lines.append(f"**DPS/EHP 影响未检测到** ({len(zero_auras)} 个)：")
+            lines.append("")
+            lines.append("这些光环可能提供非DPS收益（如生存/功能性），或其效果依赖动态条件（如Frenzy Charge）而POB未完全计算。")
+            lines.append("")
+            for a in zero_auras:
+                lines.append(f"- **{a['name']}**: 精魄 {a['spirit_cost']:.0f}")
+            lines.append("")
+    else:
+        lines.append("构筑中无活跃光环。")
+        lines.append("")
+
+    # 7B: 潜在光环推荐
+    lines.append("### 7B. 潜在光环推荐")
+    lines.append("")
+
+    effective_candidates = [c for c in candidate_auras
+                            if c.get("dps_pct", 0) > 0.1 and not c.get("error")]
+    spirit_short = [c for c in candidate_auras
+                    if c.get("dps_pct", 0) > 0.1 and c.get("error")]
+    failed_candidates = [c for c in candidate_auras
+                          if c.get("dps_pct", 0) <= 0.1]
+
+    if effective_candidates:
+        lines.append("| # | 光环 | 精魄 | DPS% | EHP% | 说明 |")
+        lines.append("|---|------|------|------|------|------|")
+        for i, c in enumerate(effective_candidates, 1):
+            name = c.get("name", "?")
+            name_cn = c.get("name_cn", "")
+            sp = c.get("spirit", 0)
+            dp = c.get("dps_pct", 0)
+            ep = c.get("ehp_pct", 0)
+            desc = c.get("description", "")
+            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
+            lines.append(f"| {i} | {display} | {sp:.0f} | {dp:+.1f}% | {ep:+.1f}% | {desc} |")
+        lines.append("")
+
+    if spirit_short:
+        lines.append("**精魄不足但有效（释放精魄后考虑）：**")
+        lines.append("")
+        lines.append("| # | 光环 | 精魄 | DPS% | 说明 |")
+        lines.append("|---|------|------|------|------|")
+        for i, c in enumerate(spirit_short, 1):
+            name = c.get("name", "?")
+            name_cn = c.get("name_cn", "")
+            sp = c.get("spirit", 0)
+            dp = c.get("dps_pct", 0)
+            desc = c.get("description", "")
+            err = c.get("error", "")
+            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
+            lines.append(f"| {i} | {display} | {sp:.0f} | {dp:+.1f}% | {err} |")
+        lines.append("")
+
+    if failed_candidates:
+        lines.append("**无 DPS 影响：**")
+        lines.append("")
+        for c in failed_candidates:
+            name = c.get("name", "?")
+            name_cn = c.get("name_cn", "")
+            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
+            lines.append(f"- {display}")
+        lines.append("")
+
+    # 7C: 精魄辅助推荐
+    lines.append("### 7C. 精魄辅助推荐")
+    lines.append("")
+
+    effective_ss = [s for s in spirit_tests
+                    if s.get("dps_pct", 0) > 0.1 and not s.get("error")]
+    spirit_short_ss = [s for s in spirit_tests
+                       if s.get("dps_pct", 0) > 0.1 and s.get("error")]
+    failed_ss = [s for s in spirit_tests
+                 if s.get("dps_pct", 0) <= 0.1]
+
+    if effective_ss:
+        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 条件 |")
+        lines.append("|---|----------|----------|------|------|------|")
+        for i, s in enumerate(effective_ss, 1):
+            name = s.get("name", "?")
+            name_cn = s.get("name_cn", "")
+            target = s.get("target_aura", "?")
+            sp = s.get("spirit", 0)
+            dp = s.get("dps_pct", 0)
+            cond = s.get("condition", "")
+            estimated = " ⚠️估算" if s.get("estimated") else ""
+            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
+            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} |")
+        lines.append("")
+
+    if spirit_short_ss:
+        lines.append("**精魄不足但有效（释放精魄后考虑）：**")
+        lines.append("")
+        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 说明 |")
+        lines.append("|---|----------|----------|------|------|------|")
+        for i, s in enumerate(spirit_short_ss, 1):
+            name = s.get("name", "?")
+            name_cn = s.get("name_cn", "")
+            target = s.get("target_aura", "?")
+            sp = s.get("spirit", 0)
+            dp = s.get("dps_pct", 0)
+            err = s.get("error", "")
+            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
+            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {err} |")
+        lines.append("")
+
+    if failed_ss:
+        lines.append(f"**无 DPS 影响：** {len(failed_ss)} 个组合")
+        lines.append("")
+
+    # 7D: Spirit Budget
+    lines.append("### 7D. 精魄预算")
+    lines.append("")
+
+    total = budget.get("total", 0)
+    reserved = budget.get("reserved", 0)
+    available = budget.get("available", 0)
+    rec_total = budget.get("recommended_total", 0)
+    rec_remain = budget.get("recommended_remaining", 0)
+
+    lines.append("| 项目 | 精魄 |")
+    lines.append("|------|------|")
+    lines.append(f"| 总精魄 | {total:.0f} |")
+    lines.append(f"| 已用精魄 | {reserved:.0f} |")
+    lines.append(f"| 可用精魄 | {available:.0f} |")
+
+    if rec_total > 0:
+        lines.append(f"| 推荐光环消耗 | {rec_total:.0f} |")
+        lines.append(f"| 推荐后剩余 | {rec_remain:.0f} |")
+
+    if rec_remain < 0:
+        lines.append("")
+        lines.append("**注意**: 推荐光环的精魄总消耗超过可用精魄，需要根据优先级取舍。")
+
+    lines.append("")
 
 
 def format_report(data: dict) -> str:
@@ -2829,6 +5218,12 @@ def format_report(data: dict) -> str:
         lines.append(f"### {fname} = {dval}")
         lines.append("")
 
+        # 公式详情（如 effMult 的计算过程）
+        formula_detail = fi.get("formula_detail", "")
+        if formula_detail:
+            lines.append(f"**公式**: `{formula_detail}`")
+            lines.append("")
+
         # 类别汇总
         cat_sum = fi.get("category_summary", {})
         if cat_sum:
@@ -2848,10 +5243,15 @@ def format_report(data: dict) -> str:
                 cat = s.get("category", "?")
                 val = s.get("value", 0)
                 detail = s.get("detail", "")
-                if detail:
-                    val_str = f"{val:+.1f} ({detail})"
+                # 大数值用逗号分隔
+                if abs(val) >= 1000:
+                    val_disp = f"{val:+,.0f}"
                 else:
-                    val_str = f"{val:+.1f}"
+                    val_disp = f"{val:+.1f}"
+                if detail:
+                    val_str = f"{val_disp} ({detail})"
+                else:
+                    val_str = val_disp
                 lines.append(f"| {label} | {cat} | {val_str} |")
             lines.append("")
 
@@ -2939,14 +5339,21 @@ def format_report(data: dict) -> str:
     lines.append("")
 
     if talent_exploration:
+        top_n = 10
+        shown = talent_exploration[:top_n]
+        rest = len(talent_exploration) - len(shown)
+
         lines.append("| # | 天赋 | 类型 | DPS% | EHP% | 分类 |")
         lines.append("|---|------|------|------|------|------|")
-        for i, t in enumerate(talent_exploration, 1):
+        for i, t in enumerate(shown, 1):
             lines.append(
                 f"| {i} | {t['name']} | {t['type']} | "
                 f"{t['dps_pct']:+.1f}% | {t.get('ehp_pct', 0):+.1f}% | "
                 f"{t['category']} |"
             )
+        if rest > 0:
+            lines.append("")
+            lines.append(f"*（另有 {rest} 个候选天赋未显示）*")
         lines.append("")
     else:
         lines.append("无有意义的候选天赋。")
@@ -2957,24 +5364,132 @@ def format_report(data: dict) -> str:
     lines.append("")
 
     if jewel_diag:
-        lines.append("| 珠宝 | 基底 | Mods | DPS% | 状态 | 备注 |")
-        lines.append("|------|------|------|------|------|------|")
         for j in jewel_diag:
             name = j.get("name", "?")
             base = j.get("base_type", "?")
-            mc = j.get("mod_count", 0)
+            rarity = j.get("rarity", "?")
             dp = j.get("dps_pct", 0)
             status = j.get("status", "?")
-            notes = ""
+            slot = j.get("slot_name", "")
+
+            lines.append(f"### {name} ({base}, {rarity})")
+            lines.append("")
+            lines.append(f"- **DPS 贡献**: {dp:+.1f}% | **状态**: {status} | **槽位**: {slot}")
+
+            # granted passives
             gp = j.get("granted_passives", [])
             if gp:
-                notes = f"Grants: {', '.join(gp)}"
-            lines.append(
-                f"| {name} | {base} | {mc} | {dp:+.1f}% | {status} | {notes} |"
-            )
-        lines.append("")
+                gdp = j.get("granted_dps_pct", 0)
+                lines.append(f"- **分配天赋**: {', '.join(gp)} (DPS {gdp:+.1f}%)")
+
+            lines.append("")
+
+            # mods 明细表
+            mods = j.get("mods", [])
+            if mods:
+                lines.append("| Mod | 类型 | 值 | DPS% |")
+                lines.append("|-----|------|-----|------|")
+                for m in mods:
+                    mname = m.get("name", "?")
+                    mtype = m.get("type", "?")
+                    mval = m.get("value", "?")
+                    mdps = m.get("dps_pct")
+                    # 跳过无意义的 Lua table 指针
+                    if isinstance(mval, str) and mval.startswith("table:"):
+                        mval = "(complex data)"
+                    dps_str = f"{mdps:+.1f}%" if mdps is not None else "—"
+                    lines.append(f"| {mname} | {mtype} | {mval} | {dps_str} |")
+                lines.append("")
+
     else:
         lines.append("无珠宝。")
+        lines.append("")
+
+    # --- Section 7: 光环与精魄分析 ---
+    aura_data = data.get("aura_spirit", {})
+    _format_section7(lines, aura_data, skill_flags, baseline)
+
+    # --- Section 8: 总结与建议 ---
+    lines.append("## 8. 总结与建议")
+    lines.append("")
+
+    # 8a. 核心数据一句话
+    lines.append(f"当前 **{skill_name}** TotalDPS = **{total_dps:,.0f}**，"
+                 f"AverageHit = {avg_hit:,.0f}，Speed = {speed:.2f}/s，"
+                 f"CritChance = {crit_chance:.1f}%，CritMultiplier = {crit_multi:.2f}x。")
+    lines.append("")
+
+    # 8b. 最高性价比优化方向（灵敏度 Top 3）
+    effective_sens = [s for s in sensitivity if s.get("needed_value") is not None]
+    if effective_sens:
+        lines.append("### 🎯 最高性价比优化方向")
+        lines.append("")
+        for i, s in enumerate(effective_sens[:3], 1):
+            key = s.get("key", "?")
+            mod_type = s.get("mod_type", "?")
+            needed = s.get("needed_value", 0)
+            unit = s.get("unit", "")
+            dpu = s.get("dps_per_unit", 0)
+            cur = s.get("current_total", 0)
+            lines.append(
+                f"{i}. **{key}** ({mod_type}): "
+                f"每 1{unit} 提升 {dpu:.2f}% DPS，"
+                f"当前 {cur:.0f}，需要 +{needed:.0f}{unit} 达到 +20% DPS"
+            )
+        lines.append("")
+
+    # 8c. 推荐点出的天赋（探索 Top 5）
+    if talent_exploration:
+        lines.append("### 🌳 推荐点出的天赋")
+        lines.append("")
+        for i, t in enumerate(talent_exploration[:5], 1):
+            ehp_note = f"，EHP {t.get('ehp_pct', 0):+.1f}%" if abs(t.get('ehp_pct', 0)) > 0.1 else ""
+            lines.append(f"{i}. **{t['name']}**: DPS {t['dps_pct']:+.1f}%{ehp_note}")
+        lines.append("")
+
+    # 8d. 低效天赋提醒
+    if zero_talents:
+        lines.append("### ⚠️ 低效天赋")
+        lines.append("")
+        lines.append(f"有 **{len(zero_talents)}** 个已分配天赋对 DPS 和 EHP 均无可测量影响，"
+                     "可考虑重新规划路径或替换为高收益节点：")
+        lines.append("")
+        # 列出前 10 个，避免过长
+        shown_zero = zero_talents[:10]
+        lines.append(", ".join(f"**{t['name']}**" for t in shown_zero))
+        if len(zero_talents) > 10:
+            lines.append(f"  …及其他 {len(zero_talents) - 10} 个")
+        lines.append("")
+
+    # 8e. 珠宝优化建议
+    if jewel_diag:
+        low_dps_jewels = [j for j in jewel_diag
+                          if abs(j.get("dps_pct", 0)) < 0.1 and j.get("status") == "ok"]
+        high_dps_jewels = sorted(
+            [j for j in jewel_diag if abs(j.get("dps_pct", 0)) >= 0.1],
+            key=lambda j: j.get("dps_pct", 0)
+        )
+        if high_dps_jewels or low_dps_jewels:
+            lines.append("### 💎 珠宝建议")
+            lines.append("")
+            if high_dps_jewels:
+                best = high_dps_jewels[0]
+                lines.append(f"- 当前 DPS 贡献最高的珠宝: **{best.get('name', '?')}** "
+                             f"({best.get('dps_pct', 0):+.1f}%)")
+            if low_dps_jewels:
+                names = ", ".join(f"**{j.get('name', '?')}**" for j in low_dps_jewels)
+                lines.append(f"- 无 DPS 贡献的珠宝: {names}，可考虑替换为伤害珠宝")
+            lines.append("")
+
+    # 8f. 敌人抗性/穿透提醒
+    unreachable_sens = [s for s in sensitivity if s.get("needed_value") is None]
+    pen_unreachable = [s for s in unreachable_sens if "pen" in s.get("key", "")]
+    if pen_unreachable:
+        lines.append("### 🛡️ 敌人抗性说明")
+        lines.append("")
+        lines.append("所有穿透维度均无影响 — 当前构筑配置下敌人抗性已为负值或零值，"
+                     "穿透无法进一步降低负抗。如果面对高抗性 Boss（抗性 > 0），"
+                     "穿透会成为有效优化维度。")
         lines.append("")
 
     return "\n".join(lines)

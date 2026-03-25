@@ -252,6 +252,89 @@ class BuildCache:
         logger.info("已清空全部构筑缓存")
 
     # -----------------------------------------------------------------
+    # 报告持久化
+    # -----------------------------------------------------------------
+
+    def save_report(self, build_id: str, skill_name: str,
+                    analysis_data: dict, report_md: str):
+        """将分析结果和格式化报告持久化到构筑目录。
+
+        文件命名：analysis_{skill}.json / report_{skill}.md
+        skill 名称规范化：小写，空格→下划线，去除特殊字符。
+
+        Args:
+            build_id: 构筑 ID
+            skill_name: 技能名称（如 "Spark", "Ball Lightning"）
+            analysis_data: full_analysis() 的返回值
+            report_md: format_report() 生成的 Markdown 字符串
+        """
+        build_dir = self._builds_dir / build_id
+        if not build_dir.exists():
+            raise FileNotFoundError(f"构筑不存在: {build_id}")
+
+        slug = self._normalize_skill_name(skill_name)
+
+        # 写 analysis JSON
+        json_path = build_dir / f"analysis_{slug}.json"
+        json_path.write_text(
+            json.dumps(analysis_data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        # 写 report MD
+        md_path = build_dir / f"report_{slug}.md"
+        md_path.write_text(report_md, encoding="utf-8")
+
+        logger.info("报告已保存: %s → %s, %s", build_id, json_path.name, md_path.name)
+
+    def get_report_path(self, build_id: str, skill_name: str,
+                        fmt: str = "md") -> Path | None:
+        """获取报告文件的绝对路径。
+
+        Args:
+            build_id: 构筑 ID
+            skill_name: 技能名称
+            fmt: "md" 或 "json"
+
+        Returns:
+            文件路径，若不存在则返回 None
+        """
+        build_dir = self._builds_dir / build_id
+        slug = self._normalize_skill_name(skill_name)
+        prefix = "report" if fmt == "md" else "analysis"
+        path = build_dir / f"{prefix}_{slug}.{fmt}"
+        return path if path.exists() else None
+
+    def load_report(self, build_id: str, skill_name: str,
+                    fmt: str = "md") -> str | None:
+        """读取已保存的报告。
+
+        Args:
+            build_id: 构筑 ID
+            skill_name: 技能名称
+            fmt: "md"（Markdown 报告）或 "json"（原始 JSON 数据）
+
+        Returns:
+            文件内容字符串，不存在则返回 None
+        """
+        path = self.get_report_path(build_id, skill_name, fmt)
+        if path is None:
+            return None
+        return path.read_text(encoding="utf-8")
+
+    @staticmethod
+    def _normalize_skill_name(name: str) -> str:
+        """规范化技能名为文件名安全的 slug。
+
+        "Ball Lightning" → "ball_lightning"
+        "Spark" → "spark"
+        """
+        slug = name.lower().strip()
+        slug = re.sub(r'[^a-z0-9]+', '_', slug)
+        slug = slug.strip('_')
+        return slug or "unknown"
+
+    # -----------------------------------------------------------------
     # 内部方法
     # -----------------------------------------------------------------
 

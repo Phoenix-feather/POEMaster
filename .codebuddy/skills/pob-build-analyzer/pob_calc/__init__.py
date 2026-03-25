@@ -75,6 +75,9 @@ class POBCalculator:
         # 缓存基线结果
         self._baseline = None
 
+        # 缓存 build_id（仅通过缓存工厂方法创建时设置）
+        self._build_id = None
+
     # === 缓存工厂方法 ===
 
     @classmethod
@@ -96,8 +99,13 @@ class POBCalculator:
         Raises:
             FileNotFoundError: 无活跃构筑
         """
-        xml_text = _cache.load_current()
-        return cls(xml_text=xml_text, pob_path=pob_path)
+        build_id = _cache.get_current_id()
+        if not build_id:
+            raise FileNotFoundError("没有活跃构筑，请先调用 save_build() 缓存一个构筑")
+        xml_text = _cache.load(build_id)
+        inst = cls(xml_text=xml_text, pob_path=pob_path)
+        inst._build_id = build_id
+        return inst
 
     @classmethod
     def from_build_id(cls, build_id: str,
@@ -108,7 +116,9 @@ class POBCalculator:
             build_id: 构筑 ID
         """
         xml_text = _cache.load(build_id)
-        return cls(xml_text=xml_text, pob_path=pob_path)
+        inst = cls(xml_text=xml_text, pob_path=pob_path)
+        inst._build_id = build_id
+        return inst
 
     @staticmethod
     def list_builds() -> str:
@@ -407,8 +417,14 @@ class POBCalculator:
                       skill_name: str = None) -> dict:
         """完整构筑分析流程 — 一次调用完成所有分析。
 
-        包含：基线计算、灵敏度分析、天赋价值分析、天赋探索、珠宝诊断、DPS 来源拆解。
+        包含：基线计算、灵敏度分析、天赋价值分析、天赋探索、珠宝诊断、
+        DPS 来源拆解、光环与精魄分析。
         结果可直接用于构筑优化决策，无需临时脚本。
+
+        如果当前实例是通过缓存工厂方法（from_current / from_build_id）创建的，
+        分析结果会自动持久化到构筑缓存目录：
+          - analysis_{skill}.json  （原始数据）
+          - report_{skill}.md     （格式化报告）
 
         Args:
             target_pct: 灵敏度分析 DPS 增幅目标（默认 20%）
@@ -427,6 +443,7 @@ class POBCalculator:
                 "talent_exploration": [未分配天赋探索列表],
                 "jewel_diagnosis": [珠宝诊断列表],
                 "dps_breakdown": {DPS 来源拆解，详见 dps_breakdown()},
+                "aura_spirit": {光环与精魄分析，详见 aura_spirit_analysis()},
             }
         """
         result = _whatif.full_analysis(
@@ -437,6 +454,17 @@ class POBCalculator:
         )
         # 更新缓存的基线
         self._baseline = result["baseline"]
+
+        # 自动持久化到缓存目录
+        if self._build_id:
+            try:
+                actual_skill = result.get("main_skill", {}).get("name", skill_name or "unknown")
+                report_md = _whatif.format_report(result)
+                _cache.save_report(self._build_id, actual_skill, result, report_md)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("报告持久化失败: %s", e)
+
         return result
 
     @staticmethod
@@ -452,3 +480,40 @@ class POBCalculator:
             完整的 Markdown 报告字符串
         """
         return _whatif.format_report(data)
+
+    @staticmethod
+    def get_report(skill_name: str, build_id: str = None,
+                   fmt: str = "md") -> str | None:
+        """读取已保存的分析报告。
+
+        Args:
+            skill_name: 技能名称（如 "spark", "comet"）
+            build_id: 构筑 ID，None 则使用当前活跃构筑
+            fmt: "md"（Markdown 报告）或 "json"（原始 JSON 数据）
+
+        Returns:
+            文件内容字符串，不存在则返回 None
+        """
+        bid = build_id or _cache.get_current_id()
+        if not bid:
+            return None
+        return _cache.load_report(bid, skill_name, fmt)
+
+    @staticmethod
+    def get_report_path(skill_name: str, build_id: str = None,
+                        fmt: str = "md") -> str | None:
+        """获取已保存报告的文件路径。
+
+        Args:
+            skill_name: 技能名称
+            build_id: 构筑 ID，None 则使用当前活跃构筑
+            fmt: "md" 或 "json"
+
+        Returns:
+            绝对路径字符串，不存在则返回 None
+        """
+        bid = build_id or _cache.get_current_id()
+        if not bid:
+            return None
+        path = _cache.get_report_path(bid, skill_name, fmt)
+        return str(path) if path else None

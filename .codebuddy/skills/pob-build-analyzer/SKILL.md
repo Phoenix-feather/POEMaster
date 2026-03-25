@@ -9,6 +9,44 @@ description: POB构筑分析器 - 解码POB分享码，通过Python驱动POB的L
 
 解码 POB（Path of Building）分享码，通过 Python-Lua 互操作（lupa + Lua 5.4）驱动 POB 的原生计算引擎，对构筑进行精确数值计算、What-If 对比和优化分析。
 
+> **⚠️ POE2 前提声明**
+>
+> 本技能基于 **POE2** 数据（GameVersions `0_x` 版本体系），所有公式和机制均以 POB 的 POE2 计算模块组为准：
+>
+> | 模块 | 职责 |
+> |------|------|
+> | `Calcs.lua` | 计算系统入口，加载并协调所有子模块 |
+> | `CalcSetup.lua` | 环境初始化（modDB、敌人配置、override） |
+> | `CalcPerform.lua` | 编排 offence/defence 计算流程 |
+> | `CalcActiveSkill.lua` | 主动技能构建（flag、tag、辅助链接） |
+> | `CalcOffence.lua` | 进攻计算（伤害公式、转换/增益、暴击、穿透、DPS 组装） |
+> | `CalcDefence.lua` | 防御计算（生命/ES/护甲/闪避/抗性/EHP） |
+> | `CalcTriggers.lua` | 触发系统（触发速率、CD、元技能能量） |
+> | `CalcMirages.lua` | 幻影（Mirage）技能计算 |
+> | `CalcTools.lua` | 工具函数（`calcLib.mod`、`armourReductionF` 等） |
+> | `CalcBreakdown.lua` | UI 展示用的 breakdown 生成器 |
+> | `CalcSections.lua` | Calcs 标签页 UI section 定义 |
+>
+> 已确认的 POE2 特征：Spirit 系统、Crossbow/Bolt/Reload 系统、Grenade 机制、ArmourBreak、物理专属吸血（`LifeLeechBasedOnElementalDamage` 转换）。
+> POE1 残留代码（SpellDodgeChanceMax、SiphoningCharges 等）均为死代码，值恒为 0，不影响计算。
+
+---
+
+## ⚠️ 光环模拟前提
+
+**所有光环/精魄技能模拟均基于 Level 20 数据**，包括：
+
+- **DPS 贡献测试（7A）**：移除光环时，光环效果按 Level 20 计算
+- **候选光环推荐（7B）**：添加光环时，使用 Level 20 数据
+- **精魄辅助推荐（7C）**：辅助效果按 Level 20 计算
+
+**原因**：
+1. Level 20 是游戏后期构筑的标配，使用高级数据更接近实战
+2. 避免低估光环收益（低等级光环数值较低）
+3. 与 POB 默认行为一致（构筑导入时宝石等级由 POB 自动确定）
+
+**报告标注**：模拟值后会标注 `Lv20`，如 `59% MORE (Lv20)`
+
 ---
 
 ## ⚠️ 重要说明：能力边界
@@ -297,6 +335,76 @@ POB 桌面版使用 LuaJIT（5.1 兼容），Spike 使用 Lua 5.4。已修复：
 ---
 
 ## 版本历史
+
+### v1.0.18 (2026-03-25)
+
+光环与精魄分析（Section 7）— 完整实现光环 DPS 贡献测试、条件参数范围分析、动态 ifSkill 配置发现：
+
+- **`aura_spirit_analysis()` 新增 API**：一次调用完成 4 个子分析：
+  - **7A 现有光环移除测试**：逐一禁用构筑中的光环/精魄保留技能，测量 DPS/EHP 变化。正确区分 Aura(Purity of Fire)、POE2 spirit-reserved persistent(Trinity/Charge Infusion/Elemental Conflux)，排除 Blink(DodgeReplacement)、Life Remnants/Siphon Elements(GeneratesRemnants)、Curse(AppliesCurse)、Triggered(Triggered)
+  - **7B 潜在光环推荐**：测试 6 个候选光环（Archmage、Trinity、Charge Infusion、Charge Regulation、Attrition、Elemental Conflux），精魄不足时标记"精魄不足"
+  - **7C 精魄辅助推荐**：测试向现有光环添加精魄辅助（Haste/Zealotry/Wrath/Anger/Precision），按光环×辅助矩阵组合
+  - **7D Spirit Budget 汇总**：总精魄、已用精魄、可用精魄、推荐精魄
+
+- **条件参数范围测试**：
+  - `_discover_ifskill_configs()`：动态扫描 ConfigOptions.lua 中所有 `ifSkill` + `count` 类型配置，匹配当前构筑光环。支持 string 和 table 两种 ifSkill 格式。通过 `_PROBE_MAX=99999` 探测实际 clamp 上限
+  - `_test_aura_config_range()`：对每个条件配置测试 min(0) 和 max(actual_max) 端点，展示 DPS 范围（如 Trinity Resonance 0~300: 37468~66616）
+  - `_set_config_and_rebuild()`：通用 ConfigTab 值设置 + modList 重建（支持 check/count/integer/countAllowZero/float/list）
+  - 完全动态化，POB 未来新增光环自动适配
+
+- **报告格式增强**：
+  - 7A 表格新增"条件参数范围"列，显示参数范围和对应 DPS
+  - Section 编号修正：光环分析 Section 7，总结与建议 Section 8
+
+- **构建缓存增强**：
+  - `BuildCache.save_report()` / `get_report_path()` / `load_report()`：报告持久化到构筑目录
+  - `POBCalculator.full_analysis()` 通过缓存工厂方法创建时自动持久化
+
+- **已知限制**：
+  - 当前测试构筑精魄 425/425（无空闲），7B/7C 的实际 DPS 测试未被触发
+  - Charge Infusion/Elemental Conflux 显示 0% DPS 变化（POB 可能未完全计算动态效果）
+
+### v1.0.17 (2026-03-24)
+
+DPS 来源拆解大幅扩展 — 补全 15 个缺失公式组件：
+
+- **POE2 前提声明**：在 SKILL.md 头部写入 POE2 前提，明确所有公式以 POE2 CalcOffence.lua 为准
+
+- **新增 7 个 Section（Lua 端查询 + Python 端解析 + 报告渲染）**：
+  - **CONV_GAIN**：伤害转换（`conversionTable`）+ 伤害增益（`gainTable`），解决 `DamageGainAsLightning` 等 mod 不出现在拆解中的问题
+    - 转换支持两步处理：技能转换 → 全局转换
+    - Gain 支持全部 mod 名格式：`DamageGainAs{Type}`、`{From}DamageGainAs{To}`、`ElementalDamageGainAs{Type}`、`NonChaosDamageGainAs{Type}`、`SkillDamageGainAs{Type}`
+    - 每条 Gain 输出 Tabulate 来源（可追溯到具体装备/天赋）
+  - **CONV_MULT**：每种伤害类型的未转换比例（`conversionTable[type].mult`）
+  - **EFF_MULT**：有效 DPS 乘数 = 穿透/抗性/受伤增加
+    - 公式：`effMult = (1+takenInc/100) × takenMore × (1 - max(resist-pen, 0)/100)`
+    - 物理使用护甲减伤公式（含 ArmourBreak POE2 机制）
+    - 以 CALCS 模式运行以获取 `output[dt.."EffMult"]`
+  - **DOUBLE_TRIPLE**：双倍/三倍伤害概率 + ScaledDamageEffect
+  - **HITCHANCE**：命中率（准确度 × 格挡）
+  - **DPS_MULT**：技能 DPS 乘数（`skillData.dpsMultiplier`）
+  - **COMBINED_DPS**：组合 DPS 构成 = Hit + DOT(Bleed/Poison/Ignite) + Impale + Mirage + Cull + Reservation
+
+- **报告增强**：
+  - 新增 `formula_detail` 字段显示公式计算过程
+  - 大数值自动使用逗号分隔（>1000）
+
+- **已知限制**：
+  - effMult 的敌人抗性值来自 `enemyDB:Sum("BASE")`，不含 curse 等动态 debuff 的全部细节
+  - 转换表只展示最终结果（两步处理后），不展示中间步骤
+
+### v1.0.16 (2026-03-24)
+
+报告自动持久化 — 分析结果与缓存构筑一一对应：
+
+- **`BuildCache.save_report()`**：将分析数据 + 报告写入构筑目录
+  - `analysis_{skill}.json`：原始分析数据（可二次查询）
+  - `report_{skill}.md`：格式化 Markdown 报告（可直接阅读）
+  - 技能名规范化：`Ball Lightning` → `ball_lightning`
+- **`BuildCache.load_report()` / `get_report_path()`**：读取已保存的报告
+- **`POBCalculator.full_analysis()` 自动持久化**：通过缓存工厂方法创建的实例，分析完成后自动保存报告到构筑目录
+- **`POBCalculator.get_report()` / `get_report_path()`**：便捷读取已保存报告
+- 消除临时文件：不再需要 `_run.py`、`_report.md`、`_r.json`
 
 ### v1.0.15 (2026-03-24)
 

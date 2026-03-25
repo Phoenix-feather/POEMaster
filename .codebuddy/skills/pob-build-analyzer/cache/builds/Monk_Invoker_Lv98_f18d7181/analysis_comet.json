@@ -1,0 +1,7376 @@
+{
+  "baseline": {
+    "ExposureEffectOnSelf": 100.0,
+    "ProjectileBlockChance": 0.0,
+    "ColdMaxBase": 3777.0,
+    "ManaRegenRecovery": 62.0,
+    "EvasionOnHelmet": 437.0,
+    "FireAegisDisplay": 0.0,
+    "NumberOfDamagingHits": 2.1685414706246,
+    "LightningStoredHitMax": 2206.0,
+    "chillMinimumThreshold": 361.53,
+    "MaximumEnergyShield": 1442.0,
+    "ColdHitAverage": 10648.646666667,
+    "SpiritReservedPercent": 100.0,
+    "LifeUnreservedPercent": 100.0,
+    "EnemyStunThresholdMod": 1.0,
+    "ChaosEnemyPen": 0.0,
+    "IntRequirementsOnGloves": 42.0,
+    "ChillChanceOnCrit": 100.0,
+    "RageCost": 0.0,
+    "SpellDodgeChance": 0.0,
+    "ChaosManaEffectiveLife": 3685.0,
+    "BaseFireDamageReduction": 0.0,
+    "EnergyShieldLeechInstanceRate": 28.84,
+    "ChaosStoredHitMin": 0.0,
+    "BaseColdDamageReduction": 0.0,
+    "CrabBarriersMax": 0.0,
+    "ReservationDpsMultiplier": 1.0,
+    "ColdGuardAbsorbRate": 0.0,
+    "StunAvoidChance": 100.0,
+    "LightningMaximumHitTaken": 18311.0,
+    "DebuffExpirationRate": 0.0,
+    "CurrentChill": 0.0,
+    "IntRequirementsOnBody Armour": 65.0,
+    "ChaosTotalHitPool": 4406.0,
+    "SpellEvadeChance": 4.0,
+    "LifeReservedPercent": 0.0,
+    "TotalDotInstance": 0.0,
+    "ManaCost": 2.0,
+    "EnergyShieldOnSuppress": 0.0,
+    "LightningSummedMaxBase": 1020.0,
+    "ColdStoredCritMin": 25868.0,
+    "PhysicalStoredHitAvg": 0.0,
+    "LifeLeechInstantRate": 20.809090909091,
+    "VaalArcticArmourMitigation": 0.0,
+    "totalEnemyDamageIn": 4246.0,
+    "LightRadiusMod": 1.0,
+    "PoisonChanceOnHit": 0.0,
+    "AttackTakenHitMult": 1.0,
+    "PhysicaltakenFlat": 0.0,
+    "ConfiguredEvadeChance": 4.0,
+    "SpellSuppressionChanceOverCap": 0.0,
+    "SelfShockDuration": 100.0,
+    "BaseColdDamageReductionWhenHit": 0.0,
+    "CurseEffectOnSelf": 100.0,
+    "MissingTotemColdResist": 35.0,
+    "PhysicalManaEffectiveLife": 3685.0,
+    "AilmentWarcryEffect": 1.0,
+    "LightningGuardAbsorbRate": 0.0,
+    "EnergyShieldLeechGainPerHit": 0.0,
+    "LifeRegenPercent": 5.6,
+    "MissingChaosResist": 75.0,
+    "TotemChaosResistTotal": 20.0,
+    "PhysicalTakenHitMult": 1.0,
+    "LightningResistTotal": 112.0,
+    "FireStoredHitAvg": 4346.7333333333,
+    "ManaRegenInc": 106.0,
+    "IntRequirementsOnBoots": 108.0,
+    "EnergyShieldRecoveryRateMod": 1.0,
+    "EnergyShieldOnHit": 0.0,
+    "CritEffect": 2.2714,
+    "PowerChargesMax": 8.0,
+    "ColdEnemyPen": 3.0,
+    "PhysicalEnemyPen": 0.0,
+    "LowestOfArmourAndEvasionOnBoots": 0.0,
+    "ChaosPoisonChance": 0.0,
+    "SpellBlockChance": 0.0,
+    "sharedAegis": 0.0,
+    "LifeFlaskRecovery": 552.0,
+    "ColdStoredCritAvg": 32765.066666667,
+    "LifeCancellableReservation": 100.0,
+    "LifeRegenRecovery": 122.6,
+    "EnergyShieldLeechPerHit": 0.0,
+    "ChaosSummedMinBase": 0.0,
+    "EnergyShieldRecoveryCap": 1442.0,
+    "RallyingHitEffect": 1.0,
+    "FreezeChanceOnCrit": 0.0,
+    "ShockChanceOnHit": 1.2713329460902,
+    "ColdEnemyDamageMult": 1.0,
+    "EffectiveBlockChance": 0.0,
+    "MaxEnergyShieldLeechRate": 144.2,
+    "PhysicalDamageReductionMax": 90.0,
+    "FireLifeRecoup": 0.0,
+    "RemovableEnduranceCharges": 0.0,
+    "LifeFlask1MaxCharges": 75.0,
+    "DoubleDamageChance": 0.0,
+    "TotalAttr": 346.0,
+    "EffectiveSpellDodgeChance": 0.0,
+    "BlockDuration": 0.0,
+    "TotemColdResistOverCap": 0.0,
+    "EnergyShieldRegenInc": 0.0,
+    "EnergyShieldOnBlock": 0.0,
+    "WardRechargeDelay": 2.0,
+    "EnergyShieldOnAllArmourItems": 596.0,
+    "TotalDot": 0.0,
+    "ColdTotalPool": 5127.0,
+    "TotemAllyDamageMitigation": 0.0,
+    "ChaosEnemyOverwhelm": 0.0,
+    "LifeOnHit": 0.0,
+    "ChaosDamageReductionMax": 90.0,
+    "TotemDurationMod": 1.0,
+    "RageRecovery": 0.0,
+    "BlockEffect": 100.0,
+    "LowestOfMaximumLifeAndMaximumMana": 1505.0,
+    "SpectreAllyDamageMitigation": 0.0,
+    "TheoreticalOffensiveWarcryEffect": 1.0,
+    "ChaosResistTotal": 0.0,
+    "ChaosLifeRecoup": 0.0,
+    "ChaosMinBase": 0.0,
+    "LightningEnemyDamageMult": 1.0,
+    "PhysicalTakenDotMult": 1.0,
+    "SpellSuppressionChance": 0.0,
+    "EnergyShieldLeechInstantProportion": 0.15,
+    "BlitzCharges": 0.0,
+    "AreaOfEffectMod": 0.8,
+    "PresenceRadius": 80.0,
+    "AvoidFireDamageChance": 0.0,
+    "CritMultiplier": 4.0,
+    "SiphoningChargesMax": 0.0,
+    "EmptyCharms": 0.0,
+    "ColdMaximumHitTaken": 18311.0,
+    "ColdEnergyShieldBypass": 5.0,
+    "SpiritCancellableReservation": 100.0,
+    "Gear:Evasion": 437.0,
+    "MovementSpeedMod": 1.358,
+    "TotemChaosResist": 20.0,
+    "FireEnemyPen": 3.0,
+    "ManaLeech": 0.0,
+    "LifeRecovery": 0.0,
+    "BleedAvoidChance": 0.0,
+    "EnemyMarkLimit": 1.0,
+    "ShockAvoidChance": 0.0,
+    "AvoidPhysicalDamageChance": 0.0,
+    "LifeLeechInstantProportion": 0.15,
+    "FireAfterReductionTakenHitMulti": 1.0,
+    "totalTakenDamage": 4307.1424,
+    "ManaCostRaw": 2.8384615384615,
+    "ManaRegen": 62.0,
+    "LightningTotalHitPool": 5127.0,
+    "Spirit": 425.0,
+    "ChaosTakenDotMult": 1.0,
+    "FrenzyChargesMin": 0.0,
+    "IgniteFireMin": 3431.0,
+    "FrostShieldDamageMitigation": 0.0,
+    "EnergyShield": 1442.0,
+    "AverageEvadeChance": 4.0,
+    "PhysicalSummedMaxBase": 0.0,
+    "SelfIgniteEffect": 100.0,
+    "ColdCritAverage": 42594.586666667,
+    "ColdDamageReductionMax": 90.0,
+    "ChaosTakenHit": 391.5584,
+    "ManaOnHit": 0.0,
+    "FireEnemyDamageMult": 1.0,
+    "MissingTotemLightningResist": 35.0,
+    "FrenzyChargesDuration": 15.0,
+    "LifeLeechInstanceRate": 34.88,
+    "ReqStr": 80.0,
+    "GlobalWeaponAttributeRequirements": 1.0,
+    "BlindAvoidChance": 0.0,
+    "ShockLightningMin": 1471.0,
+    "ReqIntString": 157.0,
+    "ShockChanceOnCrit": 5.0853317843609,
+    "ColdDotEHP": 20508.0,
+    "LightningMinBase": 0.0,
+    "PhysicalAfterReductionTakenHitMulti": 1.0,
+    "SelfStunChance": 0.0,
+    "ChaosStoredHitAvg": 0.0,
+    "TotalMax": 22170.2,
+    "GlobalGemAttributeRequirements": 1.0,
+    "ShockEffectMod": 1.45,
+    "ChillEffectMod": 1.45,
+    "FireSummedMinBase": 1586.0,
+    "SpellSuppressionEffect": 50.0,
+    "ChaosBaseTakenHitMult": 1.0,
+    "SpellProjectileEvasion": 444.0,
+    "DeflectionRating": 0.0,
+    "LightningLifeRecoup": 0.0,
+    "ESPerSecondCost": 0.0,
+    "HeavyStunLightningMax": 2421.9,
+    "FreezeColdMin": 6467.0,
+    "ColdSummedMinBase": 2896.0,
+    "PhysicalAttackTakenHitMult": 1.0,
+    "PhysicalGuardAbsorbRate": 0.0,
+    "LightningStoredCombinedAvg": 4231.6182,
+    "LightningTakenHit": 274.09088,
+    "LightningEnemyOverwhelm": 0.0,
+    "preventedLifeLossTotal": 0.0,
+    "ChaosResistOver75": 0.0,
+    "SpiritUnreserved": -125.0,
+    "TotalEHP": 9591.2782127835,
+    "ManaUnreserved": 1505.0,
+    "ManaOnBlock": 0.0,
+    "ManaRecovery": 0.0,
+    "FrostShieldLife": 0.0,
+    "SelfFreezeDuration": 50.0,
+    "MissingTotemFireResist": 35.0,
+    "IntRequirementsOnWeapon 1": 137.0,
+    "IgniteChanceOnCrit": 9.4918817248914,
+    "AvoidAllDamageFromHitsChance": 0.0,
+    "MinimumBypass": 5.0,
+    "ColdSpellTakenHitMult": 1.0,
+    "enemySkillTime": 0.7,
+    "LowestAttribute": 87.0,
+    "ColdTakenHitMult": 0.28,
+    "BaseChaosDamageReductionWhenHit": 0.0,
+    "InspirationCharges": 5.0,
+    "ChillAvoidChance": 0.0,
+    "FireDamageReduction": 0.0,
+    "EffectiveLootRarityMod": 1.0,
+    "PowerChargesDuration": 21.0,
+    "SpiritUncancellableReservation": 0.0,
+    "RemovableTotalCharges": 0.0,
+    "TripleDamageChance": 0.0,
+    "EnemyAilmentThreshold": 36153.0,
+    "CurseAvoidChance": 0.0,
+    "LowestOfArmourAndEvasionOnBody Armour": 0.0,
+    "HeavyStunPhysicalMax": 0.0,
+    "StrRequirementsOnWeapon 2": 48.0,
+    "FireTakenHit": 274.09088,
+    "SiphoningCharges": 0.0,
+    "LightningAfterReductionTakenHitMulti": 1.0,
+    "ReservationDPS": 0.0,
+    "FireResistTotal": 120.0,
+    "MissingTotemChaosResist": 55.0,
+    "ChaosMindOverMatter": 0.0,
+    "MaxManaLeechInstance": 150.5,
+    "ColdResistTotal": 119.0,
+    "LightningResist": 75.0,
+    "ChaosTotalPool": 4406.0,
+    "MaxEnergyShieldLeechInstance": 144.2,
+    "LightningTakenHitMult": 0.28,
+    "SelfBleedDuration": 100.0,
+    "HeavyStunBuildupAvg": 25.896058709589,
+    "ChaosDotEHP": 4406.0,
+    "PhysicalSummedMinBase": 0.0,
+    "FireMindOverMatter": 0.0,
+    "ColdLifeRecoup": 0.0,
+    "LifeUncancellableReservation": 0.0,
+    "Armour": 0.0,
+    "AverageNotHitChance": 4.0,
+    "PhysicalTotalPool": 5127.0,
+    "FireResist": 75.0,
+    "Gear:Ward": 0.0,
+    "WeaponSwapSpeed": 0.0,
+    "FireManaEffectiveLife": 3685.0,
+    "FistOfWarDamageEffect": 1.0,
+    "FireTakenReflect": 1.0,
+    "RageRegenPercent": 0.0,
+    "Mana": 1505.0,
+    "FireStoredHitMin": 3431.0,
+    "ColdResistOverCap": 44.0,
+    "MaxOffensiveWarcryEffect": 1.0,
+    "MeleeNotHitChance": 4.0,
+    "preventedLifeLossBelowHalf": 0.0,
+    "PhysicalResistTakenHitMulti": 1.0,
+    "BrutalCharges": 0.0,
+    "PinBuildupAvg": 0.0,
+    "BaseChaosDamageReduction": 0.0,
+    "ColdManaEffectiveLife": 3685.0,
+    "ChallengerCharges": 0.0,
+    "LightningResistTakenHitMulti": 0.28,
+    "FrenzyCharges": 0.0,
+    "CullPercent": 0.0,
+    "EnergyShieldOnBody Armour": 247.0,
+    "InterruptStunAvoidChance": 0.0,
+    "ChallengerChargesMax": 0.0,
+    "CombinedAvg": 44922.304318589,
+    "LifeLeechInstances": 2.7045454545455,
+    "GemLevel": 28.0,
+    "ShockDuration": 8.8,
+    "DoubleDamageEffect": 0.0,
+    "sharedElementalAegis": 0.0,
+    "FireSummedMaxBase": 2380.0,
+    "ManaReservedPercent": 0.0,
+    "TotalDotDPS": 545.16897695203,
+    "PhysicalHitAverage": 0.0,
+    "EnergyShieldLeechRate": 0.0,
+    "SelfBleedEffect": 100.0,
+    "ConfiguredNotHitChance": 4.0,
+    "FireTakenDamage": 978.896,
+    "WithBleedDPS": 42523.56082,
+    "CombinedDPS": 42523.56082,
+    "TotalDotCalcSection": 0.0,
+    "PhysicalMindOverMatter": 0.0,
+    "LootQuantityNormalEnemies": 0.0,
+    "KnockbackChance": 0.0,
+    "EffectiveMovementSpeedMod": 1.358,
+    "MeleeEvadeChance": 4.0,
+    "LifeOnSuppress": 0.0,
+    "ChillDuration": 8.8,
+    "PreEffectiveCritMultiplier": 4.0,
+    "MaxLifeLeechRatePercent": 27.0,
+    "ColdEnemyOverwhelm": 0.0,
+    "FireSpellTakenHitMult": 1.0,
+    "CullingDPS": 0.0,
+    "ActionSpeedMod": 1.0,
+    "ColdTakenHit": 274.09088,
+    "PowerChargesMin": 0.0,
+    "ChaosMoMHitPool": 3685.0,
+    "TotemLightningResistOverCap": 0.0,
+    "ShockChance": 2.8877056537493,
+    "sharedManaEffectiveLife": 3685.0,
+    "PhysicalLifeRecoup": 0.0,
+    "IgniteDamage": 2398.7434985889,
+    "IgniteDPS": 545.16897695203,
+    "LowLifePercentage": 35.0,
+    "FireResistOverCap": 45.0,
+    "ChaosStoredHitMax": 0.0,
+    "IgniteChance": 5.3899650374796,
+    "LightningStoredCritMin": 5884.0,
+    "HeavyStunPhysicalMin": 0.0,
+    "IgniteRollAverage": 50.0,
+    "SpiritReserved": 425.0,
+    "TotemFireResistTotal": 40.0,
+    "IgniteStackPotentialPercent": 15.091902104943,
+    "IgniteStackPotential": 0.15091902104943,
+    "ColdMoMHitPool": 3685.0,
+    "LifeDegen": 0.0,
+    "Speed": 0.63636363636364,
+    "IgniteStacksMax": 1.0,
+    "EnemyEnergyShieldRegen": 0.0,
+    "EvasionOnAllArmourItems": 437.0,
+    "IgniteChancePerHit": 5.3899650374796,
+    "ColdAfterReductionTakenHitMulti": 1.0,
+    "ManaPercentCost": 0.0,
+    "IgniteChanceOnHit": 2.3729704312229,
+    "EnergyShieldRegenRecovery": 0.0,
+    "totalEnemyDamage": 4307.1424,
+    "KnockbackChanceOnHit": 0.0,
+    "HeavyStunChaosMax": 0.0,
+    "DexRequirementsOnHelmet": 91.0,
+    "HeavyStunChaosMin": 0.0,
+    "HeavyStunFireMax": 5650.7533333333,
+    "HeavyStunFireMin": 3431.0,
+    "IntRequirementsOnWeapon 2": 122.0,
+    "FireStoredHitMax": 5148.0,
+    "LootRarityMagicEnemies": 0.0,
+    "ActiveMineLimit": 15.0,
+    "IgniteAvoidChance": 0.0,
+    "MaxLifeLeechRate": 588.6,
+    "ColdResist": 75.0,
+    "IgniteDuration": 4.4,
+    "HeavyStunLightningMin": 1471.0,
+    "IgniteMagnitudeEffect": 1.0,
+    "ColdtakenFlat": 0.0,
+    "FreezeBuildupAvg": 90.663463905293,
+    "UnreservedDarkness": 0.0,
+    "FreezeColdMax": 10648.646666667,
+    "ChaosStoredCombinedAvg": 0.0,
+    "BaseFireDamageReductionWhenHit": 0.0,
+    "ManaRegenPercent": 4.1,
+    "EnergyShieldRegen": 0.0,
+    "ChillChanceOnHit": 100.0,
+    "PoisonChanceOnCrit": 0.0,
+    "BleedChanceOnCrit": 0.0,
+    "PhysicalAegis": 0.0,
+    "BleedChanceOnHit": 0.0,
+    "KnockbackChanceOnCrit": 0.0,
+    "EnergyShieldOnHitRate": 0.0,
+    "IgniteFireMax": 5148.0,
+    "ManaLeechInstant": 0.0,
+    "PhysicalEffectiveAppliedArmour": 0.0,
+    "BrittleChance": 0.0,
+    "LightningResistOverTime": 75.0,
+    "ScorchChance": 0.0,
+    "ImpaleChanceOnCrit": 0.0,
+    "EnergyShieldLeechDuration": 0.0,
+    "LightningSummedMinBase": 680.0,
+    "LifeLeechGainPerHit": 180.94,
+    "ManaLeechPerHit": 0.0,
+    "PhysicalDamageReduction": 0.0,
+    "ManaLeechInstanceRate": 30.1,
+    "AfflictionCharges": 0.0,
+    "TotalDPS": 27060.447794545,
+    "LifeRegen": 122.6,
+    "EnergyShieldOnSpellBlock": 0.0,
+    "AilmentThreshold": 1090.0,
+    "PhysicalResist": 0.0,
+    "PhysicalTakenReflect": 1.0,
+    "LightningSpellTakenHitMult": 1.0,
+    "ChaosEffectiveAppliedArmour": 0.0,
+    "AverageBurstHits": 1.0,
+    "PhysicalMaximumHitTaken": 5127.0,
+    "AverageHit": 42523.56082,
+    "ChaosEnemyDamage": 391.5584,
+    "LifeUnreserved": 2180.0,
+    "EnemyManaRegen": 0.0,
+    "LightningMindOverMatter": 0.0,
+    "ManaOnKill": 31.0,
+    "EvadeChance": 4.0,
+    "LifeOnKill": 0.0,
+    "ManaOnHitRate": 0.0,
+    "ChaosDamageReduction": 0.0,
+    "LifeOnHitRate": 0.0,
+    "LifePercentCost": 0.0,
+    "Ward": 0.0,
+    "EnergyShieldLeechInstant": 0.0,
+    "ManaLeechDuration": 0.0,
+    "ManaLeechInstances": 0.0,
+    "EnergyShieldLeechInstantRate": 0.0,
+    "ManaUncancellableReservation": 0.0,
+    "PhysicalStoredCombinedAvg": 0.0,
+    "ColdTotalHitPool": 5127.0,
+    "ImpaleChance": 0.0,
+    "EnergyShieldLeechInstances": 0.0,
+    "LifeLeechDuration": 4.25,
+    "Time": 1.5714285714286,
+    "ManaLeechInstantProportion": 0.15,
+    "TotalMin": 14779.7,
+    "LightningMaxBase": 0.0,
+    "EnergyShieldRecharge": 180.3,
+    "LightningManaEffectiveLife": 3685.0,
+    "ChaosHitAverage": 0.0,
+    "FireHitAverage": 5650.7533333333,
+    "HeavyStunColdMax": 10648.646666667,
+    "ShieldBlockChance": 0.0,
+    "ColdStoredHitMax": 9700.0,
+    "Tribute": 0.0,
+    "PhysicalMaxBase": 0.0,
+    "ProjectileNotHitChance": 4.0,
+    "PhysicalEnergyShieldBypass": 5.0,
+    "ColdStoredHitAvg": 8191.2666666667,
+    "LightningHitAverage": 2421.9,
+    "LightningStoredHitMin": 1471.0,
+    "EnemyCritChance": 4.8,
+    "ImpaleAvoidChance": 0.0,
+    "PhysicalMoMHitPool": 3685.0,
+    "FireMaxBase": 0.0,
+    "PhysicalStoredHitMin": 0.0,
+    "ChaosCritAverage": 0.0,
+    "ChaosStoredCritMax": 0.0,
+    "FireStoredCritMax": 20592.0,
+    "ChaosStoredCritMin": 0.0,
+    "ChaosStoredCritAvg": 0.0,
+    "FireCritAverage": 22603.013333333,
+    "FireStoredCritMin": 13724.0,
+    "TotemDuration": 0.0,
+    "FireStoredCritAvg": 17386.933333333,
+    "FireResistOver75": 0.0,
+    "LightningTakenReflect": 1.0,
+    "ColdStoredCritMax": 38800.0,
+    "LifeReserved": 0.0,
+    "totalTakenHit": 2192.72704,
+    "EffectiveSpellBlockChance": 0.0,
+    "LightningStoredCritMax": 8824.0,
+    "ManaRecoveryRateMod": 0.5,
+    "LightningStoredCritAvg": 7452.0,
+    "PhysicalCritAverage": 0.0,
+    "AreaOfEffectRadiusMetres": 2.4,
+    "RageRegenRecovery": 0.0,
+    "PhysicalStoredCritMax": 0.0,
+    "DebuffExpirationModifier": 100.0,
+    "ColdEffectiveAppliedArmour": 0.0,
+    "FrenzyChargesMax": 3.0,
+    "PhysicalStoredCritAvg": 0.0,
+    "PhysicalStoredCritMin": 0.0,
+    "EnergyShieldOnGloves": 39.0,
+    "GlobalItemAttributeRequirements": 1.0,
+    "ChaosGuardAbsorbRate": 0.0,
+    "ManaLeechInstantRate": 0.0,
+    "PhysicalSpellTakenHitMult": 1.0,
+    "PhysicalTotalHitPool": 5127.0,
+    "EnergyShieldLeech": 0.0,
+    "FullLifePercentage": 100.0,
+    "LifeLeechInstant": 32.7,
+    "LightningtakenFlat": 0.0,
+    "ColdAegisDisplay": 0.0,
+    "HyenaLimit": 9.0,
+    "ChaosSummedMaxBase": 0.0,
+    "MaxLifeLeechInstance": 218.0,
+    "RemovablePowerCharges": 0.0,
+    "RageRegenInc": 0.0,
+    "sharedMoMHitPool": 3685.0,
+    "anyRecoup": 0.0,
+    "FireStoredCombinedAvg": 9873.1700933333,
+    "ReqDexString": 91.0,
+    "TotalCharges": 0.0,
+    "FistOfWarCooldown": 0.0,
+    "ColdStoredCombinedAvg": 18605.643106667,
+    "DurationMod": 1.0,
+    "ManaLeechGainPerHit": 0.0,
+    "MeleeEvasion": 444.0,
+    "ChaosMaxBase": 0.0,
+    "PhysicalStoredHitMax": 0.0,
+    "ColdSummedMaxBase": 4344.0,
+    "ColdMinBase": 2518.0,
+    "ColdStoredHitMin": 6467.0,
+    "PresenceRadiusMetres": 8.0,
+    "BlitzChargesMax": 0.0,
+    "LightningEnergyShieldBypass": 5.0,
+    "FireGuardAbsorbRate": 0.0,
+    "DoubleDamageChanceOnCrit": 0.0,
+    "TripleDamageEffect": 0.0,
+    "ManaRecoup": 0.0,
+    "UntypedNotHitChance": 0.0,
+    "WitherEffectOnSelf": 100.0,
+    "LightningDamageReduction": 0.0,
+    "LifeOnBlock": 0.0,
+    "EffectiveSpellSuppressionChance": 0.0,
+    "ScaledDamageEffect": 1.0,
+    "ColdEnemyDamage": 978.896,
+    "ManaPerSecondCost": 1.2727272727273,
+    "PreBifurcateCritChance": 42.38,
+    "PreEffectiveCritChance": 42.38,
+    "ESPercentPerSecondCost": 0.0,
+    "LowestOfArmourAndEvasion": 0.0,
+    "GlobalWarcryUptimeRatio": 0.0,
+    "StunThreshold": 2616.0,
+    "AttackDodgeChanceOverCap": 0.0,
+    "LightningAegis": 0.0,
+    "FireTotalPool": 5127.0,
+    "Life": 2180.0,
+    "OffensiveWarcryEffect": 1.0,
+    "CastRate": 0.63636363636364,
+    "SelfIgniteDuration": 50.0,
+    "PoisonAvoidChance": 0.0,
+    "HitChance": 100.0,
+    "enemyBlockChance": 0.0,
+    "ChillChance": 100.0,
+    "Accuracy": 1134.0,
+    "CritChance": 42.38,
+    "RageRegen": 0.0,
+    "LightningDotEHP": 20508.0,
+    "ManaUnreservedPercent": 100.0,
+    "EnergyShieldOnKill": 0.0,
+    "ProjectileEvasion": 444.0,
+    "ManaPercentPerSecondCost": 0.0,
+    "SoulLinkMitigation": 0.0,
+    "ChaosResistTakenHitMulti": 1.0,
+    "PhysicalTakenHit": 978.896,
+    "ElectrocuteBuildupAvg": 0.0,
+    "SilenceAvoidChance": 0.0,
+    "LightningCritAverage": 9687.6,
+    "ShockLightningMax": 2206.0,
+    "EnduranceCharges": 0.0,
+    "SelfChillDuration": 100.0,
+    "CullMultiplier": 1.0,
+    "ESCost": 0.0,
+    "SpellBlockChanceMax": 50.0,
+    "PhysicalDotEHP": 5127.0,
+    "SpellDodgeChanceOverCap": 0.0,
+    "FireMinBase": 0.0,
+    "AreaOfEffectRadius": 24.0,
+    "FiretakenFlat": 0.0,
+    "Repeats": 1.0,
+    "ManaFlask2MaxCharges": 75.0,
+    "ActiveTrapLimit": 15.0,
+    "ArmourBreakPerHit": 0.0,
+    "SurroundedRadiusMetres": 3.0,
+    "sharedGuardAbsorbRate": 0.0,
+    "FireDotEHP": 20508.0,
+    "TotemLightningResistTotal": 40.0,
+    "BaseLightningDamageReduction": 0.0,
+    "ColdTakenDamage": 978.896,
+    "SpellBlockChanceOverCap": 0.0,
+    "SecondMinimalMaximumHitTaken": 5127.0,
+    "ChaosTakenReflect": 1.0,
+    "ColdBaseTakenHitMult": 0.28,
+    "ChaosEnemyDamageMult": 1.0,
+    "AverageBurstDamage": 42523.56082,
+    "AverageDamage": 42523.56082,
+    "TotemColdResistTotal": 40.0,
+    "EHPSurvivalTime": 1.5812281556638,
+    "TotalNumberOfHits": 2.258897365234,
+    "LightningEffectiveAppliedArmour": 0.0,
+    "NumberOfMitigatedDamagingHits": 2.1685414706246,
+    "ConfiguredDamageChance": 100.0,
+    "LightningEnemyDamage": 978.896,
+    "LifeLeech": 185.3,
+    "EnergyShieldDegen": 0.0,
+    "RadianceSentinelAllyDamageMitigation": 0.0,
+    "TotemFireResist": 40.0,
+    "BrutalChargesMin": 0.0,
+    "SpiritChargesMax": 0.0,
+    "preventedLifeLoss": 0.0,
+    "HeavyStunColdMin": 6467.0,
+    "ColdMindOverMatter": 0.0,
+    "ManaCancellableReservation": 100.0,
+    "ManaReserved": 0.0,
+    "ReservedDarkness": 0.0,
+    "TripleDamageChanceOnCrit": 0.0,
+    "BlockChanceOverCap": 0.0,
+    "LightningBaseTakenHitMult": 0.28,
+    "ColdDamageReduction": 0.0,
+    "Int": 167.0,
+    "DeflectEffect": 40.0,
+    "DeflectChance": 0.0,
+    "EffectiveAttackDodgeChance": 0.0,
+    "TotemColdResist": 40.0,
+    "Gear:Armour": 0.0,
+    "BlockChance": 0.0,
+    "LightningResistOver75": 0.0,
+    "LightningTakenDamage": 978.896,
+    "AbsorptionChargesMax": 0.0,
+    "LifeRegenInc": 25.0,
+    "AbsorptionCharges": 0.0,
+    "LightningResistOverCap": 37.0,
+    "AfflictionChargesMin": 0.0,
+    "EnergyShieldRecovery": 0.0,
+    "PhysicalMinBase": 0.0,
+    "Evasion": 444.0,
+    "EnergyShieldRegenPercent": 0.0,
+    "LightningTakenDotMult": 0.25,
+    "AttackDodgeChance": 0.0,
+    "ManaLeechRate": 0.0,
+    "EnergyShieldRechargeDelay": 4.0,
+    "ManaDegen": 0.0,
+    "ChaosSpellTakenHitMult": 1.0,
+    "EffectiveSpellProjectileBlockChance": 0.0,
+    "DamageTakenOnBlock": 0.0,
+    "ChaosAttackTakenHitMult": 1.0,
+    "SelfShockEffect": 60.0,
+    "BrutalChargesMax": 0.0,
+    "AccuracyHitChance": 100.0,
+    "RageDegen": 0.0,
+    "FireMaximumHitTaken": 18311.0,
+    "LightningMoMHitPool": 3685.0,
+    "LightningAttackTakenHitMult": 1.0,
+    "FireTakenHitMult": 0.28,
+    "FireResistTakenHitMulti": 0.28,
+    "Gear:EnergyShield": 596.0,
+    "Devotion": 0.0,
+    "LifePercentPerSecondCost": 0.0,
+    "CurrentShock": 0.0,
+    "EnduranceChargesMax": 3.0,
+    "PhysicalEnemyDamageMult": 1.0,
+    "EnduranceChargesDuration": 15.0,
+    "SelfPoisonDuration": 100.0,
+    "ReqDex": 91.0,
+    "Dex": 92.0,
+    "RemovableFrenzyCharges": 0.0,
+    "PhysicalEnemyOverwhelm": 0.0,
+    "ReqInt": 157.0,
+    "SelfChillEffect": 60.0,
+    "BlockChanceMax": 50.0,
+    "TotemChaosResistOverCap": 0.0,
+    "EnduranceChargesMin": 0.0,
+    "allMult": 1.0,
+    "ChaosResistOverCap": 0.0,
+    "SelfBlindDuration": 100.0,
+    "BaseLightningDamageReductionWhenHit": 0.0,
+    "CrabBarriers": 0.0,
+    "LightningDamageReductionMax": 90.0,
+    "PresenceMod": 2.0,
+    "MissingFireResist": 0.0,
+    "CritExtraDamageReduction": 0.0,
+    "FireAegis": 0.0,
+    "ColdTakenDotMult": 0.25,
+    "FreezeAvoidChance": 100.0,
+    "InspirationChargesMax": 5.0,
+    "ChaostakenFlat": 0.0,
+    "MaximumShock": 100.0,
+    "MissingLightningResist": 0.0,
+    "TotemLightningResist": 40.0,
+    "LifeLeechPerHit": 180.94,
+    "WarcryPower": 0.0,
+    "SurroundedRadius": 30.0,
+    "SpiritUnreservedPercent": -29.411764705882,
+    "MaximumChill": 50.0,
+    "LifeRecoup": 0.0,
+    "SpellProjectileEvadeChance": 4.0,
+    "SpellTakenHitMult": 1.0,
+    "SpellProjectileBlockChance": 0.0,
+    "MaxManaLeechRate": 301.0,
+    "BasePhysicalDamageReduction": 0.0,
+    "BasePhysicalDamageReductionWhenHit": 0.0,
+    "ElementalEnergyShieldRecoup": 0.0,
+    "EffectiveProjectileBlockChance": 0.0,
+    "LifeRecoveryRateMod": 1.0,
+    "ColdResistOverTime": 75.0,
+    "ReqStrString": 80.0,
+    "PowerCharges": 0.0,
+    "AvoidColdDamageChance": 0.0,
+    "AvoidProjectilesChance": 0.0,
+    "LifeCost": 214.70588235294,
+    "Darkness": 0.0,
+    "AfflictionChargesMax": 0.0,
+    "ArmourDefense": 0.0,
+    "EnergyShieldOnBoots": 310.0,
+    "MissingColdResist": 0.0,
+    "LightningTotalPool": 5127.0,
+    "FreezeChanceOnHit": 0.0,
+    "ColdAegis": 0.0,
+    "SpellProjectileNotHitChance": 4.0,
+    "LifeHitPool": 2180.0,
+    "SelfPoisonEffect": 100.0,
+    "LightningStoredHitAvg": 1863.0,
+    "AbsorptionChargesMin": 0.0,
+    "FireEnemyDamage": 978.896,
+    "SpellNotHitChance": 4.0,
+    "FireMoMHitPool": 3685.0,
+    "WeaponSwapSpeedMod": 1.0,
+    "PhysicalEnemyDamage": 978.896,
+    "LifeLeechRate": 115.14363636364,
+    "ColdAttackTakenHitMult": 1.0,
+    "EnemyCritEffect": 1.0144,
+    "ChaosResist": 0.0,
+    "LightningEnemyPen": 3.0,
+    "FireTotalHitPool": 5127.0,
+    "SelfFreezeEffect": 100.0,
+    "BonusCritDotMultiplier": 0.0,
+    "ChaosMaximumHitTaken": 4406.0,
+    "WithPoisonDPS": 42523.56082,
+    "ChaosTakenHitMult": 1.0,
+    "ColdResistOver75": 0.0,
+    "EnergyShieldRecoup": 0.0,
+    "LowestOfArmourAndEvasionOnHelmet": 0.0,
+    "LowestOfArmourAndEvasionOnGloves": 0.0,
+    "SpiritCharges": 0.0,
+    "GhostShrouds": 0.0,
+    "FireAttackTakenHitMult": 1.0,
+    "LifeRecoverable": 2180.0,
+    "FireEnemyOverwhelm": 0.0,
+    "DamageReductionMax": 90.0,
+    "FireTakenDotMult": 0.25,
+    "ChaosTakenDamage": 391.5584,
+    "FireDamageReductionMax": 90.0,
+    "EnemyCurseLimit": 1.0,
+    "IgniteEffMult": 1.3,
+    "sharedMindOverMatter": 100.0,
+    "ChaosAfterReductionTakenHitMulti": 1.0,
+    "AvoidLightningDamageChance": 0.0,
+    "SappedChance": 0.0,
+    "PhysicalBaseTakenHitMult": 1.0,
+    "FireResistOverTime": 75.0,
+    "SpellEvasion": 444.0,
+    "EnemyLifeRegen": 0.0,
+    "BloodCharges": 5.0,
+    "FireEffectiveAppliedArmour": 0.0,
+    "FireBaseTakenHitMult": 0.28,
+    "PhysicalTakenDamage": 978.896,
+    "Str": 87.0,
+    "StunDuration": 0.0,
+    "WithIgniteDPS": 44922.304318589,
+    "ChaosEnergyShieldBypass": 5.0,
+    "ChaosAegis": 0.0,
+    "FireEnergyShieldBypass": 5.0,
+    "VaalArcticArmourLife": 0.0,
+    "EffectiveAverageBlockChance": 0.0,
+    "EnemyStunDuration": 0.35,
+    "LifePerSecondCost": 136.63101604278,
+    "LightningAegisDisplay": 0.0,
+    "ProjectileEvadeChance": 4.0,
+    "ColdResistTakenHitMulti": 0.28,
+    "TotemFireResistOverCap": 0.0,
+    "ColdTakenReflect": 1.0,
+    "AvoidChaosDamageChance": 0.0,
+    "SoulCost": 0.0,
+    "TheoreticalMaxOffensiveWarcryEffect": 1.0,
+    "ChaosResistOverTime": 0.0,
+    "VaalRejuvenationTotemAllyDamageMitigation": 0.0,
+    "BloodChargesMax": 5.0
+  },
+  "main_skill": {
+    "name": "Comet",
+    "castTime": 0.0
+  },
+  "skill_flags": {
+    "is_spell": true,
+    "is_attack": false,
+    "is_dot": false,
+    "is_cast": true,
+    "is_melee": false,
+    "is_projectile": false,
+    "is_area": true,
+    "raw_flags": 534
+  },
+  "sensitivity": [
+    {
+      "key": "crit_chance_base",
+      "label": "to Critical Hit Chance",
+      "description": "基础暴击率（加到技能基础暴击上，再被INC放大）",
+      "mod_name": "CritChance",
+      "mod_type": "BASE",
+      "needed_value": 4.5,
+      "unit": "%",
+      "dps_per_unit": 3.8273,
+      "target_pct": 20.0,
+      "actual_pct": 17.22,
+      "current_total": 0.0,
+      "formula": "baseCrit 0.0%→4.5%, 需要 +4.5% → DPS +17.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          30.356100167365,
+          4.460041457776001
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "AverageHit": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          52883.828989944,
+          7961.5246713550005
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11573.612173333,
+          1700.4420799997006
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.3850511022598,
+          0.4973454485105
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          690.11263862366,
+          144.94366167163003
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.17691158996487,
+          0.025992568915439995
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "CritChance": [
+          42.38,
+          55.42,
+          13.04
+        ],
+        "PreBifurcateCritChance": [
+          42.38,
+          55.42,
+          13.04
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.318271070174,
+          0.9283060326944002
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          106.27830368682,
+          15.614839781526996
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          52883.828989944,
+          7961.5246713550005
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          4960.4238,
+          728.8055999999997
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "AverageDamage": [
+          42523.56082,
+          49847.33338,
+          7323.772559999998
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          31721.030332727,
+          4660.582538182
+        ],
+        "CritEffect": [
+          2.2714,
+          2.6626,
+          0.3912
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          21810.066626667,
+          3204.4235200000003
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.318271070174,
+          0.9283060326944002
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          17.691158996487,
+          2.5992568915440017
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3036.4956099441,
+          637.7521113552002
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          690.11263862366,
+          144.94366167163003
+        ],
+        "PreEffectiveCritChance": [
+          42.38,
+          55.42,
+          13.04
+        ]
+      }
+    },
+    {
+      "key": "crit_multi_base",
+      "label": "to Critical Damage Bonus",
+      "description": "暴击伤害基础（稀有词缀如力量之盾，被INC放大）",
+      "mod_name": "CritMultiplier",
+      "mod_type": "BASE",
+      "needed_value": 35.5,
+      "unit": "%",
+      "dps_per_unit": 0.5676,
+      "target_pct": 20.0,
+      "actual_pct": 20.15,
+      "current_total": 100.0,
+      "formula": "CritBase 100→136, 需要 +36 → DPS +20.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.114307215187,
+          5.218248505598002
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "AverageHit": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54846.162879828,
+          9923.858561239002
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11862.687326933,
+          1989.5172335997013
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4695998285066,
+          0.5818941747572999
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          41611.634666667,
+          8846.568
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          853.13367377898,
+          307.96469682695
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          28705.826933333,
+          6102.813599999998
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          17429.48,
+          3705.4799999999996
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.1813303266805,
+          0.03041130563107
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          11206.48,
+          2382.4799999999996
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          32852.36,
+          6984.360000000001
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.476083095732,
+          1.0861180582524002
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.93282644967,
+          18.269362544377003
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54846.162879828,
+          9923.858561239002
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5084.320752,
+          852.7025519999997
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          6.4583713661384,
+          1.3730395817775003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          12.054689790612,
+          2.562808065720601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32513.329364218,
+          5452.881569672998
+        ],
+        "CritEffect": [
+          2.2714,
+          2.729104,
+          0.4577040000000001
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          22081.405333333,
+          4694.472000000002
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22354.818625067,
+          3749.1755183999994
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          49276.0,
+          10476.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.476083095732,
+          1.0861180582524002
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          9464.04,
+          2012.0400000000009
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.13303266805,
+          3.041130563107
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          54095.125066667,
+          11500.538400000005
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3753.7881646275,
+          1355.0446660386
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          853.13367377898,
+          307.96469682695
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          26151.84,
+          5559.84
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          12303.252,
+          2615.652
+        ],
+        "PreEffectiveCritMultiplier": [
+          4.0,
+          5.08,
+          1.08
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          7472.68,
+          1588.6800000000003
+        ],
+        "CritMultiplier": [
+          4.0,
+          5.08,
+          1.08
+        ]
+      }
+    },
+    {
+      "key": "damage_inc",
+      "label": "increased Damage",
+      "description": "通用伤害增加，对所有伤害类型生效",
+      "mod_name": "Damage",
+      "mod_type": "INC",
+      "needed_value": 63.5,
+      "unit": "%",
+      "dps_per_unit": 0.3178,
+      "target_pct": 20.0,
+      "actual_pct": 20.18,
+      "current_total": 219.0,
+      "formula": "INC 219%→282%, 需要 +64 → DPS +20.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.122263739076,
+          5.2262050294870015
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "ColdHitAverage": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "AverageHit": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "IgniteFireMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11901.076013333,
+          2027.905919999701
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4814248471773,
+          0.593719193428
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          39286.933333333,
+          6521.866666665999
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "LightningStoredHitAvg": [
+          1863.0,
+          2246.0666666667,
+          383.0666666666998
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          27245.573333333,
+          4642.559999999998
+        ],
+        "ColdStoredHitMax": [
+          9700.0,
+          11631.0,
+          1931.0
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          16540.0,
+          2816.0
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18191556086632,
+          0.03099653981688999
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          10640.0,
+          1816.0
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnHit": [
+          2.3729704312229,
+          2.8603435399552,
+          0.4873731087322999
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          31016.0,
+          5148.0
+        ],
+        "ColdStoredHitAvg": [
+          8191.2666666667,
+          9821.7333333333,
+          1630.4666666666008
+        ],
+        "IgniteFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "FreezeColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.70997145994,
+          18.046507554646993
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "HeavyStunColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "HeavyStunColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "ShockLightningMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5101.7158266667,
+          870.0976266667003
+        ],
+        "TotalMin": [
+          14779.7,
+          17760.6,
+          2980.899999999998
+        ],
+        "FireStoredHitMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          6.1308881697231,
+          1.0455563853622003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          11.441374159821,
+          1.949492434929601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32521.643644848,
+          5461.195850303
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          20958.133333333,
+          3571.2000000000007
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22309.085093333,
+          3703.441986665999
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          46524.0,
+          7724.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "LightningStoredHitMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          8984.2666666667,
+          1532.2666666666992
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.191556086632,
+          3.099653981689002
+        ],
+        "HeavyStunFireMax": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "FreezeColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "FireHitAverage": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "HeavyStunLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "ColdStoredHitMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "TotalMax": [
+          22170.2,
+          26646.1,
+          4475.899999999998
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          51073.013333333,
+          8478.426666666004
+        ],
+        "HeavyStunFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "LightningStoredHitMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3485.2629636769,
+          1086.5194650880003
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "ShockChanceOnHit": [
+          1.2713329460902,
+          1.5327220424308,
+          0.2613890963405998
+        ],
+        "LightningHitAverage": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          24824.0,
+          4232.0
+        ],
+        "FireStoredHitAvg": [
+          4346.7333333333,
+          5239.5333333333,
+          892.8000000000002
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          11679.546666667,
+          1991.9466666669996
+        ],
+        "HeavyStunLightningMax": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "ShockLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          7092.0,
+          1208.0
+        ],
+        "FireStoredHitMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ]
+      }
+    },
+    {
+      "key": "spell_damage_inc",
+      "label": "increased Spell Damage",
+      "description": "法术伤害增加（仅法术生效，POB中为 Damage INC + ModFlag.Spell）",
+      "mod_name": "Damage",
+      "mod_type": "INC",
+      "needed_value": 63.5,
+      "unit": "%",
+      "dps_per_unit": 0.3178,
+      "target_pct": 20.0,
+      "actual_pct": 20.18,
+      "current_total": 219.0,
+      "formula": "INC 219%→282%, 需要 +64 → DPS +20.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.122263739076,
+          5.2262050294870015
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "ColdHitAverage": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "AverageHit": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "IgniteFireMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11901.076013333,
+          2027.905919999701
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4814248471773,
+          0.593719193428
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          39286.933333333,
+          6521.866666665999
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "LightningStoredHitAvg": [
+          1863.0,
+          2246.0666666667,
+          383.0666666666998
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          27245.573333333,
+          4642.559999999998
+        ],
+        "ColdStoredHitMax": [
+          9700.0,
+          11631.0,
+          1931.0
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          16540.0,
+          2816.0
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18191556086632,
+          0.03099653981688999
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          10640.0,
+          1816.0
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnHit": [
+          2.3729704312229,
+          2.8603435399552,
+          0.4873731087322999
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          31016.0,
+          5148.0
+        ],
+        "ColdStoredHitAvg": [
+          8191.2666666667,
+          9821.7333333333,
+          1630.4666666666008
+        ],
+        "IgniteFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "FreezeColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.70997145994,
+          18.046507554646993
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "HeavyStunColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "HeavyStunColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "ShockLightningMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5101.7158266667,
+          870.0976266667003
+        ],
+        "TotalMin": [
+          14779.7,
+          17760.6,
+          2980.899999999998
+        ],
+        "FireStoredHitMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          6.1308881697231,
+          1.0455563853622003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          11.441374159821,
+          1.949492434929601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32521.643644848,
+          5461.195850303
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          20958.133333333,
+          3571.2000000000007
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22309.085093333,
+          3703.441986665999
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          46524.0,
+          7724.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "LightningStoredHitMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          8984.2666666667,
+          1532.2666666666992
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.191556086632,
+          3.099653981689002
+        ],
+        "HeavyStunFireMax": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "FreezeColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "FireHitAverage": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "HeavyStunLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "ColdStoredHitMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "TotalMax": [
+          22170.2,
+          26646.1,
+          4475.899999999998
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          51073.013333333,
+          8478.426666666004
+        ],
+        "HeavyStunFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "LightningStoredHitMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3485.2629636769,
+          1086.5194650880003
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "ShockChanceOnHit": [
+          1.2713329460902,
+          1.5327220424308,
+          0.2613890963405998
+        ],
+        "LightningHitAverage": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          24824.0,
+          4232.0
+        ],
+        "FireStoredHitAvg": [
+          4346.7333333333,
+          5239.5333333333,
+          892.8000000000002
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          11679.546666667,
+          1991.9466666669996
+        ],
+        "HeavyStunLightningMax": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "ShockLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          7092.0,
+          1208.0
+        ],
+        "FireStoredHitMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ]
+      }
+    },
+    {
+      "key": "elemental_damage_inc",
+      "label": "increased Elemental Damage",
+      "description": "元素伤害增加，对火/冰/电都生效",
+      "mod_name": "ElementalDamage",
+      "mod_type": "INC",
+      "needed_value": 63.5,
+      "unit": "%",
+      "dps_per_unit": 0.3178,
+      "target_pct": 20.0,
+      "actual_pct": 20.18,
+      "current_total": 219.0,
+      "formula": "INC 219%→282%, 需要 +64 → DPS +20.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.122263739076,
+          5.2262050294870015
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "ColdHitAverage": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "AverageHit": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "IgniteFireMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11901.076013333,
+          2027.905919999701
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4814248471773,
+          0.593719193428
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          39286.933333333,
+          6521.866666665999
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "LightningStoredHitAvg": [
+          1863.0,
+          2246.0666666667,
+          383.0666666666998
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          27245.573333333,
+          4642.559999999998
+        ],
+        "ColdStoredHitMax": [
+          9700.0,
+          11631.0,
+          1931.0
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          16540.0,
+          2816.0
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18191556086632,
+          0.03099653981688999
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          10640.0,
+          1816.0
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnHit": [
+          2.3729704312229,
+          2.8603435399552,
+          0.4873731087322999
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          31016.0,
+          5148.0
+        ],
+        "ColdStoredHitAvg": [
+          8191.2666666667,
+          9821.7333333333,
+          1630.4666666666008
+        ],
+        "IgniteFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "FreezeColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.70997145994,
+          18.046507554646993
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54590.70297701,
+          9668.398658421
+        ],
+        "HeavyStunColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "HeavyStunColdMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "ShockLightningMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5101.7158266667,
+          870.0976266667003
+        ],
+        "TotalMin": [
+          14779.7,
+          17760.6,
+          2980.899999999998
+        ],
+        "FireStoredHitMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          6.1308881697231,
+          1.0455563853622003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51105.440013333,
+          8581.879193333
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          11.441374159821,
+          1.949492434929601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32521.643644848,
+          5461.195850303
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          20958.133333333,
+          3571.2000000000007
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22309.085093333,
+          3703.441986665999
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          46524.0,
+          7724.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.4969843166542,
+          1.1070192791746
+        ],
+        "LightningStoredHitMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          8984.2666666667,
+          1532.2666666666992
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.191556086632,
+          3.099653981689002
+        ],
+        "HeavyStunFireMax": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "FreezeColdMax": [
+          10648.646666667,
+          12768.253333333,
+          2119.606666665999
+        ],
+        "FireHitAverage": [
+          5650.7533333333,
+          6811.3933333333,
+          1160.6399999999994
+        ],
+        "HeavyStunLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "ColdStoredHitMin": [
+          6467.0,
+          7754.0,
+          1287.0
+        ],
+        "TotalMax": [
+          22170.2,
+          26646.1,
+          4475.899999999998
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          51073.013333333,
+          8478.426666666004
+        ],
+        "HeavyStunFireMin": [
+          3431.0,
+          4135.0,
+          704.0
+        ],
+        "LightningStoredHitMax": [
+          2206.0,
+          2660.0,
+          454.0
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3485.2629636769,
+          1086.5194650880003
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          792.10521901748,
+          246.93624206544996
+        ],
+        "ShockChanceOnHit": [
+          1.2713329460902,
+          1.5327220424308,
+          0.2613890963405998
+        ],
+        "LightningHitAverage": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          24824.0,
+          4232.0
+        ],
+        "FireStoredHitAvg": [
+          4346.7333333333,
+          5239.5333333333,
+          892.8000000000002
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          11679.546666667,
+          1991.9466666669996
+        ],
+        "HeavyStunLightningMax": [
+          2421.9,
+          2919.8866666667,
+          497.9866666666999
+        ],
+        "ShockLightningMin": [
+          1471.0,
+          1773.0,
+          302.0
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          7092.0,
+          1208.0
+        ],
+        "FireStoredHitMax": [
+          5148.0,
+          6206.0,
+          1058.0
+        ]
+      }
+    },
+    {
+      "key": "crit_multi_inc",
+      "label": "increased Critical Damage Bonus",
+      "description": "暴击伤害增加（常见词缀，线性叠加到INC总量）",
+      "mod_name": "CritMultiplier",
+      "mod_type": "INC",
+      "needed_value": 107.5,
+      "unit": "%",
+      "dps_per_unit": 0.1874,
+      "target_pct": 20.0,
+      "actual_pct": 20.15,
+      "current_total": 200.0,
+      "formula": "INC 200%→308%, 需要 +108 → DPS +20.2%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.114307215187,
+          5.218248505598002
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "AverageHit": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54846.162879828,
+          9923.858561239002
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11862.687326933,
+          1989.5172335997013
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4695998285066,
+          0.5818941747572999
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          41611.634666667,
+          8846.568
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          853.13367377898,
+          307.96469682695
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          28705.826933333,
+          6102.813599999998
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          17429.48,
+          3705.4799999999996
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.1813303266805,
+          0.03041130563107
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          11206.48,
+          2382.4799999999996
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          32852.36,
+          6984.360000000001
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.476083095732,
+          1.0861180582524002
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.93282644967,
+          18.269362544377003
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54846.162879828,
+          9923.858561239002
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5084.320752,
+          852.7025519999997
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          6.4583713661384,
+          1.3730395817775003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51092.3747152,
+          8568.8138952
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          12.054689790612,
+          2.562808065720601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32513.329364218,
+          5452.881569672998
+        ],
+        "CritEffect": [
+          2.2714,
+          2.729104,
+          0.4577040000000001
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          22081.405333333,
+          4694.472000000002
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22354.818625067,
+          3749.1755183999994
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          49276.0,
+          10476.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.476083095732,
+          1.0861180582524002
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          9464.04,
+          2012.0400000000009
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.13303266805,
+          3.041130563107
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          54095.125066667,
+          11500.538400000005
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3753.7881646275,
+          1355.0446660386
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          853.13367377898,
+          307.96469682695
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          26151.84,
+          5559.84
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          12303.252,
+          2615.652
+        ],
+        "PreEffectiveCritMultiplier": [
+          4.0,
+          5.075,
+          1.0750000000000002
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          7472.68,
+          1588.6800000000003
+        ],
+        "CritMultiplier": [
+          4.0,
+          5.08,
+          1.08
+        ]
+      }
+    },
+    {
+      "key": "cold_damage_inc",
+      "label": "increased Cold Damage",
+      "description": "冰霜伤害增加",
+      "mod_name": "ColdDamage",
+      "mod_type": "INC",
+      "needed_value": 112.5,
+      "unit": "%",
+      "dps_per_unit": 0.1783,
+      "target_pct": 20.0,
+      "actual_pct": 20.06,
+      "current_total": 219.0,
+      "formula": "INC 219%→332%, 需要 +112 → DPS +20.1%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.090255555962,
+          5.194196846373
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "ColdHitAverage": [
+          10648.646666667,
+          14403.74,
+          3755.0933333329995
+        ],
+        "AverageHit": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          53451.623315922,
+          8529.318997333
+        ],
+        "ColdStoredCritAvg": [
+          32765.066666667,
+          44319.2,
+          11554.133333332997
+        ],
+        "ColdStoredHitMax": [
+          9700.0,
+          13121.0,
+          3421.0
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "ColdStoredCritMin": [
+          25868.0,
+          34988.0,
+          9120.0
+        ],
+        "ColdStoredHitAvg": [
+          8191.2666666667,
+          11079.8,
+          2888.533333333299
+        ],
+        "FreezeColdMin": [
+          6467.0,
+          8747.0,
+          2280.0
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          122.63464104589,
+          31.971177140597007
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          53451.623315922,
+          8529.318997333
+        ],
+        "HeavyStunColdMax": [
+          10648.646666667,
+          14403.74,
+          3755.0933333329995
+        ],
+        "HeavyStunColdMin": [
+          6467.0,
+          8747.0,
+          2280.0
+        ],
+        "TotalMin": [
+          14779.7,
+          17743.7,
+          2964.0
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51052.879817333,
+          8529.318997333
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32488.196247394,
+          5427.748452848999
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          25166.65772,
+          6561.014613332998
+        ],
+        "ColdStoredCritMax": [
+          38800.0,
+          52484.0,
+          13684.0
+        ],
+        "FreezeColdMax": [
+          10648.646666667,
+          14403.74,
+          3755.0933333329995
+        ],
+        "ColdStoredHitMin": [
+          6467.0,
+          8747.0,
+          2280.0
+        ],
+        "TotalMax": [
+          22170.2,
+          26617.5,
+          4447.299999999999
+        ],
+        "ColdCritAverage": [
+          42594.586666667,
+          57614.96,
+          15020.373333333002
+        ]
+      }
+    },
+    {
+      "key": "crit_chance_inc",
+      "label": "increased Critical Hit Chance",
+      "description": "暴击率增加（INC叠加到已有的INC总量）",
+      "mod_name": "CritChance",
+      "mod_type": "INC",
+      "needed_value": 116.5,
+      "unit": "%",
+      "dps_per_unit": 0.1717,
+      "target_pct": 20.0,
+      "actual_pct": 20.0,
+      "current_total": 226.0,
+      "formula": "INC 226%→342%, 需要 +116 → DPS +20.0%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.076068516185,
+          5.180009806596001
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "AverageHit": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          54169.029099852,
+          9246.724781263001
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          11848.108383333,
+          1974.9382899997
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          3.4653357778054,
+          0.5776301240561001
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          713.51036928461,
+          168.34139233257997
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18110747628136,
+          0.030188455231930006
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "CritChance": [
+          42.38,
+          57.525,
+          15.144999999999996
+        ],
+        "PreBifurcateCritChance": [
+          42.38,
+          57.525,
+          15.144999999999996
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          6.4681241529057,
+          1.0781591154261
+        ],
+        "FreezeBuildupAvg": [
+          90.663463905293,
+          108.79895075277,
+          18.135486847476997
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          54169.029099852,
+          9246.724781263001
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          5078.07225,
+          846.4540500000003
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51029.583475,
+          8506.022655
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32473.371302273,
+          5412.923507727999
+        ],
+        "CritEffect": [
+          2.2714,
+          2.72575,
+          0.45435000000000025
+        ],
+        "ColdStoredCombinedAvg": [
+          18605.643106667,
+          22327.345116667,
+          3721.7020099999972
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          6.4681241529057,
+          1.0781591154261
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.110747628136,
+          3.0188455231930007
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          3139.4456248523,
+          740.7021262634003
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          713.51036928461,
+          168.34139233257997
+        ],
+        "PreEffectiveCritChance": [
+          42.38,
+          57.525,
+          15.144999999999996
+        ]
+      }
+    },
+    {
+      "key": "speed_inc",
+      "label": "increased Attack and Cast Speed",
+      "description": "攻击/施法速度增加（通用，无flag限制）",
+      "mod_name": "Speed",
+      "mod_type": "INC",
+      "needed_value": 148.5,
+      "unit": "%",
+      "dps_per_unit": 0.1352,
+      "target_pct": 20.0,
+      "actual_pct": 20.08,
+      "current_total": 75.0,
+      "formula": "INC 75%→224%, 需要 +148 → DPS +20.1%",
+      "sample_diff": {
+        "WithIgniteDPS": [
+          44922.304318589,
+          45403.992703076,
+          481.6883844870026
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          654.64360979011,
+          109.47463283807997
+        ],
+        "LifeLeechInstantRate": [
+          20.809090909091,
+          24.987735849057,
+          4.178644939965999
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18122486220356,
+          0.030305841154129987
+        ],
+        "LifeLeechInstances": [
+          2.7045454545455,
+          3.247641509434,
+          0.5430960548885002
+        ],
+        "Speed": [
+          0.63636363636364,
+          0.76415094339623,
+          0.12778730703259
+        ],
+        "Time": [
+          1.5714285714286,
+          1.3086419753086,
+          -0.26278659612
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          45403.992703076,
+          481.6883844870026
+        ],
+        "LifePerSecondCost": [
+          136.63101604278,
+          164.06770255272,
+          27.43668650993999
+        ],
+        "CastRate": [
+          0.63636363636364,
+          0.76415094339623,
+          0.12778730703259
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32494.41911717,
+          5433.971322624999
+        ],
+        "LifeLeechRate": [
+          115.14363636364,
+          138.26547169811,
+          23.121835334469992
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.122486220356,
+          3.0305841154129993
+        ],
+        "ManaPerSecondCost": [
+          1.2727272727273,
+          1.5283018867925,
+          0.2555746140652
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          2880.4318830765,
+          481.68838448760016
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          654.64360979011,
+          109.47463283807997
+        ]
+      }
+    },
+    {
+      "key": "cast_speed_inc",
+      "label": "increased Cast Speed",
+      "description": "施法速度增加（仅非攻击技能，POB中为 Speed INC + ModFlag.Cast）",
+      "mod_name": "Speed",
+      "mod_type": "INC",
+      "needed_value": 148.5,
+      "unit": "%",
+      "dps_per_unit": 0.1352,
+      "target_pct": 20.0,
+      "actual_pct": 20.08,
+      "current_total": 75.0,
+      "formula": "INC 75%→224%, 需要 +148 → DPS +20.1%",
+      "sample_diff": {
+        "WithIgniteDPS": [
+          44922.304318589,
+          45403.992703076,
+          481.6883844870026
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          654.64360979011,
+          109.47463283807997
+        ],
+        "LifeLeechInstantRate": [
+          20.809090909091,
+          24.987735849057,
+          4.178644939965999
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.18122486220356,
+          0.030305841154129987
+        ],
+        "LifeLeechInstances": [
+          2.7045454545455,
+          3.247641509434,
+          0.5430960548885002
+        ],
+        "Speed": [
+          0.63636363636364,
+          0.76415094339623,
+          0.12778730703259
+        ],
+        "Time": [
+          1.5714285714286,
+          1.3086419753086,
+          -0.26278659612
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          45403.992703076,
+          481.6883844870026
+        ],
+        "LifePerSecondCost": [
+          136.63101604278,
+          164.06770255272,
+          27.43668650993999
+        ],
+        "CastRate": [
+          0.63636363636364,
+          0.76415094339623,
+          0.12778730703259
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32494.41911717,
+          5433.971322624999
+        ],
+        "LifeLeechRate": [
+          115.14363636364,
+          138.26547169811,
+          23.121835334469992
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          18.122486220356,
+          3.0305841154129993
+        ],
+        "ManaPerSecondCost": [
+          1.2727272727273,
+          1.5283018867925,
+          0.2555746140652
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          2880.4318830765,
+          481.68838448760016
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          654.64360979011,
+          109.47463283807997
+        ]
+      }
+    },
+    {
+      "key": "fire_damage_inc",
+      "label": "increased Fire Damage",
+      "description": "火焰伤害增加",
+      "mod_name": "FireDamage",
+      "mod_type": "INC",
+      "needed_value": 205.0,
+      "unit": "%",
+      "dps_per_unit": 0.0977,
+      "target_pct": 20.0,
+      "actual_pct": 20.02,
+      "current_total": 209.0,
+      "formula": "INC 209%→414%, 需要 +205 → DPS +20.0%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.080305446604,
+          5.184246737015002
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "AverageHit": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          57672.406013896,
+          12750.101695307
+        ],
+        "IgniteFireMax": [
+          5148.0,
+          8563.0,
+          3415.0
+        ],
+        "FireStoredCombinedAvg": [
+          9873.1700933333,
+          16421.616293333,
+          6548.446199999702
+        ],
+        "TotalDotDPS": [
+          545.16897695203,
+          1508.1511667945,
+          962.9821898424701
+        ],
+        "FireCritAverage": [
+          22603.013333333,
+          37594.613333333,
+          14991.599999999999
+        ],
+        "FireStoredCritMin": [
+          13724.0,
+          22824.0,
+          9100.0
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "IgniteStackPotential": [
+          0.15091902104943,
+          0.25101567914143,
+          0.10009665809200002
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "IgniteChanceOnHit": [
+          2.3729704312229,
+          3.9468370536332,
+          1.5738666224103
+        ],
+        "IgniteFireMin": [
+          3431.0,
+          5706.0,
+          2275.0
+        ],
+        "IgniteChance": [
+          5.3899650374796,
+          8.9648456836224,
+          3.5748806461428
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          57672.406013896,
+          12750.101695307
+        ],
+        "TotalMin": [
+          14779.7,
+          17737.2,
+          2957.5
+        ],
+        "FireStoredHitMin": [
+          3431.0,
+          5706.0,
+          2275.0
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51036.54088,
+          8512.980060000002
+        ],
+        "IgniteChanceOnCrit": [
+          9.4918817248914,
+          15.787348214533,
+          6.295466489641601
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32477.798741818,
+          5417.350947272997
+        ],
+        "FireStoredCritAvg": [
+          17386.933333333,
+          28918.933333333,
+          11532.0
+        ],
+        "IgniteChancePerHit": [
+          5.3899650374796,
+          8.9648456836224,
+          3.5748806461428
+        ],
+        "IgniteStackPotentialPercent": [
+          15.091902104943,
+          25.101567914143,
+          10.009665809200001
+        ],
+        "HeavyStunFireMax": [
+          5650.7533333333,
+          9398.6533333333,
+          3747.9000000000005
+        ],
+        "FireHitAverage": [
+          5650.7533333333,
+          9398.6533333333,
+          3747.9000000000005
+        ],
+        "TotalMax": [
+          22170.2,
+          26609.7,
+          4439.5
+        ],
+        "HeavyStunFireMin": [
+          3431.0,
+          5706.0,
+          2275.0
+        ],
+        "IgniteDamage": [
+          2398.7434985889,
+          6635.865133896,
+          4237.1216353070995
+        ],
+        "IgniteDPS": [
+          545.16897695203,
+          1508.1511667945,
+          962.9821898424701
+        ],
+        "FireStoredCritMax": [
+          20592.0,
+          34252.0,
+          13660.0
+        ],
+        "FireStoredHitAvg": [
+          4346.7333333333,
+          7229.7333333333,
+          2883.0
+        ],
+        "FireStoredHitMax": [
+          5148.0,
+          8563.0,
+          3415.0
+        ]
+      }
+    },
+    {
+      "key": "lightning_damage_inc",
+      "label": "increased Lightning Damage",
+      "description": "闪电伤害增加",
+      "mod_name": "LightningDamage",
+      "mod_type": "INC",
+      "needed_value": 478.0,
+      "unit": "%",
+      "dps_per_unit": 0.0419,
+      "target_pct": 20.0,
+      "actual_pct": 20.01,
+      "current_total": 209.0,
+      "formula": "INC 209%→687%, 需要 +478 → DPS +20.0%",
+      "sample_diff": {
+        "HeavyStunBuildupAvg": [
+          25.896058709589,
+          31.078387353234,
+          5.1823286436450005
+        ],
+        "AverageBurstDamage": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "AverageHit": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "WithIgniteDPS": [
+          44922.304318589,
+          53432.134703922,
+          8509.830385333
+        ],
+        "ShockChance": [
+          2.8877056537493,
+          7.3547357757309,
+          4.467030121981599
+        ],
+        "LightningStoredHitAvg": [
+          1863.0,
+          4744.9333333333,
+          2881.9333333332997
+        ],
+        "WithBleedDPS": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "LightningStoredCritMax": [
+          8824.0,
+          22476.0,
+          13652.0
+        ],
+        "WithPoisonDPS": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "CombinedAvg": [
+          44922.304318589,
+          53432.134703922,
+          8509.830385333
+        ],
+        "ShockLightningMax": [
+          2206.0,
+          5619.0,
+          3413.0
+        ],
+        "LightningStoredCombinedAvg": [
+          4231.6182,
+          10777.641573333,
+          6546.023373333
+        ],
+        "TotalMin": [
+          14779.7,
+          17737.2,
+          2957.5
+        ],
+        "ShockChanceOnCrit": [
+          5.0853317843609,
+          12.951898874229,
+          7.8665670898681
+        ],
+        "CombinedDPS": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "AverageDamage": [
+          42523.56082,
+          51033.391205333,
+          8509.830385333
+        ],
+        "TotalDPS": [
+          27060.447794545,
+          32475.794403394,
+          5415.346608848999
+        ],
+        "LightningStoredHitMin": [
+          1471.0,
+          3746.0,
+          2275.0
+        ],
+        "LightningStoredCritAvg": [
+          7452.0,
+          18979.733333333,
+          11527.733333332999
+        ],
+        "HeavyStunLightningMin": [
+          1471.0,
+          3746.0,
+          2275.0
+        ],
+        "TotalMax": [
+          22170.2,
+          26607.1,
+          4436.899999999998
+        ],
+        "LightningStoredHitMax": [
+          2206.0,
+          5619.0,
+          3413.0
+        ],
+        "ShockChanceOnHit": [
+          1.2713329460902,
+          3.2379747185572,
+          1.9666417724669998
+        ],
+        "LightningHitAverage": [
+          2421.9,
+          6168.4133333333,
+          3746.5133333333
+        ],
+        "LightningCritAverage": [
+          9687.6,
+          24673.653333333,
+          14986.053333333
+        ],
+        "HeavyStunLightningMax": [
+          2421.9,
+          6168.4133333333,
+          3746.5133333333
+        ],
+        "ShockLightningMin": [
+          1471.0,
+          3746.0,
+          2275.0
+        ],
+        "LightningStoredCritMin": [
+          5884.0,
+          14984.0,
+          9100.0
+        ]
+      }
+    },
+    {
+      "key": "physical_damage_inc",
+      "label": "increased Physical Damage",
+      "description": "物理伤害增加，仅对物理伤害生效",
+      "mod_name": "PhysicalDamage",
+      "mod_type": "INC",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 219.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "chaos_damage_inc",
+      "label": "increased Chaos Damage",
+      "description": "混沌伤害增加",
+      "mod_name": "ChaosDamage",
+      "mod_type": "INC",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 219.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "lightning_pen",
+      "label": "Penetrate Lightning Resistance",
+      "description": "闪电抗性穿透（敌人负抗时无效）",
+      "mod_name": "LightningPenetration",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "fire_pen",
+      "label": "Penetrate Fire Resistance",
+      "description": "火焰抗性穿透（敌人负抗时无效）",
+      "mod_name": "FirePenetration",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "cold_pen",
+      "label": "Penetrate Cold Resistance",
+      "description": "冰霜抗性穿透（敌人负抗时无效）",
+      "mod_name": "ColdPenetration",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "elemental_pen",
+      "label": "Penetrate Elemental Resistances",
+      "description": "元素抗性穿透（对火/冰/电都生效，敌人负抗时无效）",
+      "mod_name": "ElementalPenetration",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "chaos_pen",
+      "label": "Penetrate Chaos Resistance",
+      "description": "混沌抗性穿透（敌人负抗时无效）",
+      "mod_name": "ChaosPenetration",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "projectile_count",
+      "label": "additional Projectiles",
+      "description": "额外投射物数量（ProjectileCount没有INC类型）",
+      "mod_name": "ProjectileCount",
+      "mod_type": "BASE",
+      "needed_value": null,
+      "unit": "",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 1.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "aoe_inc",
+      "label": "increased Area of Effect",
+      "description": "影响范围增加（对半径是平方根关系）",
+      "mod_name": "AreaOfEffect",
+      "mod_type": "INC",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    },
+    {
+      "key": "duration_inc",
+      "label": "increased Skill Effect Duration",
+      "description": "技能持续时间增加",
+      "mod_name": "Duration",
+      "mod_type": "INC",
+      "needed_value": null,
+      "unit": "%",
+      "dps_per_unit": null,
+      "target_pct": 20.0,
+      "actual_pct": 0.0,
+      "current_total": 0.0,
+      "formula": "无法在搜索范围内达到 DPS +20%",
+      "sample_diff": {}
+    }
+  ],
+  "talent_value": [
+    {
+      "id": 58016,
+      "name": "All Natural",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 24479.486259879,
+      "dps_delta": -2580.961534666003,
+      "dps_pct": -9.537763581230491,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 19125,
+      "name": "Potent Incantation",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 24729.276936,
+      "dps_delta": -2331.1708585450033,
+      "dps_pct": -8.6146795361418,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 56265,
+      "name": "Throatseeker",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 24774.474948364,
+      "dps_delta": -2285.972846181001,
+      "dps_pct": -8.44765342960001,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 46197,
+      "name": "Careful Assassin",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25592.221332364,
+      "dps_delta": -1468.2264621810027,
+      "dps_pct": -5.425728625514379,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 23587,
+      "name": "I am the Blizzard...",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25720.923371394,
+      "dps_delta": -1339.5244231510005,
+      "dps_pct": -4.950119204683041,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 7621,
+      "name": "I am the Thunder...",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25763.766105212,
+      "dps_delta": -1296.6816893330033,
+      "dps_pct": -4.791796865957243,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 20677,
+      "name": "For the Jugular",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25798.206690455,
+      "dps_delta": -1262.2411040900006,
+      "dps_pct": -4.664524082060646,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9546.9023443368,
+      "ehp_delta": -44.375868446699315,
+      "ehp_pct": -0.46266897343832675,
+      "category": "混合"
+    },
+    {
+      "id": 57204,
+      "name": "Critical Exploit",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25898.876226364,
+      "dps_delta": -1161.5715681810034,
+      "dps_pct": -4.292506823982268,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 61601,
+      "name": "True Strike",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26131.19054,
+      "dps_delta": -929.2572545450021,
+      "dps_pct": -3.434005459186551,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 10398,
+      "name": "Sudden Escalation",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26317.041990909,
+      "dps_delta": -743.4058036360002,
+      "dps_pct": -2.747204367349236,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 17548,
+      "name": "Moment of Truth",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26363.504853636,
+      "dps_delta": -696.9429409090008,
+      "dps_pct": -2.5755040943908343,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 13724,
+      "name": "Deadly Force",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26595.819167273,
+      "dps_delta": -464.62862727200263,
+      "dps_pct": -1.7170027295914339,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 49220,
+      "name": "Flow Like Water",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26597.133546592,
+      "dps_delta": -463.31424795300336,
+      "dps_pct": -1.712145532367727,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9569.0902785602,
+      "ehp_delta": -22.187934223300545,
+      "ehp_pct": -0.23133448671865134,
+      "category": "混合"
+    },
+    {
+      "id": 11774,
+      "name": "The Spring Hare",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26704.364546364,
+      "dps_delta": -356.083248181003,
+      "dps_pct": -1.3158808416052312,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 24491,
+      "name": "Invocated Echoes",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 64031,
+      "name": "...and I Shall Rage",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 21748,
+      "name": "Impending Doom",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 48524,
+      "name": "Blood Transfusion",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 19722,
+      "name": "Thin Ice",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 40399,
+      "name": "Energise",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 4959,
+      "name": "Heavy Frost",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 3688,
+      "name": "Dynamism",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 7777,
+      "name": "Breaking Point",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 44756,
+      "name": "Marked Agility",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 53941,
+      "name": "Shimmering",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 3215,
+      "name": "Melding",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9389.5697198438,
+      "ehp_delta": -201.7084929397006,
+      "ehp_pct": -2.1030407883576805,
+      "category": "防御"
+    },
+    {
+      "id": 42245,
+      "name": "Efficient Inscriptions",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 27176,
+      "name": "The Power Within",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 65204,
+      "name": "Overflowing Power",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 41753,
+      "name": "Evocational Practitioner",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 45918,
+      "name": "Mind Over Matter",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 6555.5653940401,
+      "ehp_delta": -3035.7128187434,
+      "ehp_pct": -31.65076386479254,
+      "category": "防御"
+    },
+    {
+      "id": 59387,
+      "name": "Infusion of Power",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 63830,
+      "name": "Marked for Sickness",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 43082,
+      "name": "Acceleration",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 27491,
+      "name": "Heavy Buffer",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9071.7216722059,
+      "ehp_delta": -519.5565405775997,
+      "ehp_pct": -5.4169687194051095,
+      "category": "防御"
+    },
+    {
+      "id": 13515,
+      "name": "Stormwalker",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 48699,
+      "name": "Frostwalker",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 63236,
+      "name": "The Soul Springs Eternal",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    },
+    {
+      "id": 34168,
+      "name": "Crashing Wave",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "无效"
+    }
+  ],
+  "talent_exploration": [
+    {
+      "id": 19955,
+      "name": "Endless Blizzard",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 31614.9079232,
+      "dps_delta": 4554.460128654999,
+      "dps_pct": 16.83,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 19044,
+      "name": "Arcane Intensity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 30931.702189818,
+      "dps_delta": 3871.2543952729975,
+      "dps_pct": 14.31,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 51934,
+      "name": "Invocated Efficiency",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 30500.268344,
+      "dps_delta": 3439.8205494549984,
+      "dps_pct": 12.71,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 14294,
+      "name": "Sacrificial Blood",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 30500.268344,
+      "dps_delta": 3439.8205494549984,
+      "dps_pct": 12.71,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 56776,
+      "name": "Cooked",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 30089.826444364,
+      "dps_delta": 3029.3786498189984,
+      "dps_pct": 11.19,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9193.4825579788,
+      "ehp_delta": -397.79565480470046,
+      "ehp_pct": -4.15,
+      "category": "混合"
+    },
+    {
+      "id": 8483,
+      "name": "Ruin",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 30069.085040485,
+      "dps_delta": 3008.6372459399972,
+      "dps_pct": 11.12,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 16618,
+      "name": "Jack of all Trades",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29984.276470909,
+      "dps_delta": 2923.828676363999,
+      "dps_pct": 10.8,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 40345,
+      "name": "Master of Hexes",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29766.492574,
+      "dps_delta": 2706.044779454998,
+      "dps_pct": 10.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 59303,
+      "name": "Lucky Rabbit Foot",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29640.532431152,
+      "dps_delta": 2580.084636607,
+      "dps_pct": 9.53,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 12940,
+      "name": "Cower Before the First Ones",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29640.532431152,
+      "dps_delta": 2580.084636607,
+      "dps_pct": 9.53,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 49153,
+      "name": "Comradery",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29640.532431152,
+      "dps_delta": 2580.084636607,
+      "dps_pct": 9.53,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 50562,
+      "name": "Barbaric Strength",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29332.481781909,
+      "dps_delta": 2272.033987363997,
+      "dps_pct": 8.4,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9633.6369963009,
+      "ehp_delta": 42.3587835174003,
+      "ehp_pct": 0.44,
+      "category": "混合"
+    },
+    {
+      "id": 50912,
+      "name": "Imbibed Power",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29210.226025697,
+      "dps_delta": 2149.7782311519986,
+      "dps_pct": 7.94,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 20963,
+      "name": "Calculated Hunter",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 29072.653460741,
+      "dps_delta": 2012.2056661959978,
+      "dps_pct": 7.44,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 58939,
+      "name": "Dispatch Foes",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28918.962303636,
+      "dps_delta": 1858.5145090909973,
+      "dps_pct": 6.87,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 58096,
+      "name": "Lasting Incantations",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 10029,
+      "name": "Repulsion",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 51184,
+      "name": "Raw Power",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9635.6540812303,
+      "ehp_delta": 44.37586844679936,
+      "ehp_pct": 0.46,
+      "category": "混合"
+    },
+    {
+      "id": 2335,
+      "name": "Turn the Clock Forward",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 3823,
+      "name": "Elemental Force",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 53265,
+      "name": "Nature's Bite",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 48565,
+      "name": "Bringer of Order",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28779.919620242,
+      "dps_delta": 1719.4718256969973,
+      "dps_pct": 6.35,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 24483,
+      "name": "Direct Approach",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28686.64799,
+      "dps_delta": 1626.2001954549996,
+      "dps_pct": 6.01,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 5284,
+      "name": "Shredding Force",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28549.582544955,
+      "dps_delta": 1489.1347504099977,
+      "dps_pct": 5.5,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 16499,
+      "name": "Lingering Whispers",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28517.548829636,
+      "dps_delta": 1457.101035091,
+      "dps_pct": 5.38,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 50485,
+      "name": "Zone of Control",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28517.548829636,
+      "dps_delta": 1457.101035091,
+      "dps_pct": 5.38,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 11160,
+      "name": "Relinquish Your Life",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28470.230061212,
+      "dps_delta": 1409.782266667,
+      "dps_pct": 5.21,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 27303,
+      "name": "Vulgar Methods",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28454.333676364,
+      "dps_delta": 1393.8858818189983,
+      "dps_pct": 5.15,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9355.279276044,
+      "ehp_delta": -235.9989367394992,
+      "ehp_pct": -2.46,
+      "category": "混合"
+    },
+    {
+      "id": 49150,
+      "name": "Precise Invocations",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28454.333676364,
+      "dps_delta": 1393.8858818189983,
+      "dps_pct": 5.15,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 3281,
+      "name": "Powerful Casting",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28437.303020848,
+      "dps_delta": 1376.8552263029997,
+      "dps_pct": 5.09,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 6898,
+      "name": "Relentless Vindicator",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28399.701445818,
+      "dps_delta": 1339.2536512729966,
+      "dps_pct": 4.95,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9633.6369963009,
+      "ehp_delta": 42.3587835174003,
+      "ehp_pct": 0.44,
+      "category": "混合"
+    },
+    {
+      "id": 35564,
+      "name": "Turn the Clock Back",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28349.613214788,
+      "dps_delta": 1289.165420243,
+      "dps_pct": 4.76,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 28267,
+      "name": "Desensitisation",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28322.688898636,
+      "dps_delta": 1262.2411040909974,
+      "dps_pct": 4.66,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9628.1101676301,
+      "ehp_delta": 36.83195484660064,
+      "ehp_pct": 0.38,
+      "category": "混合"
+    },
+    {
+      "id": 13407,
+      "name": "Heartbreaking",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28322.688898636,
+      "dps_delta": 1262.2411040909974,
+      "dps_pct": 4.66,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9633.6369963009,
+      "ehp_delta": 42.3587835174003,
+      "ehp_pct": 0.44,
+      "category": "混合"
+    },
+    {
+      "id": 26518,
+      "name": "Cold Nature",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28266.683712485,
+      "dps_delta": 1206.2359179399973,
+      "dps_pct": 4.46,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 17725,
+      "name": "Bonded Precision",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28222.019362727,
+      "dps_delta": 1161.5715681819966,
+      "dps_pct": 4.29,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 13823,
+      "name": "Controlling Magic",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28222.019362727,
+      "dps_delta": 1161.5715681819966,
+      "dps_pct": 4.29,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9628.1101676301,
+      "ehp_delta": 36.83195484660064,
+      "ehp_pct": 0.38,
+      "category": "混合"
+    },
+    {
+      "id": 7809,
+      "name": "Wild Storm",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28112.600196121,
+      "dps_delta": 1052.152401575997,
+      "dps_pct": 3.89,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 11366,
+      "name": "Volcanic Skin",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28097.191844485,
+      "dps_delta": 1036.74404994,
+      "dps_pct": 3.83,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 8831,
+      "name": "Tempered Mind",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28070.240677818,
+      "dps_delta": 1009.7928832729995,
+      "dps_pct": 3.73,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9633.6369963009,
+      "ehp_delta": 42.3587835174003,
+      "ehp_pct": 0.44,
+      "category": "混合"
+    },
+    {
+      "id": 18465,
+      "name": "Cruel Fate",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28070.240677818,
+      "dps_delta": 1009.7928832729995,
+      "dps_pct": 3.73,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 39881,
+      "name": "Staggering Palm",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 28070.240677818,
+      "dps_delta": 1009.7928832729995,
+      "dps_pct": 3.73,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 38537,
+      "name": "Heartstopping",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27989.705049091,
+      "dps_delta": 929.2572545459989,
+      "dps_pct": 3.43,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9635.6540812303,
+      "ehp_delta": 44.37586844679936,
+      "ehp_pct": 0.46,
+      "category": "混合"
+    },
+    {
+      "id": 7542,
+      "name": "Encompassing Domain",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27920.308978545,
+      "dps_delta": 859.8611839999976,
+      "dps_pct": 3.18,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 10295,
+      "name": "Overzealous",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27910.653321718,
+      "dps_delta": 850.2055271729987,
+      "dps_pct": 3.14,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 56466,
+      "name": "Night's Bite",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27866.037661212,
+      "dps_delta": 805.589866667,
+      "dps_pct": 2.98,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 41972,
+      "name": "Glaciation",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27862.057893091,
+      "dps_delta": 801.6100985459998,
+      "dps_pct": 2.96,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 19715,
+      "name": "Cremation",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27836.37730703,
+      "dps_delta": 775.9295124849996,
+      "dps_pct": 2.87,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 55708,
+      "name": "Electric Amplification",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27836.37730703,
+      "dps_delta": 775.9295124849996,
+      "dps_pct": 2.87,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 55149,
+      "name": "Pure Chaos",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27797.909427273,
+      "dps_delta": 737.4616327279982,
+      "dps_pct": 2.73,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 5501,
+      "name": "Critical Overload",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27757.390735455,
+      "dps_delta": 696.9429409099976,
+      "dps_pct": 2.58,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 38535,
+      "name": "Stormcharged",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27757.390735455,
+      "dps_delta": 696.9429409099976,
+      "dps_pct": 2.58,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 32683,
+      "name": "Essence of the Mountain",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27727.767218667,
+      "dps_delta": 667.3194241219971,
+      "dps_pct": 2.47,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 8554,
+      "name": "Burning Nature",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27720.250949576,
+      "dps_delta": 659.803155030997,
+      "dps_pct": 2.44,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 36479,
+      "name": "Essence of the Storm",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27708.851274788,
+      "dps_delta": 648.4034802429996,
+      "dps_pct": 2.4,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 11392,
+      "name": "Molten Being",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27706.846936364,
+      "dps_delta": 646.399141818998,
+      "dps_pct": 2.39,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9747.9415592718,
+      "ehp_delta": 156.6633464882998,
+      "ehp_pct": 1.63,
+      "category": "混合"
+    },
+    {
+      "id": 14934,
+      "name": "Spiral into Mania",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27603.01316386,
+      "dps_delta": 542.565369314998,
+      "dps_pct": 2.01,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9919.0837659819,
+      "ehp_delta": 327.80555319840096,
+      "ehp_pct": 3.42,
+      "category": "混合"
+    },
+    {
+      "id": 26331,
+      "name": "Harsh Winter",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27497.567597385,
+      "dps_delta": 437.11980283999947,
+      "dps_pct": 1.62,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 2021,
+      "name": "Wellspring",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27497.567597385,
+      "dps_delta": 437.11980283999947,
+      "dps_pct": 1.62,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 17254,
+      "name": "Spell Haste",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27497.567597385,
+      "dps_delta": 437.11980283999947,
+      "dps_pct": 1.62,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "混合"
+    },
+    {
+      "id": 50392,
+      "name": "Brute Strength",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27489.877301939,
+      "dps_delta": 429.4295073939975,
+      "dps_pct": 1.59,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9312.9204925267,
+      "ehp_delta": -278.35772025679944,
+      "ehp_pct": -2.9,
+      "category": "混合"
+    },
+    {
+      "id": 25753,
+      "name": "Blazing Arms",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27483.237930909,
+      "dps_delta": 422.7901363639976,
+      "dps_pct": 1.56,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 21349,
+      "name": "The Cunning Fox",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27476.762376,
+      "dps_delta": 416.3145814549971,
+      "dps_pct": 1.54,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 7128,
+      "name": "Dangerous Blossom",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27472.264096654,
+      "dps_delta": 411.81630210899675,
+      "dps_pct": 1.52,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 53294,
+      "name": "Burn Away",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27456.555175636,
+      "dps_delta": 396.1073810909984,
+      "dps_pct": 1.46,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 8957,
+      "name": "Right Hand of Darkness",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27395.885393333,
+      "dps_delta": 335.43759878799756,
+      "dps_pct": 1.24,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 52245,
+      "name": "Distant Dreamer",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27395.885393333,
+      "dps_delta": 335.43759878799756,
+      "dps_pct": 1.24,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9842.0609227129,
+      "ehp_delta": 250.78270992940088,
+      "ehp_pct": 2.61,
+      "category": "混合"
+    },
+    {
+      "id": 39083,
+      "name": "Blood Rush",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27390.621026406,
+      "dps_delta": 330.1732318609975,
+      "dps_pct": 1.22,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 36302,
+      "name": "Practiced Signs",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27390.621026406,
+      "dps_delta": 330.1732318609975,
+      "dps_pct": 1.22,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 27513,
+      "name": "Material Solidification",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27363.095769931,
+      "dps_delta": 302.6479753859967,
+      "dps_pct": 1.12,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 26291,
+      "name": "Electrifying Nature",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27344.186952727,
+      "dps_delta": 283.7391581819975,
+      "dps_pct": 1.05,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 16466,
+      "name": "Mental Alacrity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27336.574812857,
+      "dps_delta": 276.12701831199956,
+      "dps_pct": 1.02,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9635.6540812303,
+      "ehp_delta": 44.37586844679936,
+      "ehp_pct": 0.46,
+      "category": "混合"
+    },
+    {
+      "id": 34233,
+      "name": "Flow State",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27336.574812857,
+      "dps_delta": 276.12701831199956,
+      "dps_pct": 1.02,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 43090,
+      "name": "Electrotherapy",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27336.574812857,
+      "dps_delta": 276.12701831199956,
+      "dps_pct": 1.02,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 44293,
+      "name": "Hastening Barrier",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27336.574812857,
+      "dps_delta": 276.12701831199956,
+      "dps_pct": 1.02,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 64240,
+      "name": "Battle Fever",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27336.574812857,
+      "dps_delta": 276.12701831199956,
+      "dps_pct": 1.02,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 28975,
+      "name": "Pure Power",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27281.927190424,
+      "dps_delta": 221.47939587899964,
+      "dps_pct": 0.82,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 13738,
+      "name": "Lightning Quick",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27218.539987758,
+      "dps_delta": 158.0921932129968,
+      "dps_pct": 0.58,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 32799,
+      "name": "Captivating Companionship",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9938.4188425834,
+      "ehp_delta": 347.1406297999001,
+      "ehp_pct": 3.62,
+      "category": "防御"
+    },
+    {
+      "id": 116,
+      "name": "Insightfulness",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9853.4992536052,
+      "ehp_delta": 262.2210408216997,
+      "ehp_pct": 2.73,
+      "category": "防御"
+    },
+    {
+      "id": 57513,
+      "name": "Eldritch Battery",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 8744.0631689387,
+      "ehp_delta": -847.2150438448007,
+      "ehp_pct": -8.83,
+      "category": "防御"
+    },
+    {
+      "id": 32976,
+      "name": "Gem Enthusiast",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9940.2339055693,
+      "ehp_delta": 348.95569278579933,
+      "ehp_pct": 3.64,
+      "category": "防御"
+    },
+    {
+      "id": 41512,
+      "name": "Heavy Weaponry",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9653.8078455949,
+      "ehp_delta": 62.529632811400006,
+      "ehp_pct": 0.65,
+      "category": "防御"
+    },
+    {
+      "id": 8791,
+      "name": "Sturdy Ally",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9653.8078455949,
+      "ehp_delta": 62.529632811400006,
+      "ehp_pct": 0.65,
+      "category": "防御"
+    },
+    {
+      "id": 17029,
+      "name": "Blade Catcher",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9653.8078455949,
+      "ehp_delta": 62.529632811400006,
+      "ehp_pct": 0.65,
+      "category": "防御"
+    },
+    {
+      "id": 41861,
+      "name": "Trusted Kinship",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 8628.6159474274,
+      "ehp_delta": -962.6622653560989,
+      "ehp_pct": -10.04,
+      "category": "防御"
+    },
+    {
+      "id": 25482,
+      "name": "Beef",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9696.1666291122,
+      "ehp_delta": 104.88841632870026,
+      "ehp_pct": 1.09,
+      "category": "防御"
+    },
+    {
+      "id": 50062,
+      "name": "Reinforced Barrier",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9833.3284043113,
+      "ehp_delta": 242.05019152780005,
+      "ehp_pct": 2.52,
+      "category": "防御"
+    },
+    {
+      "id": 9226,
+      "name": "Mental Perseverance",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9657.8420154537,
+      "ehp_delta": 66.56380267019995,
+      "ehp_pct": 0.69,
+      "category": "防御"
+    },
+    {
+      "id": 42103,
+      "name": "Enduring Deflection",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 1352,
+      "name": "Unbending",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9716.3374784062,
+      "ehp_delta": 125.05926562269997,
+      "ehp_pct": 1.3,
+      "category": "防御"
+    },
+    {
+      "id": 9642,
+      "name": "Dampening Shield",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9928.1313959929,
+      "ehp_delta": 336.8531832093995,
+      "ehp_pct": 3.51,
+      "category": "防御"
+    },
+    {
+      "id": 1546,
+      "name": "Spiral into Depression",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9891.8238672638,
+      "ehp_delta": 300.5456544803001,
+      "ehp_pct": 3.13,
+      "category": "防御"
+    },
+    {
+      "id": 17955,
+      "name": "Careful Consideration",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10014.676911264,
+      "ehp_delta": 423.39869848049966,
+      "ehp_pct": 4.41,
+      "category": "防御"
+    },
+    {
+      "id": 2138,
+      "name": "Spiral into Insanity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9938.4188425834,
+      "ehp_delta": 347.1406297999001,
+      "ehp_pct": 3.62,
+      "category": "防御"
+    },
+    {
+      "id": 2254,
+      "name": "Pure Energy",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9996.7122835925,
+      "ehp_delta": 405.43407080900033,
+      "ehp_pct": 4.23,
+      "category": "防御"
+    },
+    {
+      "id": 35031,
+      "name": "Chakra of Life",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9716.3374784062,
+      "ehp_delta": 125.05926562269997,
+      "ehp_pct": 1.3,
+      "category": "防御"
+    },
+    {
+      "id": 51606,
+      "name": "Freedom of Movement",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 51707,
+      "name": "Enhanced Reflexes",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10129.284532813,
+      "ehp_delta": 538.0063200295008,
+      "ehp_pct": 5.61,
+      "category": "防御"
+    },
+    {
+      "id": 51749,
+      "name": "Blood Magic",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 6555.5653940401,
+      "ehp_delta": -3035.7128187434,
+      "ehp_pct": -31.65,
+      "category": "防御"
+    },
+    {
+      "id": 51871,
+      "name": "Immortal Thirst",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9772.8158564293,
+      "ehp_delta": 181.53764364580093,
+      "ehp_pct": 1.89,
+      "category": "防御"
+    },
+    {
+      "id": 51891,
+      "name": "Lucidity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9657.8420154537,
+      "ehp_delta": 66.56380267019995,
+      "ehp_pct": 0.69,
+      "category": "防御"
+    },
+    {
+      "id": 19288,
+      "name": "Glancing Blows",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9216.7397562799,
+      "ehp_delta": -374.5384565036002,
+      "ehp_pct": -3.9,
+      "category": "防御"
+    },
+    {
+      "id": 35855,
+      "name": "Fortifying Blood",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9798.4723959796,
+      "ehp_delta": 207.1941831960994,
+      "ehp_pct": 2.16,
+      "category": "防御"
+    },
+    {
+      "id": 52257,
+      "name": "Conductive Embrace",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9677.6861246104,
+      "ehp_delta": 86.40791182690009,
+      "ehp_pct": 0.9,
+      "category": "防御"
+    },
+    {
+      "id": 44299,
+      "name": "Enhanced Barrier",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10232.711220332,
+      "ehp_delta": 641.4330075484995,
+      "ehp_pct": 6.69,
+      "category": "防御"
+    },
+    {
+      "id": 3567,
+      "name": "Raw Mana",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9815.1746399467,
+      "ehp_delta": 223.8964271631994,
+      "ehp_pct": 2.33,
+      "category": "防御"
+    },
+    {
+      "id": 44836,
+      "name": "Feel no Pain",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 3894,
+      "name": "Eldritch Will",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9837.36257417,
+      "ehp_delta": 246.08436138649995,
+      "ehp_pct": 2.57,
+      "category": "防御"
+    },
+    {
+      "id": 28492,
+      "name": "Iron Reflexes",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9369.0630541872,
+      "ehp_delta": -222.21515859630017,
+      "ehp_pct": -2.32,
+      "category": "防御"
+    },
+    {
+      "id": 53185,
+      "name": "The Winter Owl",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9843.8058388126,
+      "ehp_delta": 252.52762602909934,
+      "ehp_pct": 2.63,
+      "category": "防御"
+    },
+    {
+      "id": 45370,
+      "name": "The Raging Ox",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9678.0480111665,
+      "ehp_delta": 86.7697983830003,
+      "ehp_pct": 0.9,
+      "category": "防御"
+    },
+    {
+      "id": 20831,
+      "name": "Catlike Agility",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 4547,
+      "name": "Unnatural Resilience",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9677.6861246104,
+      "ehp_delta": 86.40791182690009,
+      "ehp_pct": 0.9,
+      "category": "防御"
+    },
+    {
+      "id": 4579,
+      "name": "Unbothering Cold",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9677.6861246104,
+      "ehp_delta": 86.40791182690009,
+      "ehp_pct": 0.9,
+      "category": "防御"
+    },
+    {
+      "id": 4673,
+      "name": "Hulking Smash",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9653.8078455949,
+      "ehp_delta": 62.529632811400006,
+      "ehp_pct": 0.65,
+      "category": "防御"
+    },
+    {
+      "id": 4716,
+      "name": "Afterimage",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9905.412030023,
+      "ehp_delta": 314.1338172395008,
+      "ehp_pct": 3.28,
+      "category": "防御"
+    },
+    {
+      "id": 53910,
+      "name": "Forbidden Path",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9381.5013801262,
+      "ehp_delta": -209.77683265730047,
+      "ehp_pct": -2.19,
+      "category": "防御"
+    },
+    {
+      "id": 21164,
+      "name": "Fleshcrafting",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9827.2771495231,
+      "ehp_delta": 235.99893673960105,
+      "ehp_pct": 2.46,
+      "category": "防御"
+    },
+    {
+      "id": 62230,
+      "name": "Patient Barrier",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10313.394617508,
+      "ehp_delta": 722.1164047245002,
+      "ehp_pct": 7.53,
+      "category": "防御"
+    },
+    {
+      "id": 46384,
+      "name": "Wide Barrier",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9193.4825579788,
+      "ehp_delta": -397.79565480470046,
+      "ehp_pct": -4.15,
+      "category": "防御"
+    },
+    {
+      "id": 21935,
+      "name": "Calibration",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10065.293171192,
+      "ehp_delta": 474.0149584084993,
+      "ehp_pct": 4.94,
+      "category": "防御"
+    },
+    {
+      "id": 5642,
+      "name": "Behemoth",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9716.3374784062,
+      "ehp_delta": 125.05926562269997,
+      "ehp_pct": 1.3,
+      "category": "防御"
+    },
+    {
+      "id": 62984,
+      "name": "Mindful Awareness",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9985.3070762314,
+      "ehp_delta": 394.0288634479002,
+      "ehp_pct": 4.11,
+      "category": "防御"
+    },
+    {
+      "id": 22811,
+      "name": "The Wild Cat",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 10022.177980826,
+      "ehp_delta": 430.8997680425,
+      "ehp_pct": 4.49,
+      "category": "防御"
+    },
+    {
+      "id": 17854,
+      "name": "Escape Velocity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 5728,
+      "name": "Ancient Aegis",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9891.8238672638,
+      "ehp_delta": 300.5456544803001,
+      "ehp_pct": 3.13,
+      "category": "防御"
+    },
+    {
+      "id": 57967,
+      "name": "Sturdy Mind",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9657.8420154537,
+      "ehp_delta": 66.56380267019995,
+      "ehp_pct": 0.69,
+      "category": "防御"
+    },
+    {
+      "id": 39567,
+      "name": "Ingenuity",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9702.2178839004,
+      "ehp_delta": 110.93967111689926,
+      "ehp_pct": 1.16,
+      "category": "防御"
+    },
+    {
+      "id": 31433,
+      "name": "Catalysis",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9747.9415592718,
+      "ehp_delta": 156.6633464882998,
+      "ehp_pct": 1.63,
+      "category": "防御"
+    },
+    {
+      "id": 34473,
+      "name": "Spaghettification",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9532.5558848525,
+      "ehp_delta": -58.72232793100011,
+      "ehp_pct": -0.61,
+      "category": "防御"
+    },
+    {
+      "id": 35987,
+      "name": "Blur",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 31724,
+      "name": "Iron Slippers",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9992.7735798303,
+      "ehp_delta": 401.4953670468003,
+      "ehp_pct": 4.19,
+      "category": "防御"
+    },
+    {
+      "id": 56349,
+      "name": "Chaos Inoculation",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 7239.0547135738,
+      "ehp_delta": -2352.2234992097,
+      "ehp_pct": -24.52,
+      "category": "防御"
+    },
+    {
+      "id": 56493,
+      "name": "Agile Succession",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9693.7845800723,
+      "ehp_delta": 102.5063672888009,
+      "ehp_pct": 1.07,
+      "category": "防御"
+    },
+    {
+      "id": 40325,
+      "name": "Resolution",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9816.1017113279,
+      "ehp_delta": 224.82349854439963,
+      "ehp_pct": 2.34,
+      "category": "防御"
+    },
+    {
+      "id": 32151,
+      "name": "Crystalline Resistance",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9721.4765595634,
+      "ehp_delta": 130.19834677990002,
+      "ehp_pct": 1.36,
+      "category": "防御"
+    },
+    {
+      "id": 56910,
+      "name": "Battle-hardened",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9743.6806533339,
+      "ehp_delta": 152.40244055040057,
+      "ehp_pct": 1.59,
+      "category": "防御"
+    },
+    {
+      "id": 32349,
+      "name": "Giant's Blood",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9405.706399279,
+      "ehp_delta": -185.571813504499,
+      "ehp_pct": -1.93,
+      "category": "防御"
+    },
+    {
+      "id": 47316,
+      "name": "Goring",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9466.2189471609,
+      "ehp_delta": -125.05926562259992,
+      "ehp_pct": -1.3,
+      "category": "防御"
+    },
+    {
+      "id": 54031,
+      "name": "The Great Boar",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9659.8591003831,
+      "ehp_delta": 68.58088759960083,
+      "ehp_pct": 0.72,
+      "category": "防御"
+    },
+    {
+      "id": 57047,
+      "name": "Polymathy",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9667.9274401006,
+      "ehp_delta": 76.64922731710067,
+      "ehp_pct": 0.8,
+      "category": "防御"
+    },
+    {
+      "id": 30562,
+      "name": "Inner Faith",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9938.4188425834,
+      "ehp_delta": 347.1406297999001,
+      "ehp_pct": 3.62,
+      "category": "防御"
+    },
+    {
+      "id": 5227,
+      "name": "Escape Strategy",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 27060.447794545,
+      "dps_delta": 0,
+      "dps_pct": 0.0,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9490.8858264316,
+      "ehp_delta": -100.3923863518994,
+      "ehp_pct": -1.05,
+      "category": "防御"
+    },
+    {
+      "id": 20032,
+      "name": "Erraticism",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26595.819167273,
+      "dps_delta": -464.62862727200263,
+      "dps_pct": -1.72,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 60269,
+      "name": "Roil",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26198.958085576,
+      "dps_delta": -861.4897089690021,
+      "dps_pct": -3.18,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 25361,
+      "name": "Resolute Reach",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 26131.19054,
+      "dps_delta": -929.2572545450021,
+      "dps_pct": -3.43,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 44005,
+      "name": "Casting Cascade",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25769.528578182,
+      "dps_delta": -1290.9192163630032,
+      "dps_pct": -4.77,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 2344,
+      "name": "Dimensional Weakspot",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 25187.032178,
+      "dps_delta": -1873.4156165450004,
+      "dps_pct": -6.92,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 38398,
+      "name": "Apocalypse",
+      "type": "Notable",
+      "dps_before": 27060.447794545,
+      "dps_after": 24479.486259879,
+      "dps_delta": -2580.961534666003,
+      "dps_pct": -9.54,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 18684,
+      "name": "Avatar of Fire",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 17891.225859394,
+      "dps_delta": -9169.221935151003,
+      "dps_pct": -33.88,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    },
+    {
+      "id": 39935,
+      "name": "Necromantic Talisman",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 17395.499967745,
+      "dps_delta": -9664.947826800002,
+      "dps_pct": -35.72,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 8905.4693367883,
+      "ehp_delta": -685.8088759952007,
+      "ehp_pct": -7.15,
+      "category": "混合"
+    },
+    {
+      "id": 44017,
+      "name": "Resolute Technique",
+      "type": "Keystone",
+      "dps_before": 27060.447794545,
+      "dps_after": 11913.554545455,
+      "dps_delta": -15146.893249090002,
+      "dps_pct": -55.97,
+      "ehp_before": 9591.2782127835,
+      "ehp_after": 9591.2782127835,
+      "ehp_delta": 0,
+      "ehp_pct": 0.0,
+      "category": "进攻"
+    }
+  ],
+  "jewel_diagnosis": [
+    {
+      "slot_name": "Jewel 32763",
+      "node_id": 32763,
+      "item_id": 18,
+      "name": "Heart of the Well",
+      "base_type": "Diamond",
+      "rarity": "UNIQUE",
+      "mod_count": 6,
+      "mods": [
+        {
+          "name": "DamageGainAsLightning",
+          "type": "BASE",
+          "value": "12",
+          "dps_pct": -5.75
+        },
+        {
+          "name": "ManaOnKill",
+          "type": "BASE",
+          "value": "1",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "HybridManaAndLifeCost_Life",
+          "type": "BASE",
+          "value": "3",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "InstantEnergyShieldLeech",
+          "type": "BASE",
+          "value": "15",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "InstantManaLeech",
+          "type": "BASE",
+          "value": "15",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "InstantLifeLeech",
+          "type": "BASE",
+          "value": "15",
+          "dps_pct": 0.0
+        }
+      ],
+      "granted_passives": [],
+      "variant_info": "",
+      "dps_pct": -5.75,
+      "status": "ok"
+    },
+    {
+      "slot_name": "Jewel 61834",
+      "node_id": 61834,
+      "item_id": 21,
+      "name": "Rapture Shard",
+      "base_type": "Sapphire",
+      "rarity": "RARE",
+      "mod_count": 3,
+      "mods": [
+        {
+          "name": "EnergyShield",
+          "type": "INC",
+          "value": "17",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "ElementalDamage",
+          "type": "INC",
+          "value": "15",
+          "dps_pct": -4.77
+        },
+        {
+          "name": "CurseActivation",
+          "type": "INC",
+          "value": "14",
+          "dps_pct": 0.0
+        }
+      ],
+      "granted_passives": [],
+      "variant_info": "",
+      "dps_pct": -4.77,
+      "status": "ok"
+    },
+    {
+      "slot_name": "Jewel 7960",
+      "node_id": 7960,
+      "item_id": 20,
+      "name": "Chimeric Spark",
+      "base_type": "Sapphire",
+      "rarity": "RARE",
+      "mod_count": 3,
+      "mods": [
+        {
+          "name": "EnergyShield",
+          "type": "INC",
+          "value": "15",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "ElementalDamage",
+          "type": "INC",
+          "value": "14",
+          "dps_pct": -4.45
+        },
+        {
+          "name": "CurseActivation",
+          "type": "INC",
+          "value": "15",
+          "dps_pct": 0.0
+        }
+      ],
+      "granted_passives": [],
+      "variant_info": "",
+      "dps_pct": -4.45,
+      "status": "ok"
+    },
+    {
+      "slot_name": "Jewel 21984",
+      "node_id": 21984,
+      "item_id": 17,
+      "name": "Megalomaniac",
+      "base_type": "Diamond",
+      "rarity": "UNIQUE",
+      "mod_count": 2,
+      "mods": [
+        {
+          "name": "GrantedPassive",
+          "type": "LIST",
+          "value": "the spring hare",
+          "dps_pct": -1.32
+        },
+        {
+          "name": "GrantedPassive",
+          "type": "LIST",
+          "value": "savoured blood",
+          "dps_pct": 0.0
+        }
+      ],
+      "granted_passives": [
+        "the spring hare",
+        "savoured blood"
+      ],
+      "variant_info": "",
+      "dps_pct": -1.32,
+      "status": "ok",
+      "granted_dps_pct": -1.32,
+      "dps_source": "granted_passives"
+    },
+    {
+      "slot_name": "Jewel 61419",
+      "node_id": 61419,
+      "item_id": 19,
+      "name": "Controlled Metamorphosis",
+      "base_type": "Diamond",
+      "rarity": "UNIQUE",
+      "mod_count": 3,
+      "mods": [
+        {
+          "name": "JewelData",
+          "type": "LIST",
+          "value": "table: 0000019ECF2C7970",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "JewelData",
+          "type": "LIST",
+          "value": "table: 0000019ECF2C73F0",
+          "dps_pct": 0.0
+        },
+        {
+          "name": "ElementalResist",
+          "type": "BASE",
+          "value": "-6",
+          "dps_pct": 0.0
+        }
+      ],
+      "granted_passives": [],
+      "variant_info": "",
+      "dps_pct": 0.0,
+      "status": "ok"
+    }
+  ],
+  "dps_breakdown": {
+    "total_dps": 27060.447794545,
+    "average_hit": 42523.56082,
+    "speed": 0.63636363636364,
+    "combined_dps": 42523.56082,
+    "active_damage_types": [
+      "Lightning",
+      "Cold",
+      "Fire"
+    ],
+    "formula_items": [
+      {
+        "key": "Damage_INC",
+        "formula_name": "通用伤害 INC (Lightning,Cold,Fire)",
+        "total_value": 108.0,
+        "display_value": "108%",
+        "category_summary": {
+          "Tree": 108.0
+        },
+        "sources": [
+          {
+            "source": "Tree:19125",
+            "label": "Potent Incantation",
+            "category": "Tree",
+            "value": 30.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:13065",
+            "label": "Triggered Spell Damage",
+            "category": "Tree",
+            "value": 16.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:22219",
+            "label": "Triggered Spell Damage",
+            "category": "Tree",
+            "value": 14.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:9069",
+            "label": "Triggered Spell Damage",
+            "category": "Tree",
+            "value": 14.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:63668",
+            "label": "Triggered Spell Damage",
+            "category": "Tree",
+            "value": 14.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:14231",
+            "label": "Triggered Spell Damage",
+            "category": "Tree",
+            "value": 14.0,
+            "mod_name": "Damage"
+          },
+          {
+            "source": "Tree:48530",
+            "label": "Life Spell Damage and Costs",
+            "category": "Tree",
+            "value": 6.0,
+            "mod_name": "Damage"
+          }
+        ]
+      },
+      {
+        "key": "ElementalDamage_INC",
+        "formula_name": "元素伤害 INC (Lightning,Cold,Fire)",
+        "total_value": 101.0,
+        "display_value": "101%",
+        "category_summary": {
+          "Tree": 72.0,
+          "Item": 29.0
+        },
+        "sources": [
+          {
+            "source": "Tree:58016",
+            "label": "All Natural",
+            "category": "Tree",
+            "value": 30.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Item:-1:Rapture Shard, Sapphire",
+            "label": "Rapture Shard, Sapphire (Jewel)",
+            "category": "Item",
+            "value": 15.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Item:-1:Chimeric Spark, Sapphire",
+            "label": "Chimeric Spark, Sapphire (Jewel)",
+            "category": "Item",
+            "value": 14.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Tree:29133",
+            "label": "Elemental Damage",
+            "category": "Tree",
+            "value": 12.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Tree:55101",
+            "label": "Elemental Damage",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Tree:43893",
+            "label": "Elemental Damage",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "ElementalDamage"
+          },
+          {
+            "source": "Tree:26739",
+            "label": "Elemental Damage",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "ElementalDamage"
+          }
+        ]
+      },
+      {
+        "key": "ColdDamage_INC",
+        "formula_name": "冰霜伤害 INC (Cold)",
+        "total_value": 10.0,
+        "display_value": "10%",
+        "category_summary": {
+          "Tree": 10.0
+        },
+        "sources": [
+          {
+            "source": "Tree:22713",
+            "label": "Cold Damage",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "ColdDamage"
+          }
+        ]
+      },
+      {
+        "key": "Damage_MORE",
+        "formula_name": "通用伤害 MORE (Lightning,Cold,Fire)",
+        "total_value": 0.7,
+        "display_value": "x 0.70",
+        "category_summary": {
+          "Skill": -30.0
+        },
+        "sources": [
+          {
+            "source": "Skill:SupportSpellCascadePlayer",
+            "label": "Spell Cascade",
+            "category": "Skill",
+            "value": -30.0,
+            "mod_name": "Damage"
+          }
+        ]
+      },
+      {
+        "key": "Speed_BASE",
+        "formula_name": "Speed Base",
+        "total_value": 0.63636363636364,
+        "display_value": "0.64/s",
+        "category_summary": {
+          "Skill": 0.63636363636364
+        },
+        "sources": [
+          {
+            "source": "gem",
+            "label": "Trigger Rate (computed)",
+            "category": "Skill",
+            "value": 0.63636363636364,
+            "mod_name": "base_speed"
+          }
+        ]
+      },
+      {
+        "key": "Speed_INC",
+        "formula_name": "Speed INC",
+        "total_value": 75.0,
+        "display_value": "75%",
+        "category_summary": {
+          "Item": 64.0,
+          "Tree": 11.0
+        },
+        "sources": [
+          {
+            "source": "Item:-1:Damnation Grip, Unset Ring",
+            "label": "Damnation Grip, Unset Ring (Ring 2)",
+            "category": "Item",
+            "value": 24.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Item:-1:Adonia's Ego, Siphoning Wand",
+            "label": "Adonia's Ego, Siphoning Wand (Weapon 1)",
+            "category": "Item",
+            "value": 21.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Item:-1:Torment Band, Unset Ring",
+            "label": "Torment Band, Unset Ring (Ring 1)",
+            "category": "Item",
+            "value": 19.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Tree:49220",
+            "label": "Flow Like Water",
+            "category": "Tree",
+            "value": 8.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Tree:19125",
+            "label": "Potent Incantation",
+            "category": "Tree",
+            "value": -5.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Tree:42857",
+            "label": "Skill Speed",
+            "category": "Tree",
+            "value": 4.0,
+            "mod_name": "Speed"
+          },
+          {
+            "source": "Tree:10364",
+            "label": "Skill Speed",
+            "category": "Tree",
+            "value": 4.0,
+            "mod_name": "Speed"
+          }
+        ]
+      },
+      {
+        "key": "CritChance_BASE",
+        "formula_name": "CritChance BASE",
+        "total_value": 13.0,
+        "display_value": "13.0% (base 13.0% + added 0%)",
+        "category_summary": {
+          "Skill": 13.0
+        },
+        "sources": [
+          {
+            "source": "gem",
+            "label": "技能基础暴击率",
+            "category": "Skill",
+            "value": 13.0,
+            "mod_name": "gem_base_crit"
+          }
+        ]
+      },
+      {
+        "key": "CritChance_INC",
+        "formula_name": "CritChance INC",
+        "total_value": 226.0,
+        "display_value": "226%",
+        "category_summary": {
+          "Tree": 206.0,
+          "Item": 20.0
+        },
+        "sources": [
+          {
+            "source": "Tree:46197",
+            "label": "Careful Assassin",
+            "category": "Tree",
+            "value": 50.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:57204",
+            "label": "Critical Exploit",
+            "category": "Tree",
+            "value": 25.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Item:-1:Adonia's Ego, Siphoning Wand",
+            "label": "Adonia's Ego, Siphoning Wand (Weapon 1)",
+            "category": "Item",
+            "value": 20.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:61601",
+            "label": "True Strike",
+            "category": "Tree",
+            "value": 20.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:56265",
+            "label": "Throatseeker",
+            "category": "Tree",
+            "value": -20.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:10398",
+            "label": "Sudden Escalation",
+            "category": "Tree",
+            "value": 16.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:17548",
+            "label": "Moment of Truth",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:55088",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:45702",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:31692",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:4157",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:3472",
+            "label": "Spell Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:14958",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:13724",
+            "label": "Deadly Force",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:40760",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:38541",
+            "label": "Critical Chance",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:61421",
+            "label": "Energy and Critical Chance",
+            "category": "Tree",
+            "value": 5.0,
+            "mod_name": "CritChance"
+          },
+          {
+            "source": "Tree:56334",
+            "label": "Energy and Critical Chance",
+            "category": "Tree",
+            "value": 5.0,
+            "mod_name": "CritChance"
+          }
+        ]
+      },
+      {
+        "key": "CritMultiplier_BASE",
+        "formula_name": "CritMultiplier BASE",
+        "total_value": 100.0,
+        "display_value": "100",
+        "category_summary": {
+          "Base": 100.0
+        },
+        "sources": [
+          {
+            "source": "Base",
+            "label": "Base",
+            "category": "Base",
+            "value": 100.0,
+            "mod_name": "CritMultiplier"
+          }
+        ]
+      },
+      {
+        "key": "CritMultiplier_INC",
+        "formula_name": "CritMultiplier INC",
+        "total_value": 200.0,
+        "display_value": "200%",
+        "category_summary": {
+          "Tree": 200.0
+        },
+        "sources": [
+          {
+            "source": "Tree:56265",
+            "label": "Throatseeker",
+            "category": "Tree",
+            "value": 60.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:20677",
+            "label": "For the Jugular",
+            "category": "Tree",
+            "value": 25.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:46197",
+            "label": "Careful Assassin",
+            "category": "Tree",
+            "value": -20.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:6891",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:535",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:21779",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:44223",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:26682",
+            "label": "Spell Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:34621",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:13419",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:29959",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          },
+          {
+            "source": "Tree:20024",
+            "label": "Critical Damage",
+            "category": "Tree",
+            "value": 15.0,
+            "mod_name": "CritMultiplier"
+          }
+        ]
+      },
+      {
+        "key": "Lightning_Lucky",
+        "formula_name": "Lightning Lucky Hits",
+        "total_value": 20.0,
+        "display_value": "20",
+        "category_summary": {
+          "Jewel": 20.0
+        },
+        "sources": [
+          {
+            "source": "Tree:11774",
+            "label": "Megalomaniac, Diamond → The Spring Hare",
+            "category": "Jewel",
+            "value": 20.0,
+            "mod_name": "LuckyHitsChance"
+          }
+        ]
+      },
+      {
+        "key": "Cold_Lucky",
+        "formula_name": "Cold Lucky Hits",
+        "total_value": 20.0,
+        "display_value": "20",
+        "category_summary": {
+          "Jewel": 20.0
+        },
+        "sources": [
+          {
+            "source": "Tree:11774",
+            "label": "Megalomaniac, Diamond → The Spring Hare",
+            "category": "Jewel",
+            "value": 20.0,
+            "mod_name": "LuckyHitsChance"
+          }
+        ]
+      },
+      {
+        "key": "Fire_Lucky",
+        "formula_name": "Fire Lucky Hits",
+        "total_value": 20.0,
+        "display_value": "20",
+        "category_summary": {
+          "Jewel": 20.0
+        },
+        "sources": [
+          {
+            "source": "Tree:11774",
+            "label": "Megalomaniac, Diamond → The Spring Hare",
+            "category": "Jewel",
+            "value": 20.0,
+            "mod_name": "LuckyHitsChance"
+          }
+        ]
+      },
+      {
+        "key": "Cold_to_Lightning_ConvGain",
+        "formula_name": "Cold → Lightning Conversion/Gain",
+        "total_value": 27.0,
+        "display_value": "Cold → Lightning: 增益 27.0%",
+        "category_summary": {
+          "Item": 17.0,
+          "Tree": 10.0
+        },
+        "sources": [
+          {
+            "source": "Item:-1:Heart of the Well, Diamond",
+            "label": "Heart of the Well, Diamond (Jewel)",
+            "category": "Item",
+            "value": 12.0,
+            "mod_name": "DamageGainAsLightning",
+            "detail": "Gain as Lightning"
+          },
+          {
+            "source": "Tree:7621",
+            "label": "I am the Thunder...",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "DamageGainAsLightning",
+            "detail": "Gain as Lightning"
+          },
+          {
+            "source": "Item:-1:Adonia's Ego, Siphoning Wand",
+            "label": "Adonia's Ego, Siphoning Wand (Weapon 1)",
+            "category": "Item",
+            "value": 5.0,
+            "mod_name": "DamageGainAsLightning",
+            "detail": "Gain as Lightning"
+          }
+        ]
+      },
+      {
+        "key": "Cold_to_Cold_SelfGain",
+        "formula_name": "Cold → Cold Self-Gain",
+        "total_value": 15.0,
+        "display_value": "Cold Self-Gain: 增益 15.0%",
+        "category_summary": {
+          "Tree": 10.0,
+          "Item": 5.0
+        },
+        "sources": [
+          {
+            "source": "Tree:23587",
+            "label": "I am the Blizzard...",
+            "category": "Tree",
+            "value": 10.0,
+            "mod_name": "DamageGainAsCold",
+            "detail": "Gain as Cold"
+          },
+          {
+            "source": "Item:-1:Adonia's Ego, Siphoning Wand",
+            "label": "Adonia's Ego, Siphoning Wand (Weapon 1)",
+            "category": "Item",
+            "value": 5.0,
+            "mod_name": "DamageGainAsCold",
+            "detail": "Gain as Cold"
+          }
+        ]
+      },
+      {
+        "key": "Cold_to_Fire_ConvGain",
+        "formula_name": "Cold → Fire Conversion/Gain",
+        "total_value": 63.0,
+        "display_value": "Cold → Fire: 增益 63.0%",
+        "category_summary": {
+          "Item": 63.0
+        },
+        "sources": [
+          {
+            "source": "Item:-1:Sacred Flame, Shrine Sceptre",
+            "label": "Sacred Flame, Shrine Sceptre (Weapon 2)",
+            "category": "Item",
+            "value": 58.0,
+            "mod_name": "DamageGainAsFire",
+            "detail": "Gain as Fire"
+          },
+          {
+            "source": "Item:-1:Adonia's Ego, Siphoning Wand",
+            "label": "Adonia's Ego, Siphoning Wand (Weapon 1)",
+            "category": "Item",
+            "value": 5.0,
+            "mod_name": "DamageGainAsFire",
+            "detail": "Gain as Fire"
+          }
+        ]
+      },
+      {
+        "key": "Lightning_EffMult",
+        "formula_name": "Lightning Effective DPS Multiplier",
+        "total_value": 0.5,
+        "display_value": "x0.5000",
+        "category_summary": {
+          "Enemy": 50.0
+        },
+        "sources": [
+          {
+            "source": "enemy",
+            "label": "敌人 Lightning 抗性",
+            "category": "Enemy",
+            "value": 50.0,
+            "mod_name": "LightningResist"
+          }
+        ],
+        "formula_detail": "(1+0/100) × 1.0000 × (1-50/100)"
+      },
+      {
+        "key": "Cold_EffMult",
+        "formula_name": "Cold Effective DPS Multiplier",
+        "total_value": 0.5,
+        "display_value": "x0.5000",
+        "category_summary": {
+          "Enemy": 50.0
+        },
+        "sources": [
+          {
+            "source": "enemy",
+            "label": "敌人 Cold 抗性",
+            "category": "Enemy",
+            "value": 50.0,
+            "mod_name": "ColdResist"
+          }
+        ],
+        "formula_detail": "(1+0/100) × 1.0000 × (1-50/100)"
+      },
+      {
+        "key": "Fire_EffMult",
+        "formula_name": "Fire Effective DPS Multiplier",
+        "total_value": 0.5,
+        "display_value": "x0.5000",
+        "category_summary": {
+          "Enemy": 50.0
+        },
+        "sources": [
+          {
+            "source": "enemy",
+            "label": "敌人 Fire 抗性",
+            "category": "Enemy",
+            "value": 50.0,
+            "mod_name": "FireResist"
+          }
+        ],
+        "formula_detail": "(1+0/100) × 1.0000 × (1-50/100)"
+      },
+      {
+        "key": "CombinedDPS",
+        "formula_name": "Combined DPS",
+        "total_value": 42523.6,
+        "display_value": "42,524",
+        "category_summary": {
+          "Hit": 27060.4,
+          "DOT": 545.2
+        },
+        "sources": [
+          {
+            "source": "hit",
+            "label": "Hit DPS",
+            "category": "Hit",
+            "value": 27060.4,
+            "mod_name": "TotalDPS"
+          },
+          {
+            "source": "ailment",
+            "label": "点燃 DPS",
+            "category": "DOT",
+            "value": 545.2,
+            "mod_name": "IgniteDPS"
+          }
+        ]
+      }
+    ]
+  },
+  "aura_spirit": {
+    "existing_auras": [
+      {
+        "name": "Trinity",
+        "label": "",
+        "group_idx": 12,
+        "spirit_cost": 100.0,
+        "spirit_supports": [],
+        "gems": [
+          "Trinity",
+          "Dialla's Desire",
+          "Uhtred's Omen"
+        ],
+        "dps_before": 50580.964117091,
+        "dps_after": 37468.312330909,
+        "dps_pct": -25.924084317228974,
+        "ehp_pct": 0.0,
+        "simulated": false,
+        "config_ranges": [
+          {
+            "config_var": "configResonanceCount",
+            "config_type": "count",
+            "aura_name": "Trinity",
+            "label": "Total Resonance Count:",
+            "actual_max": 300.0,
+            "dps_min": 37468.312330909,
+            "dps_pct_min": 0.0,
+            "dps_max": 66616.332070154,
+            "dps_pct_max": 77.79378874025164,
+            "mid": 150
+          }
+        ]
+      },
+      {
+        "name": "Charge Infusion",
+        "label": "",
+        "group_idx": 13,
+        "spirit_cost": 30.0,
+        "spirit_supports": [],
+        "gems": [
+          "Charge Infusion",
+          "Uhtred's Exodus"
+        ],
+        "dps_before": 68645.545220769,
+        "dps_after": 56243.431122327,
+        "dps_pct": -18.066888475509824,
+        "ehp_pct": -6.984520695077055,
+        "simulated": true
+      },
+      {
+        "name": "Elemental Conflux",
+        "label": "",
+        "group_idx": 15,
+        "spirit_cost": 60.0,
+        "spirit_supports": [],
+        "gems": [
+          "Elemental Conflux",
+          "Lightning Mastery"
+        ],
+        "dps_before": 60697.22632145455,
+        "dps_after": 50580.964117090916,
+        "dps_pct": -16.666761922180054,
+        "ehp_pct": 0.0,
+        "simulated": true,
+        "expect_factor": 0.3333,
+        "raw_value": 59,
+        "damage_breakdown": {
+          "fire": 30.18,
+          "cold": 56.879999999999995,
+          "lightning": 12.94
+        }
+      },
+      {
+        "name": "Purity of Fire",
+        "label": "",
+        "group_idx": 1,
+        "spirit_cost": 130.0,
+        "spirit_supports": [
+          {
+            "name": "Vitality II",
+            "skill_id": "SupportVitalityPlayerTwo",
+            "spirit": 40.0
+          },
+          {
+            "name": "Mysticism II",
+            "skill_id": "SupportMysticismPlayerTwo",
+            "spirit": 30.0
+          },
+          {
+            "name": "Warm Blooded",
+            "skill_id": "SupportWarmbloodedPlayer",
+            "spirit": 15.0
+          },
+          {
+            "name": "Herbalism II",
+            "skill_id": "SupportHerbalismPlayerTwo",
+            "spirit": 30.0
+          },
+          {
+            "name": "Cool Headed",
+            "skill_id": "SupportCoolheadedPlayer",
+            "spirit": 15.0
+          }
+        ],
+        "gems": [
+          "Purity of Fire",
+          "Vitality II",
+          "Mysticism II",
+          "Warm Blooded",
+          "Herbalism II",
+          "Cool Headed"
+        ],
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "simulated": false
+      }
+    ],
+    "candidate_auras": [
+      {
+        "name": "Archmage",
+        "name_cn": "大法师",
+        "description": "Mana 转附加闪电伤害",
+        "dps_before": 50580.964117091,
+        "dps_after": 65119.741237091,
+        "dps_pct": 28.743574531999545,
+        "ehp_pct": 0.0,
+        "spirit": 100,
+        "error": "精魄不足 (需 100, 缺 100)",
+        "spirit_shortfall": 100.0
+      },
+      {
+        "name": "Attrition",
+        "name_cn": "损耗",
+        "description": "命中附带 Wither 叠层",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 60,
+        "error": "精魄不足 (需 60, 缺 60)",
+        "spirit_shortfall": 60.0
+      },
+      {
+        "name": "Berserk",
+        "name_cn": "狂暴",
+        "description": "MORE Damage + 受伤增加",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 60,
+        "error": "精魄不足 (需 60, 缺 60)",
+        "spirit_shortfall": 60.0
+      }
+    ],
+    "spirit_support_tests": [
+      {
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "description": "攻击伤害 INC 50%",
+        "dps_before": 50580.964117091,
+        "dps_after": 48707.678589818,
+        "dps_pct": -3.703538593958966,
+        "ehp_pct": 0.0,
+        "spirit": 20,
+        "target_aura": "Trinity",
+        "target_group_idx": 12,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 20, 缺 20)",
+        "spirit_shortfall": 20.0
+      },
+      {
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "description": "攻击伤害 INC 70%",
+        "dps_before": 50580.964117091,
+        "dps_after": 48707.678589818,
+        "dps_pct": -3.703538593958966,
+        "ehp_pct": 0.0,
+        "spirit": 40,
+        "target_aura": "Trinity",
+        "target_group_idx": 12,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 40, 缺 40)",
+        "spirit_shortfall": 40.0
+      },
+      {
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "description": "攻击伤害 INC 50%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 20,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 1,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 20, 缺 20)",
+        "spirit_shortfall": 20.0
+      },
+      {
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "description": "攻击伤害 INC 50%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 20,
+        "target_aura": "Charge Infusion",
+        "target_group_idx": 13,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 20, 缺 20)",
+        "spirit_shortfall": 20.0
+      },
+      {
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "description": "攻击伤害 INC 50%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 20,
+        "target_aura": "Elemental Conflux",
+        "target_group_idx": 15,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 20, 缺 20)",
+        "spirit_shortfall": 20.0
+      },
+      {
+        "name": "Direstrike I",
+        "name_cn": "猛击 I",
+        "description": "攻击伤害 INC 50%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 20,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 21,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 20, 缺 20)",
+        "spirit_shortfall": 20.0
+      },
+      {
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "description": "攻击伤害 INC 70%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 40,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 1,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 40, 缺 40)",
+        "spirit_shortfall": 40.0
+      },
+      {
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "description": "攻击伤害 INC 70%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 40,
+        "target_aura": "Charge Infusion",
+        "target_group_idx": 13,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 40, 缺 40)",
+        "spirit_shortfall": 40.0
+      },
+      {
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "description": "攻击伤害 INC 70%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 40,
+        "target_aura": "Elemental Conflux",
+        "target_group_idx": 15,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 40, 缺 40)",
+        "spirit_shortfall": 40.0
+      },
+      {
+        "name": "Direstrike II",
+        "name_cn": "猛击 II",
+        "description": "攻击伤害 INC 70%",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 40,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 21,
+        "condition": "Low Life",
+        "note": "需要 Low Life 状态",
+        "estimated": false,
+        "error": "精魄不足 (需 40, 缺 40)",
+        "spirit_shortfall": 40.0
+      },
+      {
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "description": "每 1000 护甲 +2 元素暴露",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 30,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 1,
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": true,
+        "error": "精魄不足 (需 30, 缺 30)",
+        "spirit_shortfall": 30.0
+      },
+      {
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "description": "每 1000 护甲 +2 元素暴露",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 30,
+        "target_aura": "Trinity",
+        "target_group_idx": 12,
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": true,
+        "error": "精魄不足 (需 30, 缺 30)",
+        "spirit_shortfall": 30.0
+      },
+      {
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "description": "每 1000 护甲 +2 元素暴露",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 30,
+        "target_aura": "Charge Infusion",
+        "target_group_idx": 13,
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": true,
+        "error": "精魄不足 (需 30, 缺 30)",
+        "spirit_shortfall": 30.0
+      },
+      {
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "description": "每 1000 护甲 +2 元素暴露",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 30,
+        "target_aura": "Elemental Conflux",
+        "target_group_idx": 15,
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": true,
+        "error": "精魄不足 (需 30, 缺 30)",
+        "spirit_shortfall": 30.0
+      },
+      {
+        "name": "Refraction III",
+        "name_cn": "折射 III",
+        "description": "每 1000 护甲 +2 元素暴露",
+        "dps_before": 50580.964117091,
+        "dps_after": 50580.964117091,
+        "dps_pct": 0.0,
+        "ehp_pct": 0.0,
+        "spirit": 30,
+        "target_aura": "Purity of Fire",
+        "target_group_idx": 21,
+        "condition": "需要 Banner",
+        "note": "POB 可能无法计算，标记为估算",
+        "estimated": true,
+        "error": "精魄不足 (需 30, 缺 30)",
+        "spirit_shortfall": 30.0
+      }
+    ],
+    "spirit_budget": {
+      "total": 425.0,
+      "reserved": 425.0,
+      "available": 0.0,
+      "recommended_total": 0,
+      "recommended_remaining": 0.0
+    }
+  }
+}
