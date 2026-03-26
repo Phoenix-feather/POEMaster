@@ -517,3 +517,37 @@ class POBCalculator:
             return None
         path = _cache.get_report_path(bid, skill_name, fmt)
         return str(path) if path else None
+
+    def run_and_save(self, target_pct: float = 20.0, skill_name: str = None
+                     ) -> dict:
+        """运行完整分析并保存报告到文件。
+
+        一站式方法：full_analysis → format_report → 保存文件。
+        保存路径: reports/<BuildID>_<SkillName>_analysis.md
+
+        Args:
+            target_pct: 灵敏度分析目标 DPS 增幅（默认 20%）
+            skill_name: 主技能名称（自然语言，部分匹配）
+
+        Returns:
+            {"data": dict, "report": str, "path": str}
+        """
+        data = self.full_analysis(target_pct=target_pct, skill_name=skill_name)
+        report = self.format_report(data)
+
+        skill = data.get("main_skill", {}).get("name", "unknown")
+        bid = self._build_id or "unknown"
+        safe_skill = skill.lower().replace(" ", "_")
+        filename = f"{bid}_{safe_skill}_analysis.md"
+
+        report_dir = Path(__file__).parent / "reports"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        filepath = report_dir / filename
+
+        filepath.write_text(report, encoding="utf-8")
+
+        return {
+            "data": data,
+            "report": report,
+            "path": str(filepath),
+        }

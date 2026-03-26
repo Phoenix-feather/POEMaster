@@ -1,775 +1,775 @@
 {
   "baseline": {
-    "EnduranceChargesDuration": 15.0,
-    "EnduranceCharges": 0.0,
-    "EnergyShieldOnHitRate": 0.0,
-    "PhysicalMaximumHitTaken": 5127.0,
-    "LightningTakenDotMult": 0.25,
-    "ChaosResistOverTime": 0.0,
-    "preventedLifeLoss": 0.0,
-    "IntRequirementsOnBoots": 108.0,
-    "EnergyShieldLeechInstantProportion": 0.15,
-    "PoisonChanceOnHit": 0.0,
-    "SpellSuppressionChance": 0.0,
-    "AfflictionChargesMin": 0.0,
-    "LightningResistOverTime": 75.0,
-    "MissingTotemColdResist": 35.0,
-    "sharedGuardAbsorbRate": 0.0,
-    "EffectiveSpellProjectileBlockChance": 0.0,
-    "TotemColdResist": 40.0,
-    "PhysicalSummedMaxBase": 0.0,
-    "DoubleDamageChance": 0.0,
-    "CritExtraDamageReduction": 0.0,
-    "BloodCharges": 5.0,
-    "ChaosResistOverCap": 0.0,
-    "SpellEvasion": 444.0,
-    "BlitzCharges": 0.0,
-    "MovementSpeedMod": 1.358,
-    "BaseLightningDamageReductionWhenHit": 0.0,
-    "ElementalEnergyShieldRecoup": 0.0,
-    "ChaosTotalPool": 4406.0,
-    "AbsorptionChargesMin": 0.0,
-    "FrostShieldLife": 0.0,
-    "ScorchChance": 0.0,
-    "LifeOnSuppress": 0.0,
-    "ChaosBaseTakenHitMult": 1.0,
-    "UntypedNotHitChance": 0.0,
-    "MaximumChill": 50.0,
-    "GhostShrouds": 0.0,
-    "SpiritCharges": 0.0,
-    "ColdEnemyPen": 3.0,
-    "ManaLeechDuration": 0.0,
-    "SpiritUnreservedPercent": -29.411764705882,
-    "FireMaximumHitTaken": 18311.0,
-    "TotemLightningResistOverCap": 0.0,
-    "ImpaleChanceOnCrit": 0.0,
-    "EffectiveAverageBlockChance": 0.0,
-    "EffectiveBlockChance": 0.0,
-    "sharedAegis": 0.0,
-    "SpellProjectileNotHitChance": 4.0,
-    "MaxEnergyShieldLeechRate": 144.2,
-    "ScaledDamageEffect": 1.0,
-    "TotemFireResistTotal": 40.0,
-    "EnergyShieldRegenRecovery": 0.0,
-    "EnergyShieldRecharge": 180.3,
-    "SelfIgniteEffect": 100.0,
-    "EnergyShieldOnKill": 0.0,
-    "FireStoredCritAvg": 2340.0,
-    "ChaosResistTakenHitMulti": 1.0,
-    "Armour": 0.0,
-    "ReservedDarkness": 0.0,
-    "LightningMoMHitPool": 3685.0,
-    "FreezeColdMax": 190.06,
-    "SpellProjectileEvadeChance": 4.0,
-    "ColdResistOverCap": 44.0,
-    "ChaosResistTotal": 0.0,
-    "LifeOnKill": 0.0,
-    "ColdManaEffectiveLife": 3685.0,
-    "ColdSummedMaxBase": 88.0,
-    "ChaosStoredHitMin": 0.0,
-    "DexRequirementsOnHelmet": 91.0,
-    "FireSummedMaxBase": 368.0,
-    "sharedManaEffectiveLife": 3685.0,
-    "WithIgniteDPS": 11687.194867359,
-    "LowestOfArmourAndEvasionOnBoots": 0.0,
-    "ChaosResistOver75": 0.0,
-    "MissingChaosResist": 75.0,
-    "GlobalItemAttributeRequirements": 1.0,
-    "LifeRegenPercent": 5.6,
-    "LowestOfArmourAndEvasionOnBody Armour": 0.0,
-    "ColdMoMHitPool": 3685.0,
-    "LifeRecoup": 0.0,
-    "AvoidAllDamageFromHitsChance": 0.0,
-    "FireAegis": 0.0,
-    "ColdBaseTakenHitMult": 0.28,
-    "FireResistOver75": 0.0,
-    "Spirit": 425.0,
-    "DamageTakenOnBlock": 0.0,
-    "PhysicalTakenHitMult": 1.0,
-    "InspirationCharges": 5.0,
-    "EnergyShieldLeechPerHit": 0.0,
-    "LifeFlask1MaxCharges": 75.0,
-    "ReqIntString": 157.0,
-    "EnemyManaRegen": 0.0,
-    "PreEffectiveCritMultiplier": 4.0,
-    "RemovableTotalCharges": 0.0,
-    "ManaPercentPerSecondCost": 0.0,
-    "CastRate": 2.5,
-    "EnergyShield": 1442.0,
-    "EmptyCharms": 0.0,
-    "IgniteFireMin": 57.0,
-    "ChillChanceOnHit": 0.0,
-    "LifeLeechDuration": 4.25,
-    "Dex": 92.0,
-    "ColdMaximumHitTaken": 18311.0,
-    "FireBaseTakenHitMult": 0.28,
-    "CurrentChill": 0.0,
-    "LightningTakenHitMult": 0.28,
-    "ChaosDotEHP": 4406.0,
-    "AverageEvadeChance": 4.0,
-    "EffectiveSpellDodgeChance": 0.0,
-    "Repeats": 1.0,
-    "EnergyShieldOnBoots": 310.0,
-    "ColdHitAverage": 190.06,
-    "LightningStoredCritMin": 444.0,
-    "TotemColdResistTotal": 40.0,
-    "ArmourDefense": 0.0,
-    "TotemDuration": 0.0,
-    "LifeCancellableReservation": 100.0,
-    "StunThreshold": 2616.0,
-    "ColdResistTotal": 119.0,
-    "TotalDotCalcSection": 0.0,
-    "ColdtakenFlat": 0.0,
-    "LifeRegen": 122.6,
-    "BlockEffect": 100.0,
-    "FrostShieldDamageMitigation": 0.0,
-    "SpellBlockChanceMax": 50.0,
-    "ReqStr": 80.0,
-    "IgniteAvoidChance": 0.0,
-    "LightningAegis": 0.0,
-    "EvadeChance": 4.0,
-    "TotemFireResistOverCap": 0.0,
-    "TotemAllyDamageMitigation": 0.0,
-    "LightningResist": 75.0,
-    "LifeHitPool": 2180.0,
-    "RageRegenPercent": 0.0,
-    "SelfShockDuration": 100.0,
-    "ChaosEnemyOverwhelm": 0.0,
-    "FullLifePercentage": 100.0,
-    "EnergyShieldLeechInstantRate": 0.0,
-    "ChaosAttackTakenHitMult": 1.0,
-    "LightningTakenReflect": 1.0,
-    "PhysicalMoMHitPool": 3685.0,
-    "MaxLifeLeechRatePercent": 27.0,
-    "BasePhysicalDamageReductionWhenHit": 0.0,
-    "LightningEnemyDamageMult": 1.0,
-    "ChaosMaxBase": 0.0,
-    "PhysicalTotalPool": 5127.0,
-    "PhysicalGuardAbsorbRate": 0.0,
-    "ManaCancellableReservation": 100.0,
-    "EnergyShieldOnSpellBlock": 0.0,
-    "DoubleDamageChanceOnCrit": 0.0,
-    "PhysicalAegis": 0.0,
-    "IgniteStackPotentialPercent": 6.3156996099909,
-    "PhysicalSummedMinBase": 0.0,
-    "PhysicalTakenHit": 978.896,
-    "LifeReserved": 0.0,
-    "MaxLifeLeechRate": 588.6,
-    "WarcryPower": 0.0,
-    "ChaosPoisonChance": 0.0,
-    "ChaosEnemyDamage": 391.5584,
-    "TotemChaosResistTotal": 20.0,
-    "SpellProjectileEvasion": 444.0,
-    "TotalCharges": 0.0,
-    "ColdStoredHitAvg": 146.2,
-    "ChaosStoredCritMin": 0.0,
-    "WeaponSwapSpeed": 0.0,
-    "AilmentWarcryEffect": 1.0,
-    "SelfBlindDuration": 100.0,
-    "SpellProjectileBlockChance": 0.0,
-    "MinimumBypass": 5.0,
-    "FireStoredHitMax": 1047.0,
-    "DoubleDamageEffect": 0.0,
-    "anyRecoup": 0.0,
-    "AvoidPhysicalDamageChance": 0.0,
-    "MaxManaLeechInstance": 150.5,
-    "Time": 0.4,
-    "ColdGuardAbsorbRate": 0.0,
-    "PhysicalDamageReduction": 0.0,
-    "MaxManaLeechRate": 301.0,
-    "ChallengerCharges": 0.0,
-    "ManaReserved": 0.0,
-    "LightningMindOverMatter": 0.0,
-    "FireAttackTakenHitMult": 1.0,
-    "ColdStoredCombinedAvg": 274.88524,
-    "BaseLightningDamageReduction": 0.0,
-    "ManaRecovery": 0.0,
-    "LightningEffectiveAppliedArmour": 0.0,
-    "RemovablePowerCharges": 0.0,
-    "IntRequirementsOnGloves": 42.0,
-    "PhysicalMinBase": 0.0,
-    "SpiritChargesMax": 0.0,
-    "ChaosMaximumHitTaken": 4406.0,
-    "ESCost": 0.0,
-    "LightningtakenFlat": 0.0,
-    "SpellDodgeChance": 0.0,
-    "RageRegenRecovery": 0.0,
-    "SpellBlockChance": 0.0,
-    "DeflectChance": 0.0,
-    "ChaosSummedMaxBase": 0.0,
-    "CrabBarriers": 0.0,
-    "preventedLifeLossTotal": 0.0,
-    "EnergyShieldLeechGainRate": 0.0,
-    "BloodChargesMax": 5.0,
-    "PreBifurcateCritChance": 29.34,
-    "TotemLightningResistTotal": 40.0,
-    "ChaostakenFlat": 0.0,
-    "PresenceRadiusMetres": 8.0,
-    "ColdTakenDamage": 978.896,
-    "EnergyShieldLeech": 0.0,
-    "PhysicalManaEffectiveLife": 3685.0,
-    "ProjectileBlockChance": 0.0,
-    "ChaosTakenHit": 391.5584,
-    "ChaosTakenDotMult": 1.0,
-    "ManaCostRaw": 1.2092307692308,
-    "Devotion": 0.0,
-    "MissingFireResist": 0.0,
-    "BaseChaosDamageReduction": 0.0,
-    "LifeLeechInstanceRate": 34.88,
-    "SelfPoisonDuration": 100.0,
-    "NumberOfMitigatedDamagingHits": 2.1685414706246,
-    "LightningMinBase": 31.0,
-    "LightningAttackTakenHitMult": 1.0,
-    "Ward": 0.0,
-    "LightningEnemyPen": 3.0,
-    "ManaLeech": 0.0,
-    "LightningTotalHitPool": 5127.0,
-    "VaalArcticArmourMitigation": 0.0,
-    "EnergyShieldOnBlock": 0.0,
-    "ChaosMoMHitPool": 3685.0,
-    "FireResistTotal": 120.0,
-    "ColdAfterReductionTakenHitMulti": 1.0,
-    "MissingTotemFireResist": 35.0,
-    "InterruptStunAvoidChance": 0.0,
-    "LightningResistTotal": 112.0,
-    "SelfStunChance": 0.0,
-    "FireSpellTakenHitMult": 1.0,
-    "preventedLifeLossBelowHalf": 0.0,
-    "SpiritReserved": 425.0,
-    "ProjectileEvadeChance": 4.0,
-    "TotemColdResistOverCap": 0.0,
-    "ColdMinBase": 0.0,
-    "FireTakenDotMult": 0.25,
-    "ChainRemaining": 0.0,
-    "GemLevel": 29.0,
-    "MaximumShock": 100.0,
-    "ColdEnemyDamage": 978.896,
-    "ReservationDPS": 0.0,
-    "ChaosTakenDamage": 391.5584,
-    "TotalDotDPS": 26.03778402589,
-    "LightningMaximumHitTaken": 18311.0,
-    "EnemyStunThresholdMod": 1.0,
-    "ChaosAfterReductionTakenHitMulti": 1.0,
-    "ManaPercentCost": 0.0,
-    "HitChance": 100.0,
-    "EnergyShieldRechargeDelay": 4.0,
-    "CurseEffectOnSelf": 100.0,
-    "ColdStoredCritMin": 60.0,
-    "FireMinBase": 0.0,
-    "WithBleedDPS": 11661.157083333,
-    "ColdSpellTakenHitMult": 1.0,
-    "Gear:Evasion": 437.0,
-    "AccuracyHitChance": 100.0,
-    "ManaLeechInstantRate": 0.0,
-    "FireMindOverMatter": 0.0,
-    "LightningAegisDisplay": 0.0,
-    "ColdResist": 75.0,
-    "PowerChargesMin": 0.0,
-    "CombinedDPS": 11687.194867359,
-    "TotalDot": 0.0,
-    "TotalEHP": 9591.2782127835,
-    "FreezeBuildupAvg": 1.3394886643777,
-    "FireMoMHitPool": 3685.0,
-    "FireTotalHitPool": 5127.0,
-    "TotalDotInstance": 0.0,
-    "EnemyStunDuration": 0.35,
+    "ChaosStoredCritMax": 0.0,
     "KnockbackChance": 0.0,
-    "ShockEffectMod": 1.45,
-    "ShockDuration": 8.8,
-    "AverageBurstHits": 1.0,
-    "ESPerSecondCost": 0.0,
-    "IgniteDPS": 26.03778402589,
-    "PhysicalEffectiveAppliedArmour": 0.0,
-    "IgniteEffMult": 1.3,
     "AbsorptionChargesMax": 0.0,
-    "ShockChance": 1.4438373717257,
-    "ManaRecoup": 0.0,
-    "IgniteMagnitudeEffect": 1.0,
-    "IgniteRollAverage": 50.0,
-    "ManaPerSecondCost": 2.5,
-    "IgniteStackPotential": 0.063156996099909,
-    "ESPercentPerSecondCost": 0.0,
-    "ShockChanceOnHit": 0.76791690869361,
-    "FireEffectiveAppliedArmour": 0.0,
-    "IgniteChancePerHit": 0.57415450999917,
-    "ShockChanceOnCrit": 3.0716676347744,
-    "FrenzyChargesMin": 0.0,
-    "IgniteStacksMax": 1.0,
-    "SpellSuppressionEffect": 50.0,
-    "ShockLightningMax": 2110.0,
-    "TripleDamageEffect": 0.0,
-    "LightningDamageReductionMax": 90.0,
+    "ColdTakenReflect": 1.0,
+    "LifeReserved": 0.0,
+    "LightningCritAverage": 6121.0933333333,
+    "LifeRegen": 122.6,
+    "ChaostakenFlat": 0.0,
+    "ColdAegis": 0.0,
+    "LightningMinBase": 31.0,
+    "LightningSummedMaxBase": 742.0,
+    "AverageBurstDamage": 4664.4628333333,
+    "ColdTakenDamage": 978.896,
+    "ReqDex": 91.0,
+    "ManaOnBlock": 0.0,
+    "NumberOfDamagingHits": 2.1685414706246,
+    "ManaLeechRate": 0.0,
+    "SpellProjectileEvadeChance": 4.0,
+    "KnockbackChanceOnHit": 0.0,
+    "MissingColdResist": 0.0,
+    "ColdDamageReductionMax": 90.0,
+    "ChaosTakenHitMult": 1.0,
+    "LifeRegenPercent": 5.6,
+    "LifeLeechPerHit": 180.94,
+    "LightningEnemyDamageMult": 1.0,
+    "FireTakenDotMult": 0.25,
+    "PhysicalEnergyShieldBypass": 5.0,
+    "VaalArcticArmourLife": 0.0,
+    "EnergyShieldOnHit": 0.0,
+    "FireMindOverMatter": 0.0,
+    "BlockEffect": 100.0,
+    "ManaRecoveryRateMod": 0.5,
+    "EnergyShieldDegen": 0.0,
+    "ChainRemaining": 0.0,
+    "LightningTotalHitPool": 5127.0,
+    "SiphoningChargesMax": 0.0,
+    "totalEnemyDamageIn": 4246.0,
+    "SplitCountString": 0.0,
+    "ManaCost": 1.0,
+    "PinBuildupAvg": 0.0,
+    "LightningLifeRecoup": 0.0,
+    "EffectiveSpellProjectileBlockChance": 0.0,
+    "Mana": 1505.0,
+    "FireAttackTakenHitMult": 1.0,
+    "ShockLightningMin": 111.0,
+    "CullPercent": 0.0,
+    "SpiritUnreservedPercent": -29.411764705882,
+    "Time": 0.4,
+    "LightningResistOverCap": 37.0,
+    "TotemLightningResistOverCap": 0.0,
+    "OffensiveWarcryEffect": 1.0,
+    "ColdStoredCritMax": 1044.0,
+    "DamageTakenOnBlock": 0.0,
+    "FreezeChanceOnHit": 0.0,
+    "FireResistOverTime": 75.0,
+    "ChaosStoredCritAvg": 0.0,
+    "LifeFlaskRecovery": 552.0,
+    "PhysicalTakenHitMult": 1.0,
+    "BlindAvoidChance": 0.0,
+    "ManaUnreserved": 1505.0,
+    "BaseChaosDamageReduction": 0.0,
+    "RadianceSentinelAllyDamageMitigation": 0.0,
+    "ChaosMinBase": 0.0,
+    "AvoidChaosDamageChance": 0.0,
+    "CurrentChill": 0.0,
+    "PhysicalDamageReductionMax": 90.0,
+    "ChaosEnemyOverwhelm": 0.0,
+    "totalTakenDamage": 4307.1424,
+    "ProjectileSpeedMod": 1.8625,
+    "RageRegenPercent": 0.0,
+    "BlitzChargesMax": 0.0,
+    "EnemyManaRegen": 0.0,
+    "WitherEffectOnSelf": 100.0,
+    "ManaLeechDuration": 0.0,
+    "sharedMindOverMatter": 100.0,
+    "StunDuration": 0.0,
+    "IgniteDPS": 26.03778402589,
+    "sharedManaEffectiveLife": 3685.0,
     "PhysicalTakenDotMult": 1.0,
-    "FrenzyCharges": 0.0,
-    "EnergyShieldLeechInstanceRate": 28.84,
-    "UnreservedDarkness": 0.0,
-    "IgniteFireMax": 1047.0,
+    "ElementalEnergyShieldRecoup": 0.0,
+    "TotemLightningResistTotal": 40.0,
+    "BasePhysicalDamageReduction": 0.0,
+    "ProjectileEvadeChance": 4.0,
+    "ElectrocuteBuildupAvg": 0.0,
+    "Spirit": 425.0,
+    "FireTotalPool": 5127.0,
+    "ColdDamageReduction": 0.0,
+    "FireMoMHitPool": 3685.0,
+    "Evasion": 444.0,
+    "ColdTakenDotMult": 0.25,
+    "PhysicalMoMHitPool": 3685.0,
+    "SpellEvasion": 444.0,
+    "ManaRecovery": 0.0,
+    "ColdBaseTakenHitMult": 0.28,
+    "PreBifurcateCritChance": 29.34,
+    "RageCost": 0.0,
+    "TotalMin": 237.9,
+    "ChaosMoMHitPool": 3685.0,
+    "FreezeColdMax": 190.06,
+    "ActiveTrapLimit": 15.0,
+    "LightningTakenReflect": 1.0,
+    "PowerChargesMax": 8.0,
+    "StunAvoidChance": 100.0,
+    "ChaosStoredCritMin": 0.0,
+    "ReservationDPS": 0.0,
+    "ColdManaEffectiveLife": 3685.0,
+    "SelfIgniteEffect": 100.0,
+    "LifeHitPool": 2180.0,
+    "LightningTakenHitMult": 0.28,
+    "LightningAfterReductionTakenHitMulti": 1.0,
+    "LightningStoredHitAvg": 1177.1333333333,
+    "DebuffExpirationRate": 0.0,
+    "ChaosEnergyShieldBypass": 5.0,
     "ChaosMindOverMatter": 0.0,
+    "LightningBaseTakenHitMult": 0.28,
+    "ColdEnemyPen": 3.0,
+    "ColdTotalHitPool": 5127.0,
+    "LifeUnreservedPercent": 100.0,
+    "TotemDurationMod": 1.0,
+    "ChaosResist": 0.0,
+    "EnergyShield": 1442.0,
+    "BaseChaosDamageReductionWhenHit": 0.0,
+    "FireAegis": 0.0,
+    "ColdEnergyShieldBypass": 5.0,
+    "IntRequirementsOnBody Armour": 65.0,
+    "IgniteChanceOnCrit": 1.2214753962327,
+    "MissingTotemChaosResist": 55.0,
+    "SelfBleedDuration": 100.0,
+    "ChaosPoisonChance": 0.0,
+    "ReqDexString": 91.0,
+    "SpectreAllyDamageMitigation": 0.0,
+    "Gear:Evasion": 437.0,
+    "SecondMinimalMaximumHitTaken": 5127.0,
+    "LifeUncancellableReservation": 0.0,
+    "ChaosResistOverCap": 0.0,
+    "PhysicalManaEffectiveLife": 3685.0,
+    "ManaDegen": 0.0,
+    "DeflectEffect": 40.0,
+    "PhysicalAfterReductionTakenHitMulti": 1.0,
+    "FireBaseTakenHitMult": 0.28,
+    "LifeLeechInstant": 32.7,
+    "FireStoredHitMin": 57.0,
+    "ColdEnemyOverwhelm": 0.0,
+    "PiercedCount": 0.0,
+    "LowestOfArmourAndEvasionOnBody Armour": 0.0,
+    "sharedMoMHitPool": 3685.0,
+    "ArmourBreakPerHit": 0.0,
+    "PhysicalTotalPool": 5127.0,
+    "MissingLightningResist": 0.0,
+    "BleedChanceOnHit": 0.0,
+    "FireStoredCombinedAvg": 1099.917,
+    "sharedAegis": 0.0,
+    "AfflictionCharges": 0.0,
+    "ManaRegen": 62.0,
+    "FireTakenDamage": 978.896,
+    "EnemyCritChance": 4.8,
+    "PhysicalSummedMaxBase": 0.0,
+    "HeavyStunColdMin": 15.0,
+    "LightningAttackTakenHitMult": 1.0,
+    "ChaosResistOver75": 0.0,
+    "EvasionOnHelmet": 437.0,
+    "InspirationChargesMax": 5.0,
+    "ChaosAttackTakenHitMult": 1.0,
+    "ReqStrString": 80.0,
+    "preventedLifeLoss": 0.0,
+    "FreezeAvoidChance": 100.0,
+    "HeavyStunPhysicalMax": 0.0,
+    "AttackDodgeChance": 0.0,
+    "LightningEnemyPen": 3.0,
+    "SpellProjectileBlockChance": 0.0,
+    "LifeReservedPercent": 0.0,
+    "EffectiveSpellDodgeChance": 0.0,
+    "ColdStoredCombinedAvg": 274.88524,
+    "EnergyShieldOnBlock": 0.0,
+    "ConfiguredDamageChance": 100.0,
+    "FrenzyCharges": 0.0,
+    "LightningSpellTakenHitMult": 1.0,
+    "SelfShockEffect": 60.0,
+    "ChaosGuardAbsorbRate": 0.0,
+    "ProjectileEvasion": 444.0,
+    "EnduranceChargesMin": 0.0,
+    "AvoidAllDamageFromHitsChance": 0.0,
+    "ColdAegisDisplay": 0.0,
+    "MaxLifeLeechRate": 588.6,
+    "MaximumChill": 50.0,
+    "PhysicalMaxBase": 0.0,
+    "FireEnemyOverwhelm": 0.0,
+    "PhysicalResistTakenHitMulti": 1.0,
+    "ActiveMineLimit": 15.0,
+    "PresenceRadius": 80.0,
+    "ChaosTakenDotMult": 1.0,
+    "BrutalCharges": 0.0,
+    "SelfBleedEffect": 100.0,
+    "sharedGuardAbsorbRate": 0.0,
+    "TotemDuration": 0.0,
+    "EnduranceCharges": 0.0,
+    "ChaosMaximumHitTaken": 4406.0,
+    "LowestAttribute": 87.0,
+    "IgniteEffMult": 1.3,
+    "EnergyShieldRecharge": 180.3,
+    "AverageBurstHits": 1.0,
+    "MissingTotemColdResist": 35.0,
+    "LifeOnBlock": 0.0,
+    "EffectiveMovementSpeedMod": 1.358,
+    "FireStoredCritAvg": 2340.0,
+    "Devotion": 0.0,
+    "FireEnemyDamage": 978.896,
+    "LightningTakenHit": 274.09088,
+    "SpellProjectileEvasion": 444.0,
+    "BlockDuration": 0.0,
+    "SpiritReservedPercent": 100.0,
+    "ColdEnemyDamageMult": 1.0,
+    "EnergyShieldRegenRecovery": 0.0,
+    "BlitzCharges": 0.0,
+    "SelfShockDuration": 100.0,
+    "LowestOfArmourAndEvasionOnBoots": 0.0,
+    "SappedChance": 0.0,
+    "EnergyShieldOnKill": 0.0,
+    "GemLevel": 29.0,
+    "CrabBarriers": 0.0,
+    "Ward": 0.0,
+    "BrutalChargesMin": 0.0,
+    "PhysicalTakenReflect": 1.0,
+    "CullingDPS": 0.0,
+    "TotalDotDPS": 26.03778402589,
+    "ManaOnHitRate": 0.0,
+    "ColdAttackTakenHitMult": 1.0,
+    "ColdAfterReductionTakenHitMulti": 1.0,
+    "WithIgniteDPS": 11687.194867359,
+    "WithPoisonDPS": 11661.157083333,
+    "WithBleedDPS": 11661.157083333,
+    "CurseEffectOnSelf": 100.0,
+    "AttackDodgeChanceOverCap": 0.0,
+    "EnemyEnergyShieldRegen": 0.0,
+    "ManaLeechPerHit": 0.0,
+    "AbsorptionChargesMin": 0.0,
+    "ChaosTakenDamage": 391.5584,
+    "FireGuardAbsorbRate": 0.0,
+    "TotalDot": 0.0,
+    "TotalDotInstance": 0.0,
+    "MaximumEnergyShield": 1442.0,
+    "BleedAvoidChance": 0.0,
+    "EnemyStunDuration": 0.35,
+    "HitChance": 100.0,
+    "PhysicalStoredHitAvg": 0.0,
+    "RemovableFrenzyCharges": 0.0,
+    "EnemyStunThresholdMod": 1.0,
+    "SoulLinkMitigation": 0.0,
+    "BonusCritDotMultiplier": 0.0,
+    "ShockDuration": 8.8,
+    "LifeCost": 91.176470588235,
+    "MovementSpeedMod": 1.358,
+    "PhysicalStoredHitMin": 0.0,
+    "AverageEvadeChance": 4.0,
+    "FireEnemyDamageMult": 1.0,
+    "UnreservedDarkness": 0.0,
+    "IgniteChance": 0.57415450999917,
+    "IgniteMagnitudeEffect": 1.0,
+    "HeavyStunChaosMin": 0.0,
+    "FireMinBase": 0.0,
+    "IgniteStackPotentialPercent": 6.3156996099909,
+    "IgniteStackPotential": 0.063156996099909,
+    "IgniteDuration": 4.4,
+    "GlobalItemAttributeRequirements": 1.0,
+    "LightningResist": 75.0,
+    "ManaFlask2MaxCharges": 75.0,
+    "StrRequirementsOnWeapon 2": 48.0,
+    "IgniteChancePerHit": 0.57415450999917,
+    "FireResistTotal": 120.0,
+    "FireEnemyPen": 3.0,
+    "ShockChanceOnHit": 0.76791690869361,
+    "ColdSummedMaxBase": 88.0,
+    "SpellTakenHitMult": 1.0,
+    "ShockLightningMax": 2110.0,
+    "SpellEvadeChance": 4.0,
+    "TwoAdditionalProjectiles": 0.0,
+    "Repeats": 1.0,
+    "SpellSuppressionChance": 0.0,
+    "RageRecovery": 0.0,
+    "LightningManaEffectiveLife": 3685.0,
+    "IgniteChanceOnHit": 0.30536884905817,
+    "EnergyShieldRecoup": 0.0,
+    "HyenaLimit": 9.0,
+    "RemovablePowerCharges": 0.0,
+    "SpellDodgeChanceOverCap": 0.0,
+    "IgniteFireMin": 57.0,
+    "Darkness": 0.0,
+    "SpiritReserved": 425.0,
+    "LifeCancellableReservation": 100.0,
+    "DoubleDamageEffect": 0.0,
+    "HeavyStunBuildupAvg": 2.8405712280775,
+    "LightningResistOverTime": 75.0,
+    "sharedElementalAegis": 0.0,
+    "HeavyStunChaosMax": 0.0,
+    "LightningDamageReduction": 0.0,
+    "LightningHitAverage": 1530.2733333333,
+    "MissingTotemFireResist": 35.0,
+    "HeavyStunFireMax": 760.5,
+    "BaseFireDamageReductionWhenHit": 0.0,
+    "HeavyStunPhysicalMin": 0.0,
+    "HeavyStunColdMax": 190.06,
+    "HeavyStunLightningMax": 1530.2733333333,
+    "SpiritUncancellableReservation": 0.0,
+    "TheoreticalMaxOffensiveWarcryEffect": 1.0,
+    "HeavyStunFireMin": 57.0,
+    "FreezeBuildupAvg": 1.3394886643777,
+    "LightningEnemyDamage": 978.896,
+    "EnergyShieldLeechInstanceRate": 28.84,
+    "TripleDamageChance": 0.0,
+    "AverageNotHitChance": 4.0,
+    "FreezeColdMin": 15.0,
+    "FreezeChanceOnCrit": 0.0,
+    "ChillChanceOnCrit": 0.0,
+    "LightningStoredCritMin": 444.0,
+    "EnergyShieldRegenInc": 0.0,
+    "chillMinimumThreshold": 361.53,
+    "LifeOnHitRate": 0.0,
+    "AvoidColdDamageChance": 0.0,
+    "ManaOnKill": 31.0,
+    "MaxLifeLeechInstance": 218.0,
+    "PoisonChanceOnHit": 0.0,
+    "BleedChanceOnCrit": 0.0,
+    "ColdStoredHitMin": 15.0,
+    "BrittleChance": 0.0,
+    "PoisonAvoidChance": 0.0,
+    "SelfChillEffect": 60.0,
+    "ColdEffectiveAppliedArmour": 0.0,
+    "FireStoredCritMax": 4188.0,
+    "AccuracyHitChance": 100.0,
+    "ImpaleChance": 0.0,
+    "EffectiveSpellBlockChance": 0.0,
+    "EnduranceChargesDuration": 15.0,
     "EnemyAilmentThreshold": 36153.0,
     "PierceCount": 100.0,
-    "AvoidProjectilesChance": 0.0,
-    "PhysicalStoredCritMax": 0.0,
-    "ChaosDamageReduction": 0.0,
-    "ChallengerChargesMax": 0.0,
-    "HeavyStunBuildupAvg": 2.8405712280775,
-    "HeavyStunChaosMax": 0.0,
-    "HeavyStunChaosMin": 0.0,
-    "LowestOfArmourAndEvasionOnHelmet": 0.0,
-    "IgniteChanceOnCrit": 1.2214753962327,
-    "HeavyStunFireMin": 57.0,
-    "ChaosCritAverage": 0.0,
-    "HeavyStunColdMin": 15.0,
-    "AttackTakenHitMult": 1.0,
-    "HeavyStunLightningMax": 1530.2733333333,
-    "HeavyStunLightningMin": 111.0,
-    "PoisonAvoidChance": 0.0,
-    "ColdEnergyShieldBypass": 5.0,
-    "ExposureEffectOnSelf": 100.0,
-    "PhysicalStoredHitMin": 0.0,
-    "LightningStoredHitMin": 111.0,
-    "HeavyStunPhysicalMin": 0.0,
-    "PhysicalStoredCombinedAvg": 0.0,
-    "FreezeColdMin": 15.0,
-    "IgniteChanceOnHit": 0.30536884905817,
-    "FireTakenHitMult": 0.28,
-    "EffectiveMovementSpeedMod": 1.358,
-    "ChaosTotalHitPool": 4406.0,
-    "CurrentShock": 0.0,
-    "PhysicalLifeRecoup": 0.0,
-    "FreezeChanceOnHit": 0.0,
-    "LightningStoredHitMax": 2110.0,
-    "PhysicalEnemyDamageMult": 1.0,
-    "PhysicalStoredHitAvg": 0.0,
-    "ManaOnHit": 0.0,
-    "chillMinimumThreshold": 361.53,
-    "PowerCharges": 0.0,
-    "PoisonChanceOnCrit": 0.0,
-    "PhysicalTakenReflect": 1.0,
-    "IntRequirementsOnWeapon 1": 137.0,
-    "RageDegen": 0.0,
-    "BleedChanceOnCrit": 0.0,
-    "EnergyShieldRegenInc": 0.0,
-    "BleedChanceOnHit": 0.0,
-    "SplitCountString": 0.0,
+    "RageRegenRecovery": 0.0,
+    "EnergyShieldRechargeDelay": 4.0,
     "FireDotEHP": 20508.0,
-    "FistOfWarDamageEffect": 1.0,
-    "PhysicalDamageReductionMax": 90.0,
-    "FireTotalPool": 5127.0,
-    "KnockbackChanceOnCrit": 0.0,
-    "TotalMin": 237.9,
-    "allMult": 1.0,
-    "SappedChance": 0.0,
-    "BrittleChance": 0.0,
-    "ImpaleChance": 0.0,
-    "FireResistOverCap": 45.0,
-    "ManaLeechGainRate": 0.0,
-    "ColdTakenDotMult": 0.25,
-    "LifeLeechGainRate": 452.35,
-    "sharedMoMHitPool": 3685.0,
-    "ColdCritAverage": 760.24,
-    "ManaLeechRate": 0.0,
-    "EnergyShieldRecoveryCap": 1442.0,
-    "NumberOfDamagingHits": 2.1685414706246,
-    "ManaLeechInstanceRate": 30.1,
-    "TotemChaosResistOverCap": 0.0,
-    "EnergyShieldLeechRate": 0.0,
-    "BrutalChargesMax": 0.0,
-    "FreezeChanceOnCrit": 0.0,
-    "TotalAttr": 346.0,
-    "LifeLeechPerHit": 180.94,
-    "LifeLeechRate": 452.35,
-    "EnemyCurseLimit": 1.0,
-    "ChaosStoredCritMax": 0.0,
-    "FireTakenDamage": 978.896,
-    "ChaosManaEffectiveLife": 3685.0,
-    "PhysicalStoredCritAvg": 0.0,
-    "TotalDPS": 11661.157083333,
-    "ActionSpeedMod": 1.0,
-    "AverageBurstDamage": 4664.4628333333,
-    "IgniteChance": 0.57415450999917,
-    "AverageDamage": 4664.4628333333,
-    "TerrainChain": 0.0,
-    "FireSummedMinBase": 20.0,
-    "Accuracy": 1134.0,
-    "EffectiveLootRarityMod": 1.0,
-    "ManaOnKill": 31.0,
-    "EnergyShieldRecovery": 0.0,
-    "ColdTotalPool": 5127.0,
-    "LightningEnemyOverwhelm": 0.0,
-    "PhysicalMaxBase": 0.0,
-    "LifeOnHitRate": 0.0,
-    "EnergyShieldOnHit": 0.0,
-    "BleedAvoidChance": 0.0,
-    "PhysicalMindOverMatter": 0.0,
-    "RallyingHitEffect": 1.0,
-    "LifeOnHit": 0.0,
-    "LightningBaseTakenHitMult": 0.28,
-    "ManaLeechInstances": 0.0,
-    "LifeOnBlock": 0.0,
-    "ColdStoredHitMax": 261.0,
-    "sharedElementalAegis": 0.0,
-    "ColdDamageReductionMax": 90.0,
-    "ChaosEnemyPen": 0.0,
-    "LowestAttribute": 87.0,
-    "EnergyShieldLeechInstances": 0.0,
-    "LifeLeechInstantRate": 81.75,
-    "LifeLeechInstances": 10.625,
-    "ManaLeechInstantProportion": 0.15,
-    "LifeLeechInstantProportion": 0.15,
-    "FireStoredCritMin": 228.0,
-    "PhysicalEnergyShieldBypass": 5.0,
-    "TotemFireResist": 40.0,
-    "BlockChance": 0.0,
-    "KnockbackChanceOnHit": 0.0,
-    "BonusCritDotMultiplier": 0.0,
-    "MaxEnergyShieldLeechInstance": 144.2,
-    "ColdStoredHitMin": 15.0,
-    "MissingLightningResist": 0.0,
-    "SpellSuppressionChanceOverCap": 0.0,
+    "LightningResistTakenHitMulti": 0.28,
+    "ChainMax": 0.0,
     "ColdResistTakenHitMulti": 0.28,
-    "ColdDamageReduction": 0.0,
-    "PhysicalBaseTakenHitMult": 1.0,
-    "ChaosStoredHitAvg": 0.0,
-    "WitherEffectOnSelf": 100.0,
-    "ColdTotalHitPool": 5127.0,
-    "TotemLightningResist": 40.0,
     "LightningStoredCritMax": 8440.0,
-    "ColdDotEHP": 20508.0,
-    "RemovableFrenzyCharges": 0.0,
-    "FireStoredHitMin": 57.0,
-    "FireStoredHitAvg": 585.0,
-    "LightningHitAverage": 1530.2733333333,
-    "ChillChanceOnCrit": 0.0,
-    "FireTakenReflect": 1.0,
-    "HeavyStunPhysicalMax": 0.0,
-    "PhysicalResistTakenHitMulti": 1.0,
-    "SplitCount": 0.0,
-    "LightningStoredHitAvg": 1177.1333333333,
-    "Chain": 0.0,
-    "DeflectEffect": 40.0,
-    "LightningSummedMaxBase": 742.0,
-    "PhysicalStoredHitMax": 0.0,
-    "HeavyStunColdMax": 190.06,
-    "FireEnemyDamage": 978.896,
-    "ColdResistOverTime": 75.0,
-    "ChaosStoredCombinedAvg": 0.0,
-    "ChaosAegis": 0.0,
-    "LifeCost": 91.176470588235,
-    "AvoidChaosDamageChance": 0.0,
-    "TotalMax": 4443.4,
-    "LifePercentCost": 0.0,
-    "MovementSpeedWhileUsingSkill": 0.12222,
-    "ManaLeechPerHit": 0.0,
-    "ColdStoredCritMax": 1044.0,
-    "LightningSummedMinBase": 39.0,
-    "ConfiguredNotHitChance": 4.0,
-    "ColdStoredCritAvg": 584.8,
-    "PhysicalEnemyDamage": 978.896,
-    "CritChance": 29.34,
-    "AvoidLightningDamageChance": 0.0,
-    "FireResistOverTime": 75.0,
+    "EnergyShieldLeechGainRate": 0.0,
+    "TotemFireResistTotal": 40.0,
+    "CombinedDPS": 11687.194867359,
+    "ManaLeechInstanceRate": 30.1,
+    "HeavyStunLightningMin": 111.0,
+    "EnergyShieldLeechInstances": 0.0,
+    "DurationMod": 1.0,
+    "Duration": 2.013,
+    "MaxManaLeechRate": 301.0,
+    "ExposureEffectOnSelf": 100.0,
+    "LifeLeechRate": 452.35,
+    "LifeLeechInstanceRate": 34.88,
+    "PhysicalTakenHit": 978.896,
+    "TotalDPS": 11661.157083333,
+    "ChaosTotalPool": 4406.0,
+    "IgniteDamage": 114.56624971392,
+    "MissingChaosResist": 75.0,
+    "ColdCritAverage": 760.24,
+    "SelfFreezeEffect": 100.0,
+    "PowerChargesMin": 0.0,
+    "ManaLeech": 0.0,
+    "ManaRegenPercent": 4.1,
+    "TotalAttr": 346.0,
+    "EnemyLifeRegen": 0.0,
+    "EnemyMarkLimit": 1.0,
+    "ManaPercentCost": 0.0,
+    "ChallengerChargesMax": 0.0,
+    "TotemColdResist": 40.0,
+    "EnergyShieldOnHitRate": 0.0,
+    "TerrainChain": 0.0,
+    "PresenceMod": 2.0,
+    "EnergyShieldRecoveryCap": 1442.0,
+    "AilmentWarcryEffect": 1.0,
+    "LifeLeech": 185.3,
+    "ManaLeechInstantRate": 0.0,
+    "ManaLeechInstances": 0.0,
+    "EnergyShieldOnSuppress": 0.0,
     "LightningStoredCritAvg": 4708.5333333333,
     "Gear:EnergyShield": 596.0,
-    "PhysicalCritAverage": 0.0,
-    "LightningDotEHP": 20508.0,
-    "PhysicalTotalHitPool": 5127.0,
-    "totalEnemyDamage": 4307.1424,
-    "ManaUnreservedPercent": 100.0,
-    "InspirationChargesMax": 5.0,
+    "EnergyShieldLeechDuration": 0.0,
+    "ProjectileCount": 11.0,
+    "LightningResistOver75": 0.0,
+    "EnergyShieldLeechRate": 0.0,
+    "SpellBlockChanceOverCap": 0.0,
+    "EnemyCurseLimit": 1.0,
+    "IgniteStacksMax": 1.0,
+    "RageRegenInc": 0.0,
+    "LifeLeechDuration": 4.25,
+    "VaalArcticArmourMitigation": 0.0,
+    "LifeLeechInstances": 10.625,
+    "TotemChaosResist": 20.0,
+    "FistOfWarCooldown": 0.0,
+    "TotemColdResistTotal": 40.0,
+    "ManaLeechInstantProportion": 0.15,
+    "LifeLeechInstantProportion": 0.15,
+    "Str": 87.0,
+    "WeaponSwapSpeedMod": 1.0,
+    "MaxEnergyShieldLeechRate": 144.2,
+    "FireStoredHitAvg": 585.0,
+    "TotalMax": 4443.4,
+    "ChillChanceOnHit": 0.0,
+    "ColdResistOverTime": 75.0,
+    "StunThreshold": 2616.0,
+    "LightningTotalPool": 5127.0,
+    "ChaosStoredHitMax": 0.0,
+    "LightningStoredHitMax": 2110.0,
+    "UntypedNotHitChance": 0.0,
+    "ChaosStoredHitAvg": 0.0,
+    "SelfFreezeDuration": 50.0,
+    "FireHitAverage": 760.5,
+    "DamageReductionMax": 90.0,
+    "FireStoredHitMax": 1047.0,
+    "ChaosTakenReflect": 1.0,
+    "Armour": 0.0,
+    "ColdHitAverage": 190.06,
+    "FireTotalHitPool": 5127.0,
+    "ColdStoredHitMax": 261.0,
+    "RageRegen": 0.0,
+    "ChaosManaEffectiveLife": 3685.0,
+    "SpellSuppressionEffect": 50.0,
+    "PhysicalMindOverMatter": 0.0,
+    "KnockbackChanceOnCrit": 0.0,
+    "FrenzyChargesMin": 0.0,
+    "ChaosResistTakenHitMulti": 1.0,
+    "ManaPercentPerSecondCost": 0.0,
+    "LightningDamageReductionMax": 90.0,
+    "ChaosStoredHitMin": 0.0,
+    "LightningStoredHitMin": 111.0,
+    "PhysicalHitAverage": 0.0,
+    "AvoidPhysicalDamageChance": 0.0,
+    "RemovableEnduranceCharges": 0.0,
+    "PhysicalStoredHitMax": 0.0,
+    "EnduranceChargesMax": 3.0,
+    "FireResist": 75.0,
+    "PhysicalGuardAbsorbRate": 0.0,
+    "LootRarityMagicEnemies": 0.0,
+    "IntRequirementsOnWeapon 1": 137.0,
+    "FireCritAverage": 3042.0,
+    "FireStoredCritMin": 228.0,
+    "BlockChance": 0.0,
+    "PhysicalDotEHP": 5127.0,
+    "PhysicalEnemyPen": 0.0,
+    "ColdStoredCritAvg": 584.8,
+    "LightningMaximumHitTaken": 18311.0,
+    "PhysicalStoredCritMax": 0.0,
+    "PhysicalStoredCritMin": 0.0,
+    "PhysicalStoredCritAvg": 0.0,
+    "AfflictionChargesMin": 0.0,
+    "allMult": 1.0,
+    "ChaosEnemyPen": 0.0,
     "ManaLeechInstant": 0.0,
+    "AverageHit": 4664.4628333333,
+    "AvoidProjectilesChance": 0.0,
+    "GlobalGemAttributeRequirements": 1.0,
+    "FiretakenFlat": 0.0,
+    "AvoidLightningDamageChance": 0.0,
+    "FireResistOver75": 0.0,
     "EnergyShieldLeechInstant": 0.0,
-    "ColdEffectiveAppliedArmour": 0.0,
-    "LifeLeechInstant": 32.7,
-    "LifeLeech": 185.3,
-    "LifeRegenInc": 25.0,
-    "ManaRecoveryRateMod": 0.5,
-    "LightningTakenDamage": 978.896,
+    "EnergyShieldOnGloves": 39.0,
+    "ActionSpeedMod": 1.0,
+    "LightningAegisDisplay": 0.0,
+    "LifeOnHit": 0.0,
+    "ChaosStoredCombinedAvg": 0.0,
+    "ReservationDpsMultiplier": 1.0,
     "ChaosSummedMinBase": 0.0,
-    "totalEnemyDamageIn": 4246.0,
-    "ChaosHitAverage": 0.0,
+    "PhysicalAegis": 0.0,
+    "FireAfterReductionTakenHitMulti": 1.0,
+    "FireSummedMaxBase": 368.0,
+    "ColdDotEHP": 20508.0,
+    "IgniteAvoidChance": 0.0,
     "ColdSummedMinBase": 5.0,
     "LightningStoredCombinedAvg": 2213.2460933333,
-    "SecondMinimalMaximumHitTaken": 5127.0,
-    "PhysicalHitAverage": 0.0,
-    "MissingColdResist": 0.0,
-    "ManaOnBlock": 0.0,
-    "ElectrocuteBuildupAvg": 0.0,
-    "ChaosMinBase": 0.0,
-    "PhysicaltakenFlat": 0.0,
-    "FireMaxBase": 0.0,
-    "ColdMaxBase": 0.0,
-    "OffensiveWarcryEffect": 1.0,
-    "EnduranceChargesMax": 3.0,
-    "ManaOnHitRate": 0.0,
-    "FireResist": 75.0,
-    "CullMultiplier": 1.0,
-    "IntRequirementsOnWeapon 2": 122.0,
-    "TripleDamageChance": 0.0,
-    "EnduranceChargesMin": 0.0,
-    "CritEffect": 1.8802,
-    "CritMultiplier": 4.0,
-    "PowerChargesMax": 8.0,
-    "SpectreAllyDamageMitigation": 0.0,
-    "PinBuildupAvg": 0.0,
-    "LightningCritAverage": 6121.0933333333,
-    "EnergyShieldOnGloves": 39.0,
-    "ConfiguredDamageChance": 100.0,
-    "ManaFlask2MaxCharges": 75.0,
-    "GlobalWeaponAttributeRequirements": 1.0,
-    "ExertedAttackUptimeRatio": 0.0,
-    "LifeRegenRecovery": 122.6,
-    "enemyBlockChance": 0.0,
-    "GlobalWarcryUptimeRatio": 0.0,
-    "FreezeAvoidChance": 100.0,
-    "TheoreticalMaxOffensiveWarcryEffect": 1.0,
-    "LightRadiusMod": 1.0,
-    "EffectiveSpellBlockChance": 0.0,
-    "EHPSurvivalTime": 1.5812281556638,
-    "ManaDegen": 0.0,
-    "ShieldBlockChance": 0.0,
-    "SilenceAvoidChance": 0.0,
-    "SelfBleedDuration": 100.0,
-    "Speed": 2.5,
-    "CombinedAvg": 11661.157083333,
-    "EnemyLifeRegen": 0.0,
-    "IgniteDuration": 4.4,
-    "IgniteDamage": 114.56624971392,
-    "AttackDodgeChance": 0.0,
-    "RageCost": 0.0,
-    "LifePercentPerSecondCost": 0.0,
-    "EnergyShieldRegen": 0.0,
-    "FireAfterReductionTakenHitMulti": 1.0,
-    "LifeRecoverable": 2180.0,
-    "FireDamageReduction": 0.0,
-    "SoulCost": 0.0,
-    "ColdAegis": 0.0,
-    "CrabBarriersMax": 0.0,
-    "FireCritAverage": 3042.0,
-    "ManaCost": 1.0,
-    "ChillAvoidChance": 0.0,
-    "MaxOffensiveWarcryEffect": 1.0,
-    "ChaosSpellTakenHitMult": 1.0,
-    "Duration": 2.013,
-    "DurationMod": 1.0,
-    "LightningDamageReduction": 0.0,
-    "FireEnergyShieldBypass": 5.0,
-    "EnergyShieldRegenPercent": 0.0,
-    "ProjectileSpeedMod": 1.8625,
-    "PiercedCount": 0.0,
-    "ProjectileCount": 11.0,
-    "SelfChillDuration": 100.0,
-    "RadianceSentinelAllyDamageMitigation": 0.0,
-    "PowerChargesDuration": 21.0,
-    "ColdTakenReflect": 1.0,
-    "FireGuardAbsorbRate": 0.0,
-    "AverageHit": 4664.4628333333,
-    "SelfChillEffect": 60.0,
-    "LifeFlaskRecovery": 552.0,
-    "ActiveMineLimit": 15.0,
-    "ActiveTrapLimit": 15.0,
-    "ArmourBreakPerHit": 0.0,
-    "EnergyShieldOnAllArmourItems": 596.0,
-    "ChaosTakenReflect": 1.0,
-    "TwoAdditionalProjectiles": 0.0,
-    "PhysicalDotEHP": 5127.0,
-    "TheoreticalOffensiveWarcryEffect": 1.0,
-    "enemySkillTime": 0.7,
-    "SelfPoisonEffect": 100.0,
-    "CurseAvoidChance": 0.0,
-    "ManaRegen": 62.0,
-    "sharedMindOverMatter": 100.0,
-    "ManaRegenPercent": 4.1,
-    "VaalRejuvenationTotemAllyDamageMitigation": 0.0,
-    "ColdResistOver75": 0.0,
-    "SpiritUncancellableReservation": 0.0,
-    "Evasion": 444.0,
-    "Gear:Armour": 0.0,
-    "MissingTotemLightningResist": 35.0,
-    "SelfShockEffect": 60.0,
-    "LifeUnreserved": 2180.0,
-    "AttackDodgeChanceOverCap": 0.0,
-    "MeleeNotHitChance": 4.0,
-    "LifePerSecondCost": 227.94117647059,
-    "ColdTakenHit": 274.09088,
-    "PresenceRadius": 80.0,
-    "GlobalGemAttributeRequirements": 1.0,
-    "LootRarityMagicEnemies": 0.0,
-    "ChaosGuardAbsorbRate": 0.0,
-    "PhysicalSpellTakenHitMult": 1.0,
-    "ChaosDamageReductionMax": 90.0,
-    "FireStoredCombinedAvg": 1099.917,
-    "Int": 167.0,
+    "LightningSummedMinBase": 39.0,
+    "MaxLifeLeechRatePercent": 27.0,
+    "LifePercentCost": 0.0,
     "LightningEnergyShieldBypass": 5.0,
-    "EffectiveProjectileBlockChance": 0.0,
-    "MeleeEvasion": 444.0,
-    "PreEffectiveCritChance": 29.34,
-    "ProjectileNotHitChance": 4.0,
-    "BaseColdDamageReduction": 0.0,
-    "BlockChanceMax": 50.0,
-    "Gear:Ward": 0.0,
-    "ColdTakenHitMult": 0.28,
-    "SurroundedRadiusMetres": 3.0,
-    "FrenzyChargesMax": 3.0,
-    "LifeUncancellableReservation": 0.0,
-    "Mana": 1505.0,
-    "LootQuantityNormalEnemies": 0.0,
-    "PhysicalAttackTakenHitMult": 1.0,
-    "EnergyShieldRecoveryRateMod": 1.0,
-    "AfflictionCharges": 0.0,
-    "totalTakenDamage": 4307.1424,
-    "LightningResistOver75": 0.0,
-    "CullingDPS": 0.0,
-    "WeaponSwapSpeedMod": 1.0,
-    "BlockDuration": 0.0,
-    "MeleeEvadeChance": 4.0,
-    "MissingTotemChaosResist": 55.0,
-    "FiretakenFlat": 0.0,
-    "ChaosStoredCritAvg": 0.0,
-    "RemovableEnduranceCharges": 0.0,
-    "AfflictionChargesMax": 0.0,
-    "Tribute": 0.0,
-    "SpellBlockChanceOverCap": 0.0,
-    "PhysicalResist": 0.0,
-    "ManaUnreserved": 1505.0,
-    "PhysicalEnemyPen": 0.0,
-    "TotemChaosResist": 20.0,
-    "SpellTakenHitMult": 1.0,
-    "LightningEnemyDamage": 978.896,
-    "TripleDamageChanceOnCrit": 0.0,
-    "SelfFreezeEffect": 100.0,
-    "ProjectileEvasion": 444.0,
-    "SpellEvadeChance": 4.0,
-    "HyenaLimit": 9.0,
-    "TotalNumberOfHits": 2.258897365234,
-    "StunDuration": 0.0,
-    "SelfFreezeDuration": 50.0,
-    "SelfIgniteDuration": 50.0,
-    "ReqStrString": 80.0,
-    "LifeRecoveryRateMod": 1.0,
-    "FireAegisDisplay": 0.0,
-    "VaalArcticArmourLife": 0.0,
-    "DebuffExpirationRate": 0.0,
-    "ManaRegenRecovery": 62.0,
-    "ColdEnemyOverwhelm": 0.0,
-    "LowestOfArmourAndEvasion": 0.0,
-    "MaxLifeLeechInstance": 218.0,
-    "Life": 2180.0,
-    "ManaUncancellableReservation": 0.0,
-    "EvasionOnAllArmourItems": 437.0,
-    "MaximumEnergyShield": 1442.0,
-    "ChaosResist": 0.0,
-    "LowestOfArmourAndEvasionOnGloves": 0.0,
-    "EffectiveAttackDodgeChance": 0.0,
-    "AvoidColdDamageChance": 0.0,
-    "DamageReductionMax": 90.0,
-    "ReqInt": 157.0,
-    "SiphoningChargesMax": 0.0,
-    "FistOfWarCooldown": 0.0,
-    "FireDamageReductionMax": 90.0,
-    "AverageNotHitChance": 4.0,
-    "FireResistTakenHitMulti": 0.28,
-    "BaseChaosDamageReductionWhenHit": 0.0,
-    "LifeDegen": 0.0,
-    "RageRegenInc": 0.0,
-    "RageRegen": 0.0,
-    "ReqDexString": 91.0,
-    "ColdLifeRecoup": 0.0,
-    "BlitzChargesMax": 0.0,
-    "RageRecovery": 0.0,
-    "FireTakenHit": 274.09088,
-    "LowestOfMaximumLifeAndMaximumMana": 1505.0,
-    "EnemyMarkLimit": 1.0,
-    "ChaosStoredHitMax": 0.0,
-    "ManaReservedPercent": 0.0,
-    "EnergyShieldRecoup": 0.0,
-    "ChaosLifeRecoup": 0.0,
-    "EnergyShieldOnBody Armour": 247.0,
-    "CullPercent": 0.0,
-    "ConfiguredEvadeChance": 4.0,
-    "LightningTotalPool": 5127.0,
-    "LowLifePercentage": 35.0,
-    "ManaRegenInc": 106.0,
-    "BaseFireDamageReductionWhenHit": 0.0,
-    "ShockLightningMin": 111.0,
-    "DeflectionRating": 0.0,
-    "ChaosEnemyDamageMult": 1.0,
-    "EnergyShieldLeechDuration": 0.0,
-    "IntRequirementsOnBody Armour": 65.0,
-    "PresenceMod": 2.0,
-    "BlindAvoidChance": 0.0,
-    "AvoidFireDamageChance": 0.0,
-    "FireStoredCritMax": 4188.0,
-    "EnemyCritChance": 4.8,
-    "LifeRecovery": 0.0,
-    "SpiritUnreserved": -125.0,
-    "ImpaleAvoidChance": 0.0,
-    "ShockAvoidChance": 0.0,
-    "SpiritCancellableReservation": 100.0,
-    "FireHitAverage": 760.5,
-    "LightningLifeRecoup": 0.0,
-    "BrutalChargesMin": 0.0,
-    "Str": 87.0,
-    "MovementSpeedWhileUsingSkillPercent": 9.0,
-    "EnergyShieldOnSuppress": 0.0,
-    "AbsorptionCharges": 0.0,
-    "BasePhysicalDamageReduction": 0.0,
-    "FireLifeRecoup": 0.0,
-    "ChainMax": 0.0,
-    "LifeUnreservedPercent": 100.0,
-    "SpellNotHitChance": 4.0,
-    "ColdAegisDisplay": 0.0,
+    "ManaCostRaw": 1.2092307692308,
+    "ChainMaxString": 0.0,
+    "TripleDamageEffect": 0.0,
+    "IntRequirementsOnWeapon 2": 122.0,
+    "PhysicalSummedMinBase": 0.0,
+    "ColdGuardAbsorbRate": 0.0,
+    "LightningTakenDamage": 978.896,
+    "MinimumBypass": 5.0,
+    "MaxManaLeechInstance": 150.5,
+    "FireMaxBase": 0.0,
+    "IgniteRollAverage": 50.0,
+    "CastRate": 2.5,
+    "ColdMaxBase": 0.0,
+    "EnergyShieldRecovery": 0.0,
+    "ColdMinBase": 0.0,
+    "SpellSuppressionChanceOverCap": 0.0,
     "LightningMaxBase": 584.0,
-    "PhysicalStoredCritMin": 0.0,
-    "BrutalCharges": 0.0,
-    "EnemyCritEffect": 1.0144,
-    "LightningSpellTakenHitMult": 1.0,
-    "PhysicalEnemyOverwhelm": 0.0,
-    "ColdEnemyDamageMult": 1.0,
-    "EnemyEnergyShieldRegen": 0.0,
-    "FireEnemyPen": 3.0,
-    "SoulLinkMitigation": 0.0,
-    "EnergyShieldDegen": 0.0,
-    "LightningResistTakenHitMulti": 0.28,
-    "EvasionOnHelmet": 437.0,
-    "SiphoningCharges": 0.0,
-    "LightningTakenHit": 274.09088,
-    "totalTakenHit": 2192.72704,
-    "HeavyStunFireMax": 760.5,
-    "EffectiveSpellSuppressionChance": 0.0,
-    "AilmentThreshold": 1090.0,
-    "BaseColdDamageReductionWhenHit": 0.0,
-    "FireEnemyDamageMult": 1.0,
-    "FireManaEffectiveLife": 3685.0,
-    "ColdAttackTakenHitMult": 1.0,
+    "ColdMoMHitPool": 3685.0,
+    "PhysicalMinBase": 0.0,
+    "ChaosSummedMaxBase": 0.0,
+    "CullMultiplier": 1.0,
+    "DoubleDamageChance": 0.0,
+    "FullLifePercentage": 100.0,
+    "DoubleDamageChanceOnCrit": 0.0,
+    "EvasionOnAllArmourItems": 437.0,
+    "TripleDamageChanceOnCrit": 0.0,
+    "ScaledDamageEffect": 1.0,
+    "EffectiveAverageBlockChance": 0.0,
+    "ShockEffectMod": 1.45,
+    "ChaosTotalHitPool": 4406.0,
+    "Chain": 0.0,
+    "ManaRecoup": 0.0,
+    "PowerChargesDuration": 21.0,
+    "CritEffect": 1.8802,
+    "LowestOfMaximumLifeAndMaximumMana": 1505.0,
+    "AfflictionChargesMax": 0.0,
+    "MaxOffensiveWarcryEffect": 1.0,
+    "PreEffectiveCritMultiplier": 4.0,
+    "DeflectChance": 0.0,
+    "ChaosBaseTakenHitMult": 1.0,
+    "FireDamageReductionMax": 90.0,
+    "CritChance": 29.34,
+    "EnergyShieldLeechInstantProportion": 0.15,
+    "LifeOnKill": 0.0,
+    "ExertedAttackUptimeRatio": 0.0,
+    "MeleeEvadeChance": 4.0,
+    "PhysicalTotalHitPool": 5127.0,
+    "GlobalWarcryUptimeRatio": 0.0,
+    "PhysicalEnemyDamageMult": 1.0,
+    "RallyingHitEffect": 1.0,
+    "EnergyShieldLeechPerHit": 0.0,
+    "LifeRecovery": 0.0,
+    "TheoreticalOffensiveWarcryEffect": 1.0,
+    "PhysicalResist": 0.0,
+    "SelfPoisonEffect": 100.0,
+    "IntRequirementsOnGloves": 42.0,
+    "LightningAegis": 0.0,
+    "MovementSpeedWhileUsingSkill": 0.12222,
     "LightningGuardAbsorbRate": 0.0,
-    "PhysicalTakenDamage": 978.896,
-    "SelfBleedEffect": 100.0,
-    "ChaosTakenHitMult": 1.0,
-    "TotemDurationMod": 1.0,
-    "StrRequirementsOnWeapon 2": 48.0,
-    "PhysicalAfterReductionTakenHitMulti": 1.0,
-    "StunAvoidChance": 100.0,
-    "ColdMindOverMatter": 0.0,
-    "DebuffExpirationModifier": 100.0,
+    "Speed": 2.5,
+    "enemyBlockChance": 0.0,
+    "ColdSpellTakenHitMult": 1.0,
+    "ConfiguredNotHitChance": 4.0,
+    "VaalRejuvenationTotemAllyDamageMitigation": 0.0,
+    "FireTakenHitMult": 0.28,
+    "AilmentThreshold": 1090.0,
+    "preventedLifeLossBelowHalf": 0.0,
+    "ReqStr": 80.0,
+    "ImpaleChanceOnCrit": 0.0,
+    "ProjectileBlockChance": 0.0,
+    "Accuracy": 1134.0,
+    "ESPercentPerSecondCost": 0.0,
+    "PhysicalCritAverage": 0.0,
+    "ESPerSecondCost": 0.0,
+    "EffectiveLootRarityMod": 1.0,
+    "LifePercentPerSecondCost": 0.0,
+    "ManaRegenRecovery": 62.0,
+    "ColdStoredHitAvg": 146.2,
+    "CritMultiplier": 4.0,
     "BlockChanceOverCap": 0.0,
-    "SpiritReservedPercent": 100.0,
-    "ChaosEffectiveAppliedArmour": 0.0,
-    "LightningAfterReductionTakenHitMulti": 1.0,
-    "ReservationDpsMultiplier": 1.0,
-    "SurroundedRadius": 30.0,
-    "LightningResistOverCap": 37.0,
-    "WithPoisonDPS": 11661.157083333,
-    "BaseFireDamageReduction": 0.0,
-    "ChaosEnergyShieldBypass": 5.0,
-    "SpellDodgeChanceOverCap": 0.0,
-    "ReqDex": 91.0,
-    "LifeReservedPercent": 0.0,
-    "WardRechargeDelay": 2.0,
+    "LifePerSecondCost": 227.94117647059,
+    "LowLifePercentage": 35.0,
+    "ManaPerSecondCost": 2.5,
+    "TotemColdResistOverCap": 0.0,
+    "LightningResistTotal": 112.0,
+    "PhysicalStoredCombinedAvg": 0.0,
+    "FrostShieldLife": 0.0,
+    "FrenzyChargesMax": 3.0,
+    "NumberOfMitigatedDamagingHits": 2.1685414706246,
+    "MissingTotemLightningResist": 35.0,
+    "ChaosDotEHP": 4406.0,
+    "InspirationCharges": 5.0,
+    "LifeRecoveryRateMod": 1.0,
+    "ESCost": 0.0,
+    "ShockChance": 1.4438373717257,
+    "anyRecoup": 0.0,
+    "ManaOnHit": 0.0,
+    "ManaLeechGainRate": 0.0,
+    "CritExtraDamageReduction": 0.0,
+    "LifeLeechInstantRate": 81.75,
+    "LifeFlask1MaxCharges": 75.0,
+    "FireEnergyShieldBypass": 5.0,
+    "LifeRegenInc": 25.0,
+    "SplitCount": 0.0,
+    "LightningDotEHP": 20508.0,
+    "ColdStoredCritMin": 60.0,
+    "ChaosDamageReductionMax": 90.0,
+    "AttackTakenHitMult": 1.0,
+    "ColdMaximumHitTaken": 18311.0,
+    "LifeRecoup": 0.0,
+    "EHPSurvivalTime": 1.5812281556638,
+    "enemySkillTime": 0.7,
+    "totalTakenHit": 2192.72704,
+    "TotalNumberOfHits": 2.258897365234,
+    "SoulCost": 0.0,
+    "Dex": 92.0,
+    "ColdResistTotal": 119.0,
+    "FireDamageReduction": 0.0,
+    "PhysicalBaseTakenHitMult": 1.0,
+    "EnemyCritEffect": 1.0144,
+    "ScorchChance": 0.0,
+    "ChaosCritAverage": 0.0,
+    "LowestOfArmourAndEvasion": 0.0,
+    "FrostShieldDamageMitigation": 0.0,
+    "LifeUnreserved": 2180.0,
+    "EffectiveAttackDodgeChance": 0.0,
+    "PhysicalTakenDamage": 978.896,
+    "TotemFireResist": 40.0,
+    "ChaosSpellTakenHitMult": 1.0,
+    "CombinedAvg": 11661.157083333,
+    "GlobalWeaponAttributeRequirements": 1.0,
+    "LootQuantityNormalEnemies": 0.0,
+    "ChaosAfterReductionTakenHitMulti": 1.0,
+    "LifeLeechGainRate": 452.35,
+    "SpiritChargesMax": 0.0,
+    "LightningMindOverMatter": 0.0,
+    "EnergyShieldLeech": 0.0,
+    "BloodChargesMax": 5.0,
+    "EnergyShieldLeechInstantRate": 0.0,
+    "FireTakenReflect": 1.0,
+    "PhysicalEffectiveAppliedArmour": 0.0,
+    "EvadeChance": 4.0,
     "FrenzyChargesDuration": 15.0,
-    "LightningManaEffectiveLife": 3685.0,
-    "Darkness": 0.0,
-    "FireEnemyOverwhelm": 0.0,
-    "ChainMaxString": 0.0
+    "EnergyShieldOnBoots": 310.0,
+    "EffectiveBlockChance": 0.0,
+    "ShieldBlockChance": 0.0,
+    "Int": 167.0,
+    "TotemChaosResistOverCap": 0.0,
+    "TotemChaosResistTotal": 20.0,
+    "SelfPoisonDuration": 100.0,
+    "ChaosEnemyDamage": 391.5584,
+    "ColdLifeRecoup": 0.0,
+    "ManaReservedPercent": 0.0,
+    "LightningEffectiveAppliedArmour": 0.0,
+    "totalEnemyDamage": 4307.1424,
+    "EffectiveProjectileBlockChance": 0.0,
+    "ColdTakenHit": 274.09088,
+    "AbsorptionCharges": 0.0,
+    "DexRequirementsOnHelmet": 91.0,
+    "ColdResist": 75.0,
+    "EnergyShieldOnAllArmourItems": 596.0,
+    "CrabBarriersMax": 0.0,
+    "EnergyShieldRegenPercent": 0.0,
+    "SpiritCancellableReservation": 100.0,
+    "WarcryPower": 0.0,
+    "SpellProjectileNotHitChance": 4.0,
+    "MaxEnergyShieldLeechInstance": 144.2,
+    "Life": 2180.0,
+    "LightningMoMHitPool": 3685.0,
+    "MovementSpeedWhileUsingSkillPercent": 9.0,
+    "MaximumShock": 100.0,
+    "LifeDegen": 0.0,
+    "ShockAvoidChance": 0.0,
+    "RemovableTotalCharges": 0.0,
+    "PhysicaltakenFlat": 0.0,
+    "ChaosAegis": 0.0,
+    "ArmourDefense": 0.0,
+    "SpiritUnreserved": -125.0,
+    "BrutalChargesMax": 0.0,
+    "SurroundedRadius": 30.0,
+    "PhysicalAttackTakenHitMult": 1.0,
+    "LightningtakenFlat": 0.0,
+    "FireSummedMinBase": 20.0,
+    "AvoidFireDamageChance": 0.0,
+    "LifeOnSuppress": 0.0,
+    "TotemFireResistOverCap": 0.0,
+    "PhysicalDamageReduction": 0.0,
+    "ColdResistOver75": 0.0,
+    "MeleeEvasion": 444.0,
+    "ChallengerCharges": 0.0,
+    "PhysicalEnemyDamage": 978.896,
+    "FireResistTakenHitMulti": 0.28,
+    "FireLifeRecoup": 0.0,
+    "SelfIgniteDuration": 50.0,
+    "RageDegen": 0.0,
+    "ManaUncancellableReservation": 0.0,
+    "PoisonChanceOnCrit": 0.0,
+    "ChaosEnemyDamageMult": 1.0,
+    "IgniteFireMax": 1047.0,
+    "LightningTakenDotMult": 0.25,
+    "LowestOfArmourAndEvasionOnHelmet": 0.0,
+    "TotalCharges": 0.0,
+    "ChaosTakenHit": 391.5584,
+    "ManaReserved": 0.0,
+    "ShockChanceOnCrit": 3.0716676347744,
+    "DeflectionRating": 0.0,
+    "Tribute": 0.0,
+    "EmptyCharms": 0.0,
+    "FireResistOverCap": 45.0,
+    "ColdResistOverCap": 44.0,
+    "BloodCharges": 5.0,
+    "PhysicalMaximumHitTaken": 5127.0,
+    "BaseLightningDamageReductionWhenHit": 0.0,
+    "WardRechargeDelay": 2.0,
+    "BaseLightningDamageReduction": 0.0,
+    "ChaosResistTotal": 0.0,
+    "BaseColdDamageReduction": 0.0,
+    "BaseFireDamageReduction": 0.0,
+    "FireMaximumHitTaken": 18311.0,
+    "ImpaleAvoidChance": 0.0,
+    "AverageDamage": 4664.4628333333,
+    "ReqInt": 157.0,
+    "WeaponSwapSpeed": 0.0,
+    "SpellDodgeChance": 0.0,
+    "FistOfWarDamageEffect": 1.0,
+    "CurrentShock": 0.0,
+    "BasePhysicalDamageReductionWhenHit": 0.0,
+    "InterruptStunAvoidChance": 0.0,
+    "LifeRegenRecovery": 122.6,
+    "PresenceRadiusMetres": 8.0,
+    "preventedLifeLossTotal": 0.0,
+    "BaseColdDamageReductionWhenHit": 0.0,
+    "PowerCharges": 0.0,
+    "EnergyShieldRegen": 0.0,
+    "SilenceAvoidChance": 0.0,
+    "ChaosHitAverage": 0.0,
+    "LightRadiusMod": 1.0,
+    "DebuffExpirationModifier": 100.0,
+    "SiphoningCharges": 0.0,
+    "SurroundedRadiusMetres": 3.0,
+    "EffectiveSpellSuppressionChance": 0.0,
+    "ConfiguredEvadeChance": 4.0,
+    "ReservedDarkness": 0.0,
+    "PhysicalLifeRecoup": 0.0,
+    "SelfChillDuration": 100.0,
+    "MeleeNotHitChance": 4.0,
+    "ProjectileNotHitChance": 4.0,
+    "ColdMindOverMatter": 0.0,
+    "EnergyShieldOnSpellBlock": 0.0,
+    "EnergyShieldOnBody Armour": 247.0,
+    "Gear:Ward": 0.0,
+    "ManaRegenInc": 106.0,
+    "TotemAllyDamageMitigation": 0.0,
+    "ColdEnemyDamage": 978.896,
+    "FireEffectiveAppliedArmour": 0.0,
+    "MissingFireResist": 0.0,
+    "TotemLightningResist": 40.0,
+    "ChaosResistOverTime": 0.0,
+    "PhysicalEnemyOverwhelm": 0.0,
+    "LowestOfArmourAndEvasionOnGloves": 0.0,
+    "SpellBlockChanceMax": 50.0,
+    "SpellBlockChance": 0.0,
+    "ColdtakenFlat": 0.0,
+    "ColdTakenHitMult": 0.28,
+    "FireSpellTakenHitMult": 1.0,
+    "ManaCancellableReservation": 100.0,
+    "ColdTotalPool": 5127.0,
+    "SelfBlindDuration": 100.0,
+    "TotalEHP": 9591.2782127835,
+    "LightningEnemyOverwhelm": 0.0,
+    "FireManaEffectiveLife": 3685.0,
+    "FireAegisDisplay": 0.0,
+    "SpellNotHitChance": 4.0,
+    "GhostShrouds": 0.0,
+    "ChaosDamageReduction": 0.0,
+    "ChaosEffectiveAppliedArmour": 0.0,
+    "Gear:Armour": 0.0,
+    "PreEffectiveCritChance": 29.34,
+    "SelfStunChance": 0.0,
+    "EnergyShieldRecoveryRateMod": 1.0,
+    "LifeRecoverable": 2180.0,
+    "ReqIntString": 157.0,
+    "FireTakenHit": 274.09088,
+    "ManaUnreservedPercent": 100.0,
+    "SpiritCharges": 0.0,
+    "BlockChanceMax": 50.0,
+    "PhysicalSpellTakenHitMult": 1.0,
+    "IntRequirementsOnBoots": 108.0,
+    "ChaosLifeRecoup": 0.0,
+    "CurseAvoidChance": 0.0,
+    "ChaosMaxBase": 0.0,
+    "ChillAvoidChance": 0.0,
+    "TotalDotCalcSection": 0.0
   },
   "main_skill": {
     "name": "Spark",
@@ -800,135 +800,135 @@
       "current_total": 0.0,
       "formula": "baseCrit 0.0%→3.5%, 需要 +3.5% → DPS +20.8%",
       "sample_diff": {
+        "AverageDamage": [
+          4664.4628333333,
+          5634.9648333333,
+          970.5019999999995
+        ],
         "IgniteStackPotential": [
           0.063156996099909,
           0.07629762841258,
           0.013140632312671
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.69361480375073,
-          0.11946029375156009
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          332.07868,
-          57.19344000000001
-        ],
-        "CritChance": [
-          29.34,
-          42.38,
-          13.040000000000003
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4315889200379,
-          0.5910176919604
         ],
         "AverageHit": [
           4664.4628333333,
           5634.9648333333,
           970.5019999999995
         ],
-        "CombinedAvg": [
-          11661.157083333,
-          14087.412083333,
-          2426.254999999999
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4315889200379,
+          0.5910176919604
         ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.629762841258,
-          1.3140632312670997
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          156.05700780324,
-          41.490758089319996
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14087.412083333,
-          2426.254999999999
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14122.879585107,
-          2435.6847177480013
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1328.769,
+          228.8520000000001
         ],
         "PreBifurcateCritChance": [
           29.34,
           42.38,
           13.040000000000003
         ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7442464664067,
-          0.30040909468099986
+        "IgniteDamage": [
+          114.56624971392,
+          156.05700780324,
+          41.490758089319996
         ],
-        "IgniteChance": [
+        "IgniteChancePerHit": [
           0.57415450999917,
           0.69361480375073,
           0.11946029375156009
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          14087.412083333,
-          2426.254999999999
-        ],
-        "AverageDamage": [
-          4664.4628333333,
-          5634.9648333333,
-          970.5019999999995
-        ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.618186656881,
-          0.27869799250329996
-        ],
-        "TotalDPS": [
-          11661.157083333,
-          14087.412083333,
-          2426.254999999999
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14122.879585107,
-          2435.6847177480013
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5634.9648333333,
-          970.5019999999995
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          35.467501773463,
-          9.429717747572997
         ],
         "LightningStoredCombinedAvg": [
           2213.2460933333,
           2673.7406533333,
           460.4945600000001
         ],
-        "PreEffectiveCritChance": [
+        "CritChance": [
           29.34,
           42.38,
           13.040000000000003
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14087.412083333,
+          2426.254999999999
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          35.467501773463,
+          9.429717747572997
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14087.412083333,
+          2426.254999999999
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.618186656881,
+          0.27869799250329996
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.69361480375073,
+          0.11946029375156009
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14122.879585107,
+          2435.6847177480013
+        ],
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          332.07868,
+          57.19344000000001
         ],
         "TotalDotDPS": [
           26.03778402589,
           35.467501773463,
           9.429717747572997
         ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.629762841258,
+          1.3140632312670997
+        ],
         "CritEffect": [
           1.8802,
           2.2714,
           0.39119999999999977
         ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1328.769,
-          228.8520000000001
+        "CombinedDPS": [
+          11687.194867359,
+          14122.879585107,
+          2435.6847177480013
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          14087.412083333,
+          2426.254999999999
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7442464664067,
+          0.30040909468099986
+        ],
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5634.9648333333,
+          970.5019999999995
+        ],
+        "PreEffectiveCritChance": [
+          29.34,
+          42.38,
+          13.040000000000003
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          14087.412083333,
+          2426.254999999999
         ]
       }
     },
@@ -946,110 +946,110 @@
       "current_total": 75.0,
       "formula": "INC 75%→110%, 需要 +34 → DPS +19.4%",
       "sample_diff": {
-        "LifeLeechInstantRate": [
-          81.75,
-          97.632857142857,
-          15.882857142857006
+        "LifeLeechRate": [
+          452.35,
+          540.23514285714,
+          87.88514285713995
         ],
         "IgniteStackPotential": [
           0.063156996099909,
           0.07542749819932,
           0.012270502099410996
         ],
-        "LifePerSecondCost": [
-          227.94117647059,
-          272.2268907563,
-          44.285714285710014
-        ],
-        "LifeLeechGainRate": [
-          452.35,
-          540.23514285714,
-          87.88514285713995
-        ],
-        "LifeLeechRate": [
-          452.35,
-          540.23514285714,
-          87.88514285713995
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.542749819932,
-          1.2270502099411003
+        "Time": [
+          0.4,
+          0.33492822966507,
+          -0.06507177033493
         ],
         "IgniteDamage": [
           114.56624971392,
           136.82483537262,
           22.258585658699985
         ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          13957.84987016,
-          2270.6550028010006
-        ],
-        "Speed": [
+        "CastRate": [
           2.5,
           2.9857142857143,
           0.4857142857143
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
         ],
         "ManaPerSecondCost": [
           2.5,
           2.9857142857143,
           0.4857142857143
         ],
-        "ProjectileSpeedMod": [
-          1.8625,
-          2.12125,
-          0.2587499999999998
-        ],
         "TotalDPS": [
           11661.157083333,
           13926.753316667,
           2265.5962333339994
-        ],
-        "CastRate": [
-          2.5,
-          2.9857142857143,
-          0.4857142857143
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          13957.84987016,
-          2270.6550028010006
         ],
         "IgniteDPS": [
           26.03778402589,
           31.096553493777,
           5.058769467887
         ],
-        "Time": [
-          0.4,
-          0.33492822966507,
-          -0.06507177033493
+        "Speed": [
+          2.5,
+          2.9857142857143,
+          0.4857142857143
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
+        ],
+        "LifePerSecondCost": [
+          227.94117647059,
+          272.2268907563,
+          44.285714285710014
+        ],
+        "ProjectileSpeedMod": [
+          1.8625,
+          2.12125,
+          0.2587499999999998
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          13957.84987016,
+          2270.6550028010006
+        ],
+        "LifeLeechInstances": [
+          10.625,
+          12.689285714286,
+          2.064285714285999
+        ],
+        "LifeLeechGainRate": [
+          452.35,
+          540.23514285714,
+          87.88514285713995
         ],
         "TotalDotDPS": [
           26.03778402589,
           31.096553493777,
           5.058769467887
         ],
-        "LifeLeechInstances": [
-          10.625,
-          12.689285714286,
-          2.064285714285999
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.542749819932,
+          1.2270502099411003
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          13957.84987016,
+          2270.6550028010006
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
+        ],
+        "LifeLeechInstantRate": [
+          81.75,
+          97.632857142857,
+          15.882857142857006
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
         ]
       }
     },
@@ -1067,110 +1067,110 @@
       "current_total": 75.0,
       "formula": "INC 75%→110%, 需要 +34 → DPS +19.4%",
       "sample_diff": {
-        "LifeLeechInstantRate": [
-          81.75,
-          97.632857142857,
-          15.882857142857006
+        "LifeLeechRate": [
+          452.35,
+          540.23514285714,
+          87.88514285713995
         ],
         "IgniteStackPotential": [
           0.063156996099909,
           0.07542749819932,
           0.012270502099410996
         ],
-        "LifePerSecondCost": [
-          227.94117647059,
-          272.2268907563,
-          44.285714285710014
-        ],
-        "LifeLeechGainRate": [
-          452.35,
-          540.23514285714,
-          87.88514285713995
-        ],
-        "LifeLeechRate": [
-          452.35,
-          540.23514285714,
-          87.88514285713995
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.542749819932,
-          1.2270502099411003
+        "Time": [
+          0.4,
+          0.33492822966507,
+          -0.06507177033493
         ],
         "IgniteDamage": [
           114.56624971392,
           136.82483537262,
           22.258585658699985
         ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          13957.84987016,
-          2270.6550028010006
-        ],
-        "Speed": [
+        "CastRate": [
           2.5,
           2.9857142857143,
           0.4857142857143
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          13926.753316667,
-          2265.5962333339994
         ],
         "ManaPerSecondCost": [
           2.5,
           2.9857142857143,
           0.4857142857143
         ],
-        "ProjectileSpeedMod": [
-          1.8625,
-          2.12125,
-          0.2587499999999998
-        ],
         "TotalDPS": [
           11661.157083333,
           13926.753316667,
           2265.5962333339994
-        ],
-        "CastRate": [
-          2.5,
-          2.9857142857143,
-          0.4857142857143
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          13957.84987016,
-          2270.6550028010006
         ],
         "IgniteDPS": [
           26.03778402589,
           31.096553493777,
           5.058769467887
         ],
-        "Time": [
-          0.4,
-          0.33492822966507,
-          -0.06507177033493
+        "Speed": [
+          2.5,
+          2.9857142857143,
+          0.4857142857143
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
+        ],
+        "LifePerSecondCost": [
+          227.94117647059,
+          272.2268907563,
+          44.285714285710014
+        ],
+        "ProjectileSpeedMod": [
+          1.8625,
+          2.12125,
+          0.2587499999999998
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          13957.84987016,
+          2270.6550028010006
+        ],
+        "LifeLeechInstances": [
+          10.625,
+          12.689285714286,
+          2.064285714285999
+        ],
+        "LifeLeechGainRate": [
+          452.35,
+          540.23514285714,
+          87.88514285713995
         ],
         "TotalDotDPS": [
           26.03778402589,
           31.096553493777,
           5.058769467887
         ],
-        "LifeLeechInstances": [
-          10.625,
-          12.689285714286,
-          2.064285714285999
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.542749819932,
+          1.2270502099411003
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          13957.84987016,
+          2270.6550028010006
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
+        ],
+        "LifeLeechInstantRate": [
+          81.75,
+          97.632857142857,
+          15.882857142857006
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          13926.753316667,
+          2265.5962333339994
         ]
       }
     },
@@ -1188,107 +1188,172 @@
       "current_total": 100.0,
       "formula": "CritBase 100→142, 需要 +42 → DPS +19.7%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075574893635383,
-          0.012417897535473996
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.68704448759439,
-          0.11288997759522001
+        "ColdStoredCritAvg": [
+          584.8,
+          769.012,
+          184.212
         ],
         "ColdStoredCritMax": [
           1044.0,
           1372.86,
           328.8599999999999
         ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          328.9330408,
-          54.047800800000005
-        ],
-        "CritMultiplier": [
+        "PreEffectiveCritMultiplier": [
           4.0,
           5.26,
           1.2599999999999998
         ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          6191.7213333333,
-          1483.188
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          583.86,
-          139.86
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.3990829469801,
-          0.5585117189025999
-        ],
-        "ColdStoredCritAvg": [
-          584.8,
-          769.012,
-          184.212
-        ],
-        "AverageHit": [
+        "AverageDamage": [
           4664.4628333333,
           5581.5872233333,
           917.12439
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          13953.968058333,
-          2292.8109749999985
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5574893635383,
-          1.2417897535474003
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          187.18088507636,
-          72.61463536244
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13953.968058333,
-          2292.8109749999985
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          13996.509168578,
-          2309.314301219001
-        ],
-        "FireCritAverage": [
-          3042.0,
-          4000.23,
-          958.23
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7277239661992,
-          0.28388659447350006
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          4.0392429397284,
-          0.9675753049539999
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.68704448759439,
-          0.11288997759522001
         ],
         "LightningCritAverage": [
           6121.0933333333,
           8049.2377333333,
           1928.1444000000001
         ],
-        "WithBleedDPS": [
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075574893635383,
+          0.012417897535473996
+        ],
+        "AverageHit": [
+          4664.4628333333,
+          5581.5872233333,
+          917.12439
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.3990829469801,
+          0.5585117189025999
+        ],
+        "CritMultiplier": [
+          4.0,
+          5.26,
+          1.2599999999999998
+        ],
+        "FireStoredCritAvg": [
+          2340.0,
+          3077.1,
+          737.0999999999999
+        ],
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1316.18214,
+          216.26513999999997
+        ],
+        "ColdCritAverage": [
+          760.24,
+          999.7156,
+          239.4756
+        ],
+        "IgniteDamage": [
+          114.56624971392,
+          187.18088507636,
+          72.61463536244
+        ],
+        "FireCritAverage": [
+          3042.0,
+          4000.23,
+          958.23
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.68704448759439,
+          0.11288997759522001
+        ],
+        "LightningStoredCombinedAvg": [
+          2213.2460933333,
+          2648.4134525333,
+          435.1673592000002
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          299.82,
+          71.82
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          6191.7213333333,
+          1483.188
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          13953.968058333,
+          2292.8109749999985
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          42.541110244627,
+          16.503326218736998
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          13953.968058333,
+          2292.8109749999985
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6028582672933,
+          0.2633696029156001
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.68704448759439,
+          0.11288997759522001
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.606240146046,
+          0.3847647498133
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          13996.509168578,
+          2309.314301219001
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          4.0392429397284,
+          0.9675753049539999
+        ],
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          328.9330408,
+          54.047800800000005
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          42.541110244627,
+          16.503326218736998
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5574893635383,
+          1.2417897535474003
+        ],
+        "CritEffect": [
+          1.8802,
+          2.249884,
+          0.3696840000000001
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          11098.6,
+          2658.6000000000004
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          13996.509168578,
+          2309.314301219001
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5507.22,
+          1319.2200000000003
+        ],
+        "CombinedAvg": [
           11661.157083333,
           13953.968058333,
           2292.8109749999985
@@ -1298,90 +1363,25 @@
           78.9,
           18.900000000000006
         ],
-        "LightningStoredCritMax": [
-          8440.0,
-          11098.6,
-          2658.6000000000004
+        "ShockChance": [
+          1.4438373717257,
+          1.7277239661992,
+          0.28388659447350006
         ],
-        "AverageDamage": [
-          4664.4628333333,
-          5581.5872233333,
-          917.12439
-        ],
-        "FireStoredCritMax": [
-          4188.0,
-          5507.22,
-          1319.2200000000003
-        ],
-        "FireStoredCritMin": [
-          228.0,
-          299.82,
-          71.82
-        ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6028582672933,
-          0.2633696029156001
-        ],
-        "FireStoredCritAvg": [
-          2340.0,
-          3077.1,
-          737.0999999999999
-        ],
-        "TotalDPS": [
-          11661.157083333,
-          13953.968058333,
-          2292.8109749999985
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          13996.509168578,
-          2309.314301219001
+        "LightningStoredCritMin": [
+          444.0,
+          583.86,
+          139.86
         ],
         "AverageBurstDamage": [
           4664.4628333333,
           5581.5872233333,
           917.12439
         ],
-        "IgniteDPS": [
-          26.03778402589,
-          42.541110244627,
-          16.503326218736998
-        ],
-        "LightningStoredCombinedAvg": [
-          2213.2460933333,
-          2648.4134525333,
-          435.1673592000002
-        ],
-        "TotalDotDPS": [
-          26.03778402589,
-          42.541110244627,
-          16.503326218736998
-        ],
-        "PreEffectiveCritMultiplier": [
-          4.0,
-          5.26,
-          1.2599999999999998
-        ],
-        "CritEffect": [
-          1.8802,
-          2.249884,
-          0.3696840000000001
-        ],
-        "ColdCritAverage": [
-          760.24,
-          999.7156,
-          239.4756
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.606240146046,
-          0.3847647498133
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1316.18214,
-          216.26513999999997
+        "WithBleedDPS": [
+          11661.157083333,
+          13953.968058333,
+          2292.8109749999985
         ]
       }
     },
@@ -1399,170 +1399,15 @@
       "current_total": 137.0,
       "formula": "INC 137%→185%, 需要 +48 → DPS +20.2%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075914251652698,
-          0.01275725555278899
-        ],
-        "FireHitAverage": [
-          760.5,
-          914.16,
-          153.65999999999997
-        ],
-        "TotalMax": [
-          4443.4,
-          5341.7,
-          898.3000000000002
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "ColdStoredHitAvg": [
-          146.2,
-          174.8,
-          28.600000000000023
-        ],
-        "IgniteFireMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "HeavyStunColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "ColdStoredCritMax": [
-          1044.0,
-          1248.0,
-          204.0
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          328.65896,
-          53.77371999999997
-        ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          5662.6666666667,
-          954.1333333333996
-        ],
-        "TotalMin": [
-          237.9,
-          284.7,
-          46.79999999999998
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          532.0,
-          88.0
-        ],
-        "LightningHitAverage": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
-        ],
-        "ColdStoredHitMax": [
-          261.0,
-          312.0,
-          51.0
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4141433398081,
-          0.5735721117305999
-        ],
-        "HeavyStunLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
         "ColdStoredCritAvg": [
           584.8,
           699.2,
           114.40000000000009
         ],
-        "AverageHit": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5914251652698,
-          1.2757255552788997
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          165.5237800804,
-          50.95753036648
-        ],
-        "ShockLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
-        ],
-        "FireCritAverage": [
-          3042.0,
-          3656.64,
-          614.6399999999999
-        ],
-        "FireStoredHitMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7363753353802,
-          0.2925379636545
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          3.6940226260615,
-          0.6223549912871
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "LightningCritAverage": [
-          6121.0933333333,
-          7361.4666666667,
-          1240.3733333334003
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "ColdStoredCritMin": [
-          60.0,
-          72.0,
-          12.0
-        ],
-        "LightningStoredCritMax": [
-          8440.0,
-          10152.0,
-          1712.0
+        "ColdStoredCritMax": [
+          1044.0,
+          1248.0,
+          204.0
         ],
         "ColdStoredHitMin": [
           15.0,
@@ -1574,82 +1419,87 @@
           5606.3176866667,
           941.8548533333997
         ],
-        "FireStoredCritMax": [
-          4188.0,
-          5036.0,
-          848.0
+        "LightningHitAverage": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
         ],
-        "ShockChanceOnHit": [
-          0.76791690869361,
-          0.92350565651537,
-          0.15558874782176002
+        "LightningCritAverage": [
+          6121.0933333333,
+          7361.4666666667,
+          1240.3733333334003
         ],
-        "LightningStoredHitMin": [
-          111.0,
-          133.0,
-          22.0
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075914251652698,
+          0.01275725555278899
         ],
-        "FireStoredCritMin": [
-          228.0,
-          272.0,
-          44.0
+        "TotalMin": [
+          237.9,
+          284.7,
+          46.79999999999998
         ],
-        "HeavyStunColdMin": [
-          15.0,
-          18.0,
-          3.0
+        "AverageHit": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6015226985857,
-          0.2620340342080001
+        "ColdHitAverage": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4141433398081,
+          0.5735721117305999
         ],
         "FireStoredCritAvg": [
           2340.0,
           2812.8,
           472.8000000000002
         ],
-        "TotalDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1322.15664,
+          222.23964
         ],
-        "ShockLightningMax": [
-          2110.0,
-          2538.0,
-          428.0
+        "ColdCritAverage": [
+          760.24,
+          908.96,
+          148.72000000000003
         ],
-        "HeavyStunLightningMax": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
+        "ColdStoredHitMax": [
+          261.0,
+          312.0,
+          51.0
         ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
+        "ShockLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "LightningStoredHitAvg": [
-          1177.1333333333,
-          1415.6666666667,
-          238.53333333339992
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "IgniteDamage": [
+          114.56624971392,
+          165.5237800804,
+          50.95753036648
         ],
         "IgniteChanceOnHit": [
           0.30536884905817,
           0.36705114375017,
           0.061682294691999984
         ],
-        "FireStoredHitMin": [
+        "FireCritAverage": [
+          3042.0,
+          3656.64,
+          614.6399999999999
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteFireMin": [
           57.0,
           68.0,
           11.0
@@ -1659,17 +1509,192 @@
           2661.7364666667,
           448.49037333339993
         ],
-        "LightningStoredHitMax": [
+        "HeavyStunColdMin": [
+          15.0,
+          18.0,
+          3.0
+        ],
+        "FireStoredHitMax": [
+          1047.0,
+          1259.0,
+          212.0
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          272.0,
+          44.0
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          5662.6666666667,
+          954.1333333333996
+        ],
+        "ShockChanceOnHit": [
+          0.76791690869361,
+          0.92350565651537,
+          0.15558874782176002
+        ],
+        "HeavyStunLightningMax": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "LightningStoredHitMin": [
+          111.0,
+          133.0,
+          22.0
+        ],
+        "ShockLightningMax": [
           2110.0,
           2538.0,
           428.0
+        ],
+        "HeavyStunFireMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "LightningStoredHitAvg": [
+          1177.1333333333,
+          1415.6666666667,
+          238.53333333339992
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6015226985857,
+          0.2620340342080001
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.4682045750007,
+          0.24672917876799993
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          3.6940226260615,
+          0.6223549912871
+        ],
+        "HeavyStunFireMax": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "IgniteFireMax": [
+          1047.0,
+          1259.0,
+          212.0
         ],
         "FireStoredHitAvg": [
           585.0,
           703.2,
           118.20000000000005
         ],
-        "ColdHitAverage": [
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          328.65896,
+          53.77371999999997
+        ],
+        "FireHitAverage": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5914251652698,
+          1.2757255552788997
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          10152.0,
+          1712.0
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ColdStoredHitAvg": [
+          146.2,
+          174.8,
+          28.600000000000023
+        ],
+        "FreezeColdMax": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "TotalMax": [
+          4443.4,
+          5341.7,
+          898.3000000000002
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5036.0,
+          848.0
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "FireStoredHitMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "ColdStoredCritMin": [
+          60.0,
+          72.0,
+          12.0
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7363753353802,
+          0.2925379636545
+        ],
+        "LightningStoredCritMin": [
+          444.0,
+          532.0,
+          88.0
+        ],
+        "LightningStoredHitMax": [
+          2110.0,
+          2538.0,
+          428.0
+        ],
+        "HeavyStunColdMax": [
           190.06,
           227.24,
           37.18000000000001
@@ -1679,45 +1704,20 @@
           18.0,
           3.0
         ],
-        "TotalDotDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "HeavyStunFireMax": [
-          760.5,
-          914.16,
-          153.65999999999997
+        "HeavyStunLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "ColdCritAverage": [
-          760.24,
-          908.96,
-          148.72000000000003
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.4682045750007,
-          0.24672917876799993
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1322.15664,
-          222.23964
-        ],
-        "HeavyStunFireMin": [
-          57.0,
-          68.0,
-          11.0
-        ],
-        "FreezeColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "IgniteFireMin": [
-          57.0,
-          68.0,
-          11.0
+        "WithBleedDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
         ]
       }
     },
@@ -1735,170 +1735,15 @@
       "current_total": 137.0,
       "formula": "INC 137%→185%, 需要 +48 → DPS +20.2%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075914251652698,
-          0.01275725555278899
-        ],
-        "FireHitAverage": [
-          760.5,
-          914.16,
-          153.65999999999997
-        ],
-        "TotalMax": [
-          4443.4,
-          5341.7,
-          898.3000000000002
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "ColdStoredHitAvg": [
-          146.2,
-          174.8,
-          28.600000000000023
-        ],
-        "IgniteFireMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "HeavyStunColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "ColdStoredCritMax": [
-          1044.0,
-          1248.0,
-          204.0
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          328.65896,
-          53.77371999999997
-        ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          5662.6666666667,
-          954.1333333333996
-        ],
-        "TotalMin": [
-          237.9,
-          284.7,
-          46.79999999999998
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          532.0,
-          88.0
-        ],
-        "LightningHitAverage": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
-        ],
-        "ColdStoredHitMax": [
-          261.0,
-          312.0,
-          51.0
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4141433398081,
-          0.5735721117305999
-        ],
-        "HeavyStunLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
         "ColdStoredCritAvg": [
           584.8,
           699.2,
           114.40000000000009
         ],
-        "AverageHit": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5914251652698,
-          1.2757255552788997
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          165.5237800804,
-          50.95753036648
-        ],
-        "ShockLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
-        ],
-        "FireCritAverage": [
-          3042.0,
-          3656.64,
-          614.6399999999999
-        ],
-        "FireStoredHitMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7363753353802,
-          0.2925379636545
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          3.6940226260615,
-          0.6223549912871
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "LightningCritAverage": [
-          6121.0933333333,
-          7361.4666666667,
-          1240.3733333334003
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "ColdStoredCritMin": [
-          60.0,
-          72.0,
-          12.0
-        ],
-        "LightningStoredCritMax": [
-          8440.0,
-          10152.0,
-          1712.0
+        "ColdStoredCritMax": [
+          1044.0,
+          1248.0,
+          204.0
         ],
         "ColdStoredHitMin": [
           15.0,
@@ -1910,82 +1755,87 @@
           5606.3176866667,
           941.8548533333997
         ],
-        "FireStoredCritMax": [
-          4188.0,
-          5036.0,
-          848.0
+        "LightningHitAverage": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
         ],
-        "ShockChanceOnHit": [
-          0.76791690869361,
-          0.92350565651537,
-          0.15558874782176002
+        "LightningCritAverage": [
+          6121.0933333333,
+          7361.4666666667,
+          1240.3733333334003
         ],
-        "LightningStoredHitMin": [
-          111.0,
-          133.0,
-          22.0
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075914251652698,
+          0.01275725555278899
         ],
-        "FireStoredCritMin": [
-          228.0,
-          272.0,
-          44.0
+        "TotalMin": [
+          237.9,
+          284.7,
+          46.79999999999998
         ],
-        "HeavyStunColdMin": [
-          15.0,
-          18.0,
-          3.0
+        "AverageHit": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6015226985857,
-          0.2620340342080001
+        "ColdHitAverage": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4141433398081,
+          0.5735721117305999
         ],
         "FireStoredCritAvg": [
           2340.0,
           2812.8,
           472.8000000000002
         ],
-        "TotalDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1322.15664,
+          222.23964
         ],
-        "ShockLightningMax": [
-          2110.0,
-          2538.0,
-          428.0
+        "ColdCritAverage": [
+          760.24,
+          908.96,
+          148.72000000000003
         ],
-        "HeavyStunLightningMax": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
+        "ColdStoredHitMax": [
+          261.0,
+          312.0,
+          51.0
         ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
+        "ShockLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "LightningStoredHitAvg": [
-          1177.1333333333,
-          1415.6666666667,
-          238.53333333339992
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "IgniteDamage": [
+          114.56624971392,
+          165.5237800804,
+          50.95753036648
         ],
         "IgniteChanceOnHit": [
           0.30536884905817,
           0.36705114375017,
           0.061682294691999984
         ],
-        "FireStoredHitMin": [
+        "FireCritAverage": [
+          3042.0,
+          3656.64,
+          614.6399999999999
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteFireMin": [
           57.0,
           68.0,
           11.0
@@ -1995,17 +1845,192 @@
           2661.7364666667,
           448.49037333339993
         ],
-        "LightningStoredHitMax": [
+        "HeavyStunColdMin": [
+          15.0,
+          18.0,
+          3.0
+        ],
+        "FireStoredHitMax": [
+          1047.0,
+          1259.0,
+          212.0
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          272.0,
+          44.0
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          5662.6666666667,
+          954.1333333333996
+        ],
+        "ShockChanceOnHit": [
+          0.76791690869361,
+          0.92350565651537,
+          0.15558874782176002
+        ],
+        "HeavyStunLightningMax": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "LightningStoredHitMin": [
+          111.0,
+          133.0,
+          22.0
+        ],
+        "ShockLightningMax": [
           2110.0,
           2538.0,
           428.0
+        ],
+        "HeavyStunFireMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "LightningStoredHitAvg": [
+          1177.1333333333,
+          1415.6666666667,
+          238.53333333339992
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6015226985857,
+          0.2620340342080001
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.4682045750007,
+          0.24672917876799993
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          3.6940226260615,
+          0.6223549912871
+        ],
+        "HeavyStunFireMax": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "IgniteFireMax": [
+          1047.0,
+          1259.0,
+          212.0
         ],
         "FireStoredHitAvg": [
           585.0,
           703.2,
           118.20000000000005
         ],
-        "ColdHitAverage": [
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          328.65896,
+          53.77371999999997
+        ],
+        "FireHitAverage": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5914251652698,
+          1.2757255552788997
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          10152.0,
+          1712.0
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ColdStoredHitAvg": [
+          146.2,
+          174.8,
+          28.600000000000023
+        ],
+        "FreezeColdMax": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "TotalMax": [
+          4443.4,
+          5341.7,
+          898.3000000000002
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5036.0,
+          848.0
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "FireStoredHitMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "ColdStoredCritMin": [
+          60.0,
+          72.0,
+          12.0
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7363753353802,
+          0.2925379636545
+        ],
+        "LightningStoredCritMin": [
+          444.0,
+          532.0,
+          88.0
+        ],
+        "LightningStoredHitMax": [
+          2110.0,
+          2538.0,
+          428.0
+        ],
+        "HeavyStunColdMax": [
           190.06,
           227.24,
           37.18000000000001
@@ -2015,45 +2040,20 @@
           18.0,
           3.0
         ],
-        "TotalDotDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "HeavyStunFireMax": [
-          760.5,
-          914.16,
-          153.65999999999997
+        "HeavyStunLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "ColdCritAverage": [
-          760.24,
-          908.96,
-          148.72000000000003
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.4682045750007,
-          0.24672917876799993
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1322.15664,
-          222.23964
-        ],
-        "HeavyStunFireMin": [
-          57.0,
-          68.0,
-          11.0
-        ],
-        "FreezeColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "IgniteFireMin": [
-          57.0,
-          68.0,
-          11.0
+        "WithBleedDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
         ]
       }
     },
@@ -2071,170 +2071,15 @@
       "current_total": 137.0,
       "formula": "INC 137%→185%, 需要 +48 → DPS +20.2%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075914251652698,
-          0.01275725555278899
-        ],
-        "FireHitAverage": [
-          760.5,
-          914.16,
-          153.65999999999997
-        ],
-        "TotalMax": [
-          4443.4,
-          5341.7,
-          898.3000000000002
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "ColdStoredHitAvg": [
-          146.2,
-          174.8,
-          28.600000000000023
-        ],
-        "IgniteFireMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "HeavyStunColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "ColdStoredCritMax": [
-          1044.0,
-          1248.0,
-          204.0
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          328.65896,
-          53.77371999999997
-        ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          5662.6666666667,
-          954.1333333333996
-        ],
-        "TotalMin": [
-          237.9,
-          284.7,
-          46.79999999999998
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          532.0,
-          88.0
-        ],
-        "LightningHitAverage": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
-        ],
-        "ColdStoredHitMax": [
-          261.0,
-          312.0,
-          51.0
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4141433398081,
-          0.5735721117305999
-        ],
-        "HeavyStunLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
         "ColdStoredCritAvg": [
           584.8,
           699.2,
           114.40000000000009
         ],
-        "AverageHit": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5914251652698,
-          1.2757255552788997
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          165.5237800804,
-          50.95753036648
-        ],
-        "ShockLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
-        ],
-        "FireCritAverage": [
-          3042.0,
-          3656.64,
-          614.6399999999999
-        ],
-        "FireStoredHitMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7363753353802,
-          0.2925379636545
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          3.6940226260615,
-          0.6223549912871
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "LightningCritAverage": [
-          6121.0933333333,
-          7361.4666666667,
-          1240.3733333334003
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "ColdStoredCritMin": [
-          60.0,
-          72.0,
-          12.0
-        ],
-        "LightningStoredCritMax": [
-          8440.0,
-          10152.0,
-          1712.0
+        "ColdStoredCritMax": [
+          1044.0,
+          1248.0,
+          204.0
         ],
         "ColdStoredHitMin": [
           15.0,
@@ -2246,82 +2091,87 @@
           5606.3176866667,
           941.8548533333997
         ],
-        "FireStoredCritMax": [
-          4188.0,
-          5036.0,
-          848.0
+        "LightningHitAverage": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
         ],
-        "ShockChanceOnHit": [
-          0.76791690869361,
-          0.92350565651537,
-          0.15558874782176002
+        "LightningCritAverage": [
+          6121.0933333333,
+          7361.4666666667,
+          1240.3733333334003
         ],
-        "LightningStoredHitMin": [
-          111.0,
-          133.0,
-          22.0
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075914251652698,
+          0.01275725555278899
         ],
-        "FireStoredCritMin": [
-          228.0,
-          272.0,
-          44.0
+        "TotalMin": [
+          237.9,
+          284.7,
+          46.79999999999998
         ],
-        "HeavyStunColdMin": [
-          15.0,
-          18.0,
-          3.0
+        "AverageHit": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6015226985857,
-          0.2620340342080001
+        "ColdHitAverage": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4141433398081,
+          0.5735721117305999
         ],
         "FireStoredCritAvg": [
           2340.0,
           2812.8,
           472.8000000000002
         ],
-        "TotalDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1322.15664,
+          222.23964
         ],
-        "ShockLightningMax": [
-          2110.0,
-          2538.0,
-          428.0
+        "ColdCritAverage": [
+          760.24,
+          908.96,
+          148.72000000000003
         ],
-        "HeavyStunLightningMax": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
+        "ColdStoredHitMax": [
+          261.0,
+          312.0,
+          51.0
         ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
+        "ShockLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "LightningStoredHitAvg": [
-          1177.1333333333,
-          1415.6666666667,
-          238.53333333339992
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "IgniteDamage": [
+          114.56624971392,
+          165.5237800804,
+          50.95753036648
         ],
         "IgniteChanceOnHit": [
           0.30536884905817,
           0.36705114375017,
           0.061682294691999984
         ],
-        "FireStoredHitMin": [
+        "FireCritAverage": [
+          3042.0,
+          3656.64,
+          614.6399999999999
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteFireMin": [
           57.0,
           68.0,
           11.0
@@ -2331,17 +2181,192 @@
           2661.7364666667,
           448.49037333339993
         ],
-        "LightningStoredHitMax": [
+        "HeavyStunColdMin": [
+          15.0,
+          18.0,
+          3.0
+        ],
+        "FireStoredHitMax": [
+          1047.0,
+          1259.0,
+          212.0
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          272.0,
+          44.0
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          5662.6666666667,
+          954.1333333333996
+        ],
+        "ShockChanceOnHit": [
+          0.76791690869361,
+          0.92350565651537,
+          0.15558874782176002
+        ],
+        "HeavyStunLightningMax": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "LightningStoredHitMin": [
+          111.0,
+          133.0,
+          22.0
+        ],
+        "ShockLightningMax": [
           2110.0,
           2538.0,
           428.0
+        ],
+        "HeavyStunFireMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "LightningStoredHitAvg": [
+          1177.1333333333,
+          1415.6666666667,
+          238.53333333339992
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6015226985857,
+          0.2620340342080001
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.4682045750007,
+          0.24672917876799993
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          3.6940226260615,
+          0.6223549912871
+        ],
+        "HeavyStunFireMax": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "IgniteFireMax": [
+          1047.0,
+          1259.0,
+          212.0
         ],
         "FireStoredHitAvg": [
           585.0,
           703.2,
           118.20000000000005
         ],
-        "ColdHitAverage": [
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          328.65896,
+          53.77371999999997
+        ],
+        "FireHitAverage": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5914251652698,
+          1.2757255552788997
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          10152.0,
+          1712.0
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ColdStoredHitAvg": [
+          146.2,
+          174.8,
+          28.600000000000023
+        ],
+        "FreezeColdMax": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "TotalMax": [
+          4443.4,
+          5341.7,
+          898.3000000000002
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5036.0,
+          848.0
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "FireStoredHitMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "ColdStoredCritMin": [
+          60.0,
+          72.0,
+          12.0
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7363753353802,
+          0.2925379636545
+        ],
+        "LightningStoredCritMin": [
+          444.0,
+          532.0,
+          88.0
+        ],
+        "LightningStoredHitMax": [
+          2110.0,
+          2538.0,
+          428.0
+        ],
+        "HeavyStunColdMax": [
           190.06,
           227.24,
           37.18000000000001
@@ -2351,45 +2376,20 @@
           18.0,
           3.0
         ],
-        "TotalDotDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "HeavyStunFireMax": [
-          760.5,
-          914.16,
-          153.65999999999997
+        "HeavyStunLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "ColdCritAverage": [
-          760.24,
-          908.96,
-          148.72000000000003
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.4682045750007,
-          0.24672917876799993
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1322.15664,
-          222.23964
-        ],
-        "HeavyStunFireMin": [
-          57.0,
-          68.0,
-          11.0
-        ],
-        "FreezeColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "IgniteFireMin": [
-          57.0,
-          68.0,
-          11.0
+        "WithBleedDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
         ]
       }
     },
@@ -2407,170 +2407,15 @@
       "current_total": 137.0,
       "formula": "INC 137%→185%, 需要 +48 → DPS +20.2%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075914251652698,
-          0.01275725555278899
-        ],
-        "FireHitAverage": [
-          760.5,
-          914.16,
-          153.65999999999997
-        ],
-        "TotalMax": [
-          4443.4,
-          5341.7,
-          898.3000000000002
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "ColdStoredHitAvg": [
-          146.2,
-          174.8,
-          28.600000000000023
-        ],
-        "IgniteFireMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "HeavyStunColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "ColdStoredCritMax": [
-          1044.0,
-          1248.0,
-          204.0
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          328.65896,
-          53.77371999999997
-        ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          5662.6666666667,
-          954.1333333333996
-        ],
-        "TotalMin": [
-          237.9,
-          284.7,
-          46.79999999999998
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          532.0,
-          88.0
-        ],
-        "LightningHitAverage": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
-        ],
-        "ColdStoredHitMax": [
-          261.0,
-          312.0,
-          51.0
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4141433398081,
-          0.5735721117305999
-        ],
-        "HeavyStunLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
         "ColdStoredCritAvg": [
           584.8,
           699.2,
           114.40000000000009
         ],
-        "AverageHit": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5914251652698,
-          1.2757255552788997
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          165.5237800804,
-          50.95753036648
-        ],
-        "ShockLightningMin": [
-          111.0,
-          133.0,
-          22.0
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
-        ],
-        "FireCritAverage": [
-          3042.0,
-          3656.64,
-          614.6399999999999
-        ],
-        "FireStoredHitMax": [
-          1047.0,
-          1259.0,
-          212.0
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7363753353802,
-          0.2925379636545
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          3.6940226260615,
-          0.6223549912871
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.69012956047907,
-          0.11597505047990009
-        ],
-        "LightningCritAverage": [
-          6121.0933333333,
-          7361.4666666667,
-          1240.3733333334003
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
-        ],
-        "ColdStoredCritMin": [
-          60.0,
-          72.0,
-          12.0
-        ],
-        "LightningStoredCritMax": [
-          8440.0,
-          10152.0,
-          1712.0
+        "ColdStoredCritMax": [
+          1044.0,
+          1248.0,
+          204.0
         ],
         "ColdStoredHitMin": [
           15.0,
@@ -2582,82 +2427,87 @@
           5606.3176866667,
           941.8548533333997
         ],
-        "FireStoredCritMax": [
-          4188.0,
-          5036.0,
-          848.0
+        "LightningHitAverage": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
         ],
-        "ShockChanceOnHit": [
-          0.76791690869361,
-          0.92350565651537,
-          0.15558874782176002
+        "LightningCritAverage": [
+          6121.0933333333,
+          7361.4666666667,
+          1240.3733333334003
         ],
-        "LightningStoredHitMin": [
-          111.0,
-          133.0,
-          22.0
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075914251652698,
+          0.01275725555278899
         ],
-        "FireStoredCritMin": [
-          228.0,
-          272.0,
-          44.0
+        "TotalMin": [
+          237.9,
+          284.7,
+          46.79999999999998
         ],
-        "HeavyStunColdMin": [
-          15.0,
-          18.0,
-          3.0
+        "AverageHit": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6015226985857,
-          0.2620340342080001
+        "ColdHitAverage": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4141433398081,
+          0.5735721117305999
         ],
         "FireStoredCritAvg": [
           2340.0,
           2812.8,
           472.8000000000002
         ],
-        "TotalDPS": [
-          11661.157083333,
-          14015.794216667,
-          2354.6371333339994
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1322.15664,
+          222.23964
         ],
-        "ShockLightningMax": [
-          2110.0,
-          2538.0,
-          428.0
+        "ColdCritAverage": [
+          760.24,
+          908.96,
+          148.72000000000003
         ],
-        "HeavyStunLightningMax": [
-          1530.2733333333,
-          1840.3666666667,
-          310.0933333334001
+        "ColdStoredHitMax": [
+          261.0,
+          312.0,
+          51.0
         ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14053.413257594,
-          2366.2183902350007
+        "ShockLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "LightningStoredHitAvg": [
-          1177.1333333333,
-          1415.6666666667,
-          238.53333333339992
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5606.3176866667,
-          941.8548533333997
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "IgniteDamage": [
+          114.56624971392,
+          165.5237800804,
+          50.95753036648
         ],
         "IgniteChanceOnHit": [
           0.30536884905817,
           0.36705114375017,
           0.061682294691999984
         ],
-        "FireStoredHitMin": [
+        "FireCritAverage": [
+          3042.0,
+          3656.64,
+          614.6399999999999
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteFireMin": [
           57.0,
           68.0,
           11.0
@@ -2667,17 +2517,192 @@
           2661.7364666667,
           448.49037333339993
         ],
-        "LightningStoredHitMax": [
+        "HeavyStunColdMin": [
+          15.0,
+          18.0,
+          3.0
+        ],
+        "FireStoredHitMax": [
+          1047.0,
+          1259.0,
+          212.0
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          272.0,
+          44.0
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          5662.6666666667,
+          954.1333333333996
+        ],
+        "ShockChanceOnHit": [
+          0.76791690869361,
+          0.92350565651537,
+          0.15558874782176002
+        ],
+        "HeavyStunLightningMax": [
+          1530.2733333333,
+          1840.3666666667,
+          310.0933333334001
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "LightningStoredHitMin": [
+          111.0,
+          133.0,
+          22.0
+        ],
+        "ShockLightningMax": [
           2110.0,
           2538.0,
           428.0
+        ],
+        "HeavyStunFireMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "LightningStoredHitAvg": [
+          1177.1333333333,
+          1415.6666666667,
+          238.53333333339992
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6015226985857,
+          0.2620340342080001
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.69012956047907,
+          0.11597505047990009
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.4682045750007,
+          0.24672917876799993
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          3.6940226260615,
+          0.6223549912871
+        ],
+        "HeavyStunFireMax": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "IgniteFireMax": [
+          1047.0,
+          1259.0,
+          212.0
         ],
         "FireStoredHitAvg": [
           585.0,
           703.2,
           118.20000000000005
         ],
-        "ColdHitAverage": [
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          328.65896,
+          53.77371999999997
+        ],
+        "FireHitAverage": [
+          760.5,
+          914.16,
+          153.65999999999997
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          37.619040927364,
+          11.581256901473996
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5914251652698,
+          1.2757255552788997
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          10152.0,
+          1712.0
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14053.413257594,
+          2366.2183902350007
+        ],
+        "ColdStoredHitAvg": [
+          146.2,
+          174.8,
+          28.600000000000023
+        ],
+        "FreezeColdMax": [
+          190.06,
+          227.24,
+          37.18000000000001
+        ],
+        "TotalMax": [
+          4443.4,
+          5341.7,
+          898.3000000000002
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5036.0,
+          848.0
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
+        ],
+        "FireStoredHitMin": [
+          57.0,
+          68.0,
+          11.0
+        ],
+        "ColdStoredCritMin": [
+          60.0,
+          72.0,
+          12.0
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7363753353802,
+          0.2925379636545
+        ],
+        "LightningStoredCritMin": [
+          444.0,
+          532.0,
+          88.0
+        ],
+        "LightningStoredHitMax": [
+          2110.0,
+          2538.0,
+          428.0
+        ],
+        "HeavyStunColdMax": [
           190.06,
           227.24,
           37.18000000000001
@@ -2687,45 +2712,20 @@
           18.0,
           3.0
         ],
-        "TotalDotDPS": [
-          26.03778402589,
-          37.619040927364,
-          11.581256901473996
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5606.3176866667,
+          941.8548533333997
         ],
-        "HeavyStunFireMax": [
-          760.5,
-          914.16,
-          153.65999999999997
+        "HeavyStunLightningMin": [
+          111.0,
+          133.0,
+          22.0
         ],
-        "ColdCritAverage": [
-          760.24,
-          908.96,
-          148.72000000000003
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.4682045750007,
-          0.24672917876799993
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1322.15664,
-          222.23964
-        ],
-        "HeavyStunFireMin": [
-          57.0,
-          68.0,
-          11.0
-        ],
-        "FreezeColdMax": [
-          190.06,
-          227.24,
-          37.18000000000001
-        ],
-        "IgniteFireMin": [
-          57.0,
-          68.0,
-          11.0
+        "WithBleedDPS": [
+          11661.157083333,
+          14015.794216667,
+          2354.6371333339994
         ]
       }
     },
@@ -2743,145 +2743,145 @@
       "current_total": 137.0,
       "formula": "INC 137%→214%, 需要 +77 → DPS +20.1%",
       "sample_diff": {
-        "TotalMax": [
-          4443.4,
-          5335.2,
-          891.8000000000002
-        ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          6239.2,
-          1530.6666666666997
-        ],
-        "TotalMin": [
-          237.9,
-          284.7,
-          46.79999999999998
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          588.0,
-          144.0
+        "AverageDamage": [
+          4664.4628333333,
+          5599.79966,
+          935.3368266666994
         ],
         "LightningHitAverage": [
           1530.2733333333,
           2027.74,
           497.4666666667001
         ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4101739826335,
-          0.5696027545559996
+        "LightningCritAverage": [
+          6121.0933333333,
+          8110.96,
+          1989.8666666667004
         ],
-        "HeavyStunLightningMin": [
-          111.0,
-          147.0,
-          36.0
+        "TotalMin": [
+          237.9,
+          284.7,
+          46.79999999999998
         ],
         "AverageHit": [
           4664.4628333333,
           5599.79966,
           935.3368266666994
         ],
-        "CombinedAvg": [
-          11661.157083333,
-          13999.49915,
-          2338.342066666999
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4101739826335,
+          0.5696027545559996
         ],
         "ShockLightningMin": [
           111.0,
           147.0,
           36.0
         ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13999.49915,
-          2338.342066666999
+        "LightningStoredCombinedAvg": [
+          2213.2460933333,
+          2932.73596,
+          719.4898666667
         ],
-        "CombinedDPS": [
-          11687.194867359,
-          14025.536934026,
-          2338.342066667001
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.9131982823002,
-          0.4693609105745
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          4.0702016430172,
-          0.9985340082428005
-        ],
-        "LightningCritAverage": [
-          6121.0933333333,
-          8110.96,
-          1989.8666666667004
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          13999.49915,
-          2338.342066666999
-        ],
-        "LightningStoredCritMax": [
-          8440.0,
-          11184.0,
-          2744.0
-        ],
-        "AverageDamage": [
-          4664.4628333333,
-          5599.79966,
-          935.3368266666994
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          6239.2,
+          1530.6666666666997
         ],
         "ShockChanceOnHit": [
           0.76791690869361,
           1.0175504107543,
           0.24963350206069013
         ],
-        "LightningStoredHitMin": [
-          111.0,
-          147.0,
-          36.0
+        "HeavyStunLightningMax": [
+          1530.2733333333,
+          2027.74,
+          497.4666666667001
         ],
         "TotalDPS": [
           11661.157083333,
           13999.49915,
           2338.342066666999
         ],
+        "LightningStoredHitMin": [
+          111.0,
+          147.0,
+          36.0
+        ],
         "ShockLightningMax": [
           2110.0,
           2796.0,
           686.0
         ],
-        "HeavyStunLightningMax": [
-          1530.2733333333,
-          2027.74,
-          497.4666666667001
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14025.536934026,
-          2338.342066667001
+        "WithPoisonDPS": [
+          11661.157083333,
+          13999.49915,
+          2338.342066666999
         ],
         "LightningStoredHitAvg": [
           1177.1333333333,
           1559.8,
           382.66666666669994
         ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5599.79966,
-          935.3368266666994
+        "WithIgniteDPS": [
+          11687.194867359,
+          14025.536934026,
+          2338.342066667001
         ],
-        "LightningStoredCombinedAvg": [
-          2213.2460933333,
-          2932.73596,
-          719.4898666667
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          4.0702016430172,
+          0.9985340082428005
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          11184.0,
+          2744.0
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14025.536934026,
+          2338.342066667001
+        ],
+        "TotalMax": [
+          4443.4,
+          5335.2,
+          891.8000000000002
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          13999.49915,
+          2338.342066666999
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.9131982823002,
+          0.4693609105745
+        ],
+        "LightningStoredCritMin": [
+          444.0,
+          588.0,
+          144.0
         ],
         "LightningStoredHitMax": [
           2110.0,
           2796.0,
           686.0
+        ],
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5599.79966,
+          935.3368266666994
+        ],
+        "HeavyStunLightningMin": [
+          111.0,
+          147.0,
+          36.0
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          13999.49915,
+          2338.342066666999
         ]
       }
     },
@@ -2899,107 +2899,172 @@
       "current_total": 200.0,
       "formula": "INC 200%→328%, 需要 +128 → DPS +20.1%",
       "sample_diff": {
-        "IgniteStackPotential": [
-          0.063156996099909,
-          0.075870557862418,
-          0.012713561762508999
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.6897323442038,
-          0.11557783420463008
+        "ColdStoredCritAvg": [
+          584.8,
+          773.398,
+          188.59800000000007
         ],
         "ColdStoredCritMax": [
           1044.0,
           1380.69,
           336.69000000000005
         ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          330.2198932,
-          55.33465319999999
-        ],
-        "CritMultiplier": [
+        "PreEffectiveCritMultiplier": [
           4.0,
-          5.29,
-          1.29
+          5.285,
+          1.2850000000000001
         ],
-        "LightningStoredCritAvg": [
-          4708.5333333333,
-          6227.0353333333,
-          1518.5019999999995
-        ],
-        "LightningStoredCritMin": [
-          444.0,
-          587.19,
-          143.19000000000005
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4123808450492,
-          0.5718096169717
-        ],
-        "ColdStoredCritAvg": [
-          584.8,
-          773.398,
-          188.59800000000007
-        ],
-        "AverageHit": [
+        "AverageDamage": [
           4664.4628333333,
           5603.4235183333,
           938.960685
-        ],
-        "CombinedAvg": [
-          11661.157083333,
-          14008.558795833,
-          2347.401712499999
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5870557862418,
-          1.2713561762509
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          189.15065881665,
-          74.58440910273
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          14008.558795833,
-          2347.401712499999
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14051.547581928,
-          2364.3527145690005
-        ],
-        "FireCritAverage": [
-          3042.0,
-          4023.045,
-          981.0450000000001
-        ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7344831708295,
-          0.29064579910380006
-        ],
-        "ShockChanceOnCrit": [
-          3.0716676347744,
-          4.0622804469892,
-          0.9906128122147999
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.6897323442038,
-          0.11557783420463008
         ],
         "LightningCritAverage": [
           6121.0933333333,
           8095.1459333333,
           1974.0526
         ],
-        "WithBleedDPS": [
+        "IgniteStackPotential": [
+          0.063156996099909,
+          0.075870557862418,
+          0.012713561762508999
+        ],
+        "AverageHit": [
+          4664.4628333333,
+          5603.4235183333,
+          938.960685
+        ],
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4123808450492,
+          0.5718096169717
+        ],
+        "CritMultiplier": [
+          4.0,
+          5.29,
+          1.29
+        ],
+        "FireStoredCritAvg": [
+          2340.0,
+          3094.65,
+          754.6500000000001
+        ],
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1321.33131,
+          221.4143100000001
+        ],
+        "ColdCritAverage": [
+          760.24,
+          1005.4174,
+          245.17740000000003
+        ],
+        "IgniteDamage": [
+          114.56624971392,
+          189.15065881665,
+          74.58440910273
+        ],
+        "FireCritAverage": [
+          3042.0,
+          4023.045,
+          981.0450000000001
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.6897323442038,
+          0.11557783420463008
+        ],
+        "LightningStoredCombinedAvg": [
+          2213.2460933333,
+          2658.7745801333,
+          445.5284867999999
+        ],
+        "FireStoredCritMin": [
+          228.0,
+          301.53,
+          73.52999999999997
+        ],
+        "LightningStoredCritAvg": [
+          4708.5333333333,
+          6227.0353333333,
+          1518.5019999999995
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          14008.558795833,
+          2347.401712499999
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          42.988786094693,
+          16.951002068802996
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          14008.558795833,
+          2347.401712499999
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6091289721246,
+          0.26964030774690007
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.6897323442038,
+          0.11557783420463008
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          1.6154012115177,
+          0.39392581528500004
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14051.547581928,
+          2364.3527145690005
+        ],
+        "ShockChanceOnCrit": [
+          3.0716676347744,
+          4.0622804469892,
+          0.9906128122147999
+        ],
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          330.2198932,
+          55.33465319999999
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          42.988786094693,
+          16.951002068802996
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5870557862418,
+          1.2713561762509
+        ],
+        "CritEffect": [
+          1.8802,
+          2.258686,
+          0.3784859999999999
+        ],
+        "LightningStoredCritMax": [
+          8440.0,
+          11161.9,
+          2721.8999999999996
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14051.547581928,
+          2364.3527145690005
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          5538.63,
+          1350.63
+        ],
+        "CombinedAvg": [
           11661.157083333,
           14008.558795833,
           2347.401712499999
@@ -3009,90 +3074,25 @@
           79.35,
           19.349999999999994
         ],
-        "LightningStoredCritMax": [
-          8440.0,
-          11161.9,
-          2721.8999999999996
+        "ShockChance": [
+          1.4438373717257,
+          1.7344831708295,
+          0.29064579910380006
         ],
-        "AverageDamage": [
-          4664.4628333333,
-          5603.4235183333,
-          938.960685
-        ],
-        "FireStoredCritMax": [
-          4188.0,
-          5538.63,
-          1350.63
-        ],
-        "FireStoredCritMin": [
-          228.0,
-          301.53,
-          73.52999999999997
-        ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6091289721246,
-          0.26964030774690007
-        ],
-        "FireStoredCritAvg": [
-          2340.0,
-          3094.65,
-          754.6500000000001
-        ],
-        "TotalDPS": [
-          11661.157083333,
-          14008.558795833,
-          2347.401712499999
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14051.547581928,
-          2364.3527145690005
+        "LightningStoredCritMin": [
+          444.0,
+          587.19,
+          143.19000000000005
         ],
         "AverageBurstDamage": [
           4664.4628333333,
           5603.4235183333,
           938.960685
         ],
-        "IgniteDPS": [
-          26.03778402589,
-          42.988786094693,
-          16.951002068802996
-        ],
-        "LightningStoredCombinedAvg": [
-          2213.2460933333,
-          2658.7745801333,
-          445.5284867999999
-        ],
-        "TotalDotDPS": [
-          26.03778402589,
-          42.988786094693,
-          16.951002068802996
-        ],
-        "PreEffectiveCritMultiplier": [
-          4.0,
-          5.285,
-          1.2850000000000001
-        ],
-        "CritEffect": [
-          1.8802,
-          2.258686,
-          0.3784859999999999
-        ],
-        "ColdCritAverage": [
-          760.24,
-          1005.4174,
-          245.17740000000003
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          1.6154012115177,
-          0.39392581528500004
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1321.33131,
-          221.4143100000001
+        "WithBleedDPS": [
+          11661.157083333,
+          14008.558795833,
+          2347.401712499999
         ]
       }
     },
@@ -3110,135 +3110,135 @@
       "current_total": 226.0,
       "formula": "INC 226%→366%, 需要 +140 → DPS +20.0%",
       "sample_diff": {
+        "AverageDamage": [
+          4664.4628333333,
+          5598.8687083333,
+          934.4058749999995
+        ],
         "IgniteStackPotential": [
           0.063156996099909,
           0.075808885569662,
           0.012651889469753
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.68917168699693,
-          0.11501717699776004
-        ],
-        "ColdStoredCombinedAvg": [
-          274.88524,
-          329.95147,
-          55.06622999999996
-        ],
-        "CritChance": [
-          29.34,
-          41.895,
-          12.555000000000003
-        ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.40960705036,
-          0.5690358222824998
         ],
         "AverageHit": [
           4664.4628333333,
           5598.8687083333,
           934.4058749999995
         ],
-        "CombinedAvg": [
-          11661.157083333,
-          13997.171770833,
-          2336.014687499999
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.40960705036,
+          0.5690358222824998
         ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          7.5808885569662,
-          1.2651889469753002
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          154.51383160129,
-          39.947581887370006
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13997.171770833,
-          2336.014687499999
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14032.288550743,
-          2345.0936833840005
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1320.25725,
+          220.3402500000002
         ],
         "PreBifurcateCritChance": [
           29.34,
           41.895,
           12.555000000000003
         ],
-        "ShockChance": [
-          1.4438373717257,
-          1.7330732753852,
-          0.2892359036595
+        "IgniteDamage": [
+          114.56624971392,
+          154.51383160129,
+          39.947581887370006
         ],
-        "IgniteChance": [
+        "IgniteChancePerHit": [
           0.57415450999917,
           0.68917168699693,
           0.11501717699776004
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          13997.171770833,
-          2336.014687499999
-        ],
-        "AverageDamage": [
-          4664.4628333333,
-          5598.8687083333,
-          934.4058749999995
-        ],
-        "FreezeBuildupAvg": [
-          1.3394886643777,
-          1.6078209723438,
-          0.26833230796609997
-        ],
-        "TotalDPS": [
-          11661.157083333,
-          13997.171770833,
-          2336.014687499999
-        ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14032.288550743,
-          2345.0936833840005
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5598.8687083333,
-          934.4058749999995
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          35.116779909385,
-          9.078995883495
         ],
         "LightningStoredCombinedAvg": [
           2213.2460933333,
           2656.6133633333,
           443.3672700000002
         ],
-        "PreEffectiveCritChance": [
+        "CritChance": [
           29.34,
           41.895,
           12.555000000000003
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          13997.171770833,
+          2336.014687499999
+        ],
+        "IgniteDPS": [
+          26.03778402589,
+          35.116779909385,
+          9.078995883495
+        ],
+        "WithPoisonDPS": [
+          11661.157083333,
+          13997.171770833,
+          2336.014687499999
+        ],
+        "FreezeBuildupAvg": [
+          1.3394886643777,
+          1.6078209723438,
+          0.26833230796609997
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.68917168699693,
+          0.11501717699776004
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14032.288550743,
+          2345.0936833840005
+        ],
+        "ColdStoredCombinedAvg": [
+          274.88524,
+          329.95147,
+          55.06622999999996
         ],
         "TotalDotDPS": [
           26.03778402589,
           35.116779909385,
           9.078995883495
         ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          7.5808885569662,
+          1.2651889469753002
+        ],
         "CritEffect": [
           1.8802,
           2.25685,
           0.37664999999999993
         ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1320.25725,
-          220.3402500000002
+        "CombinedDPS": [
+          11687.194867359,
+          14032.288550743,
+          2345.0936833840005
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          13997.171770833,
+          2336.014687499999
+        ],
+        "ShockChance": [
+          1.4438373717257,
+          1.7330732753852,
+          0.2892359036595
+        ],
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5598.8687083333,
+          934.4058749999995
+        ],
+        "PreEffectiveCritChance": [
+          29.34,
+          41.895,
+          12.555000000000003
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          13997.171770833,
+          2336.014687499999
         ]
       }
     },
@@ -3256,175 +3256,175 @@
       "current_total": 137.0,
       "formula": "INC 137%→292%, 需要 +155 → DPS +20.0%",
       "sample_diff": {
+        "AverageDamage": [
+          4664.4628333333,
+          5598.333104,
+          933.8702706667
+        ],
         "IgniteStackPotential": [
           0.063156996099909,
           0.10440354880646,
           0.04124655270655099
-        ],
-        "FireHitAverage": [
-          760.5,
-          1257.1866666667,
-          496.6866666666999
-        ],
-        "TotalMax": [
-          4443.4,
-          5332.6,
-          889.2000000000007
-        ],
-        "IgniteChancePerHit": [
-          0.57415450999917,
-          0.94912317096783,
-          0.3749686609686601
-        ],
-        "IgniteFireMax": [
-          1047.0,
-          1731.0,
-          684.0
         ],
         "TotalMin": [
           237.9,
           286.0,
           48.099999999999994
         ],
-        "HeavyStunBuildupAvg": [
-          2.8405712280775,
-          3.4092808772692,
-          0.5687096491916996
-        ],
         "AverageHit": [
           4664.4628333333,
           5598.333104,
           933.8702706667
         ],
-        "CombinedAvg": [
-          11661.157083333,
-          13995.83276,
-          2334.6756766669987
-        ],
-        "IgniteStackPotentialPercent": [
-          6.3156996099909,
-          10.440354880646,
-          4.1246552706551
-        ],
-        "IgniteDamage": [
-          114.56624971392,
-          313.07204323984,
-          198.50579352592
-        ],
-        "WithPoisonDPS": [
-          11661.157083333,
-          13995.83276,
-          2334.6756766669987
-        ],
-        "CombinedDPS": [
-          11687.194867359,
-          14066.9854971,
-          2379.790629741001
-        ],
-        "FireCritAverage": [
-          3042.0,
-          5028.7466666667,
-          1986.7466666666996
-        ],
-        "FireStoredHitMax": [
-          1047.0,
-          1731.0,
-          684.0
-        ],
-        "IgniteChance": [
-          0.57415450999917,
-          0.94912317096783,
-          0.3749686609686601
-        ],
-        "WithBleedDPS": [
-          11661.157083333,
-          13995.83276,
-          2334.6756766669987
-        ],
-        "AverageDamage": [
-          4664.4628333333,
-          5598.333104,
-          933.8702706667
-        ],
-        "FireStoredCritMax": [
-          4188.0,
-          6924.0,
-          2736.0
-        ],
-        "FireStoredCritMin": [
-          228.0,
-          376.0,
-          148.0
+        "HeavyStunBuildupAvg": [
+          2.8405712280775,
+          3.4092808772692,
+          0.5687096491916996
         ],
         "FireStoredCritAvg": [
           2340.0,
           3868.2666666667,
           1528.2666666667
         ],
-        "TotalDPS": [
-          11661.157083333,
-          13995.83276,
-          2334.6756766669987
+        "FireStoredCombinedAvg": [
+          1099.917,
+          1818.2787466667,
+          718.3617466667001
         ],
-        "WithIgniteDPS": [
-          11687.194867359,
-          14066.9854971,
-          2379.790629741001
-        ],
-        "AverageBurstDamage": [
-          4664.4628333333,
-          5598.333104,
-          933.8702706667
-        ],
-        "IgniteDPS": [
-          26.03778402589,
-          71.152737099964,
-          45.114953074073995
+        "IgniteDamage": [
+          114.56624971392,
+          313.07204323984,
+          198.50579352592
         ],
         "IgniteChanceOnHit": [
           0.30536884905817,
           0.50479904848837,
           0.19943019943019996
         ],
-        "FireStoredHitMin": [
+        "FireCritAverage": [
+          3042.0,
+          5028.7466666667,
+          1986.7466666666996
+        ],
+        "IgniteChancePerHit": [
+          0.57415450999917,
+          0.94912317096783,
+          0.3749686609686601
+        ],
+        "IgniteFireMin": [
           57.0,
           94.0,
           37.0
         ],
-        "FireStoredHitAvg": [
-          585.0,
-          967.06666666667,
-          382.06666666667
+        "FireStoredHitMax": [
+          1047.0,
+          1731.0,
+          684.0
         ],
-        "TotalDotDPS": [
+        "FireStoredCritMin": [
+          228.0,
+          376.0,
+          148.0
+        ],
+        "TotalDPS": [
+          11661.157083333,
+          13995.83276,
+          2334.6756766669987
+        ],
+        "IgniteDPS": [
           26.03778402589,
           71.152737099964,
           45.114953074073995
-        ],
-        "HeavyStunFireMax": [
-          760.5,
-          1257.1866666667,
-          496.6866666666999
-        ],
-        "IgniteChanceOnCrit": [
-          1.2214753962327,
-          2.0191961939535,
-          0.7977207977207998
-        ],
-        "FireStoredCombinedAvg": [
-          1099.917,
-          1818.2787466667,
-          718.3617466667001
         ],
         "HeavyStunFireMin": [
           57.0,
           94.0,
           37.0
         ],
-        "IgniteFireMin": [
+        "WithPoisonDPS": [
+          11661.157083333,
+          13995.83276,
+          2334.6756766669987
+        ],
+        "IgniteChance": [
+          0.57415450999917,
+          0.94912317096783,
+          0.3749686609686601
+        ],
+        "IgniteChanceOnCrit": [
+          1.2214753962327,
+          2.0191961939535,
+          0.7977207977207998
+        ],
+        "WithIgniteDPS": [
+          11687.194867359,
+          14066.9854971,
+          2379.790629741001
+        ],
+        "HeavyStunFireMax": [
+          760.5,
+          1257.1866666667,
+          496.6866666666999
+        ],
+        "IgniteFireMax": [
+          1047.0,
+          1731.0,
+          684.0
+        ],
+        "FireStoredHitAvg": [
+          585.0,
+          967.06666666667,
+          382.06666666667
+        ],
+        "FireHitAverage": [
+          760.5,
+          1257.1866666667,
+          496.6866666666999
+        ],
+        "TotalDotDPS": [
+          26.03778402589,
+          71.152737099964,
+          45.114953074073995
+        ],
+        "IgniteStackPotentialPercent": [
+          6.3156996099909,
+          10.440354880646,
+          4.1246552706551
+        ],
+        "CombinedDPS": [
+          11687.194867359,
+          14066.9854971,
+          2379.790629741001
+        ],
+        "TotalMax": [
+          4443.4,
+          5332.6,
+          889.2000000000007
+        ],
+        "FireStoredCritMax": [
+          4188.0,
+          6924.0,
+          2736.0
+        ],
+        "CombinedAvg": [
+          11661.157083333,
+          13995.83276,
+          2334.6756766669987
+        ],
+        "FireStoredHitMin": [
           57.0,
           94.0,
           37.0
+        ],
+        "AverageBurstDamage": [
+          4664.4628333333,
+          5598.333104,
+          933.8702706667
+        ],
+        "WithBleedDPS": [
+          11661.157083333,
+          13995.83276,
+          2334.6756766669987
         ]
       }
     },
@@ -6504,13 +6504,13 @@
         {
           "name": "JewelData",
           "type": "LIST",
-          "value": "table: 000001F980C960B0",
+          "value": "table: 0000021A25A102A0",
           "dps_pct": 0.0
         },
         {
           "name": "JewelData",
           "type": "LIST",
-          "value": "table: 000001F980C960F0",
+          "value": "table: 0000021A25A107E0",
           "dps_pct": 0.0
         },
         {
@@ -7285,8 +7285,13 @@
         "dps_before": 31175.09851724,
         "dps_after": 23836.550952,
         "dps_pct": -23.53977345470694,
-        "ehp_pct": -6.984520695077055,
-        "simulated": true
+        "ehp_pct": -6.984520695074934,
+        "simulated": true,
+        "charge_counts": {
+          "FrenzyCharges": 3,
+          "PowerCharges": 8,
+          "EnduranceCharges": 3
+        }
       },
       {
         "name": "Elemental Conflux",
@@ -7304,7 +7309,8 @@
         "ehp_pct": 0.0,
         "simulated": true,
         "expect_factor": 0.3333,
-        "raw_value": 59,
+        "raw_value": 60.0,
+        "gem_level": 21,
         "damage_breakdown": {
           "fire": 30.65,
           "cold": 7.6499999999999995,
@@ -7367,9 +7373,10 @@
         "dps_after": 28148.85024,
         "dps_pct": 29.14779638208121,
         "ehp_pct": 0.0,
-        "spirit": 100,
-        "error": "精魄不足 (需 100, 缺 100)",
-        "spirit_shortfall": 100.0
+        "spirit": 100.0,
+        "error": null,
+        "spirit_shortfall": 100.0,
+        "spirit_note": "需精魄 100（缺 100）"
       },
       {
         "name": "Attrition",
@@ -7379,9 +7386,10 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 60,
-        "error": "精魄不足 (需 60, 缺 60)",
-        "spirit_shortfall": 60.0
+        "spirit": 30.0,
+        "error": null,
+        "spirit_shortfall": 30.0,
+        "spirit_note": "需精魄 30（缺 30）"
       },
       {
         "name": "Berserk",
@@ -7391,9 +7399,10 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 60,
-        "error": "精魄不足 (需 60, 缺 60)",
-        "spirit_shortfall": 60.0
+        "spirit": 30.0,
+        "error": null,
+        "spirit_shortfall": 30.0,
+        "spirit_note": "需精魄 30（缺 30）"
       }
     ],
     "spirit_support_tests": [
@@ -7405,14 +7414,15 @@
         "dps_after": 20984.72418,
         "dps_pct": -3.7214357806474934,
         "ehp_pct": 0.0,
-        "spirit": 20,
+        "spirit": 20.0,
         "target_aura": "Trinity",
         "target_group_idx": 12,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 20, 缺 20)",
-        "spirit_shortfall": 20.0
+        "error": null,
+        "spirit_shortfall": 20.0,
+        "spirit_note": "需精魄 20（缺 20）"
       },
       {
         "name": "Direstrike II",
@@ -7422,14 +7432,15 @@
         "dps_after": 20984.72418,
         "dps_pct": -3.7214357806474934,
         "ehp_pct": 0.0,
-        "spirit": 40,
+        "spirit": 40.0,
         "target_aura": "Trinity",
         "target_group_idx": 12,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 40, 缺 40)",
-        "spirit_shortfall": 40.0
+        "error": null,
+        "spirit_shortfall": 40.0,
+        "spirit_note": "需精魄 40（缺 40）"
       },
       {
         "name": "Direstrike I",
@@ -7439,14 +7450,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 20,
+        "spirit": 20.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 1,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 20, 缺 20)",
-        "spirit_shortfall": 20.0
+        "error": null,
+        "spirit_shortfall": 20.0,
+        "spirit_note": "需精魄 20（缺 20）"
       },
       {
         "name": "Direstrike I",
@@ -7456,14 +7468,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 20,
+        "spirit": 20.0,
         "target_aura": "Charge Infusion",
         "target_group_idx": 13,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 20, 缺 20)",
-        "spirit_shortfall": 20.0
+        "error": null,
+        "spirit_shortfall": 20.0,
+        "spirit_note": "需精魄 20（缺 20）"
       },
       {
         "name": "Direstrike I",
@@ -7473,14 +7486,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 20,
+        "spirit": 20.0,
         "target_aura": "Elemental Conflux",
         "target_group_idx": 15,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 20, 缺 20)",
-        "spirit_shortfall": 20.0
+        "error": null,
+        "spirit_shortfall": 20.0,
+        "spirit_note": "需精魄 20（缺 20）"
       },
       {
         "name": "Direstrike I",
@@ -7490,14 +7504,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 20,
+        "spirit": 20.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 21,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 20, 缺 20)",
-        "spirit_shortfall": 20.0
+        "error": null,
+        "spirit_shortfall": 20.0,
+        "spirit_note": "需精魄 20（缺 20）"
       },
       {
         "name": "Direstrike II",
@@ -7507,14 +7522,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 40,
+        "spirit": 40.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 1,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 40, 缺 40)",
-        "spirit_shortfall": 40.0
+        "error": null,
+        "spirit_shortfall": 40.0,
+        "spirit_note": "需精魄 40（缺 40）"
       },
       {
         "name": "Direstrike II",
@@ -7524,14 +7540,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 40,
+        "spirit": 40.0,
         "target_aura": "Charge Infusion",
         "target_group_idx": 13,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 40, 缺 40)",
-        "spirit_shortfall": 40.0
+        "error": null,
+        "spirit_shortfall": 40.0,
+        "spirit_note": "需精魄 40（缺 40）"
       },
       {
         "name": "Direstrike II",
@@ -7541,14 +7558,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 40,
+        "spirit": 40.0,
         "target_aura": "Elemental Conflux",
         "target_group_idx": 15,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 40, 缺 40)",
-        "spirit_shortfall": 40.0
+        "error": null,
+        "spirit_shortfall": 40.0,
+        "spirit_note": "需精魄 40（缺 40）"
       },
       {
         "name": "Direstrike II",
@@ -7558,14 +7576,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 40,
+        "spirit": 40.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 21,
         "condition": "Low Life",
         "note": "需要 Low Life 状态",
         "estimated": false,
-        "error": "精魄不足 (需 40, 缺 40)",
-        "spirit_shortfall": 40.0
+        "error": null,
+        "spirit_shortfall": 40.0,
+        "spirit_note": "需精魄 40（缺 40）"
       },
       {
         "name": "Refraction III",
@@ -7575,14 +7594,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 30,
+        "spirit": 10.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 1,
         "condition": "需要 Banner",
         "note": "POB 可能无法计算，标记为估算",
         "estimated": true,
-        "error": "精魄不足 (需 30, 缺 30)",
-        "spirit_shortfall": 30.0
+        "error": null,
+        "spirit_shortfall": 10.0,
+        "spirit_note": "需精魄 10（缺 10）"
       },
       {
         "name": "Refraction III",
@@ -7592,14 +7612,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 30,
+        "spirit": 10.0,
         "target_aura": "Trinity",
         "target_group_idx": 12,
         "condition": "需要 Banner",
         "note": "POB 可能无法计算，标记为估算",
         "estimated": true,
-        "error": "精魄不足 (需 30, 缺 30)",
-        "spirit_shortfall": 30.0
+        "error": null,
+        "spirit_shortfall": 10.0,
+        "spirit_note": "需精魄 10（缺 10）"
       },
       {
         "name": "Refraction III",
@@ -7609,14 +7630,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 30,
+        "spirit": 10.0,
         "target_aura": "Charge Infusion",
         "target_group_idx": 13,
         "condition": "需要 Banner",
         "note": "POB 可能无法计算，标记为估算",
         "estimated": true,
-        "error": "精魄不足 (需 30, 缺 30)",
-        "spirit_shortfall": 30.0
+        "error": null,
+        "spirit_shortfall": 10.0,
+        "spirit_note": "需精魄 10（缺 10）"
       },
       {
         "name": "Refraction III",
@@ -7626,14 +7648,15 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 30,
+        "spirit": 10.0,
         "target_aura": "Elemental Conflux",
         "target_group_idx": 15,
         "condition": "需要 Banner",
         "note": "POB 可能无法计算，标记为估算",
         "estimated": true,
-        "error": "精魄不足 (需 30, 缺 30)",
-        "spirit_shortfall": 30.0
+        "error": null,
+        "spirit_shortfall": 10.0,
+        "spirit_note": "需精魄 10（缺 10）"
       },
       {
         "name": "Refraction III",
@@ -7643,22 +7666,23 @@
         "dps_after": 21795.84246,
         "dps_pct": 0.0,
         "ehp_pct": 0.0,
-        "spirit": 30,
+        "spirit": 10.0,
         "target_aura": "Purity of Fire",
         "target_group_idx": 21,
         "condition": "需要 Banner",
         "note": "POB 可能无法计算，标记为估算",
         "estimated": true,
-        "error": "精魄不足 (需 30, 缺 30)",
-        "spirit_shortfall": 30.0
+        "error": null,
+        "spirit_shortfall": 10.0,
+        "spirit_note": "需精魄 10（缺 10）"
       }
     ],
     "spirit_budget": {
       "total": 425.0,
       "reserved": 425.0,
       "available": 0.0,
-      "recommended_total": 0,
-      "recommended_remaining": 0.0
+      "recommended_total": 100.0,
+      "recommended_remaining": -100.0
     },
     "build_modifiers": {
       "Damage_INC": {

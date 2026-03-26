@@ -1397,7 +1397,7 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
             "mod_count": mod 数量,
             "mods": mod 列表 [{"name", "type", "value", "source"}],
             "granted_passives": 分配的天赋节点名称列表,
-            "dps_pct": 移除此珠宝后 DPS 变化百分比,
+            "dps_pct": 移除此珠宝后 DPS 下降百分比（正值=正向贡献）,
             "status": "ok" / "empty" / "no_base" / "no_mods",
         }, ...]
     """
@@ -1576,7 +1576,9 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
             ''')
             after_dps = float(str(diff_result)) if diff_result else base_dps
             dps_delta = after_dps - base_dps
-            jewel["dps_pct"] = round(dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
+            # dps_pct 表示珠宝的 DPS 贡献（正值=增加 DPS，负值=降低 DPS）
+            # 计算方式：移除珠宝后 DPS 下降 → 贡献为正
+            jewel["dps_pct"] = round(-dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
         except Exception as e:
             logger.warning("珠宝 DPS 诊断失败 %s: %s", slot_name, e)
 
@@ -1605,7 +1607,8 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                 ''')
                 gp_after_dps = float(str(granted_diff)) if granted_diff else base_dps
                 gp_dps_delta = gp_after_dps - base_dps
-                gp_dps_pct = round(gp_dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
+                # dps_pct 表示贡献（正值=增加 DPS）
+                gp_dps_pct = round(-gp_dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
 
                 jewel["granted_dps_pct"] = gp_dps_pct
                 # 取物品移除和节点移除中影响更大的作为总 DPS 贡献
@@ -1695,7 +1698,8 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                         if j < len(normal_indices) and dps_str != "ERR":
                             try:
                                 after = float(dps_str)
-                                delta_pct = round((after - base_dps) / base_dps * 100, 2)
+                                # dps_pct 表示贡献（正值=增加 DPS）
+                                delta_pct = round(-(after - base_dps) / base_dps * 100, 2)
                                 mods[normal_indices[j]]["dps_pct"] = delta_pct
                             except (ValueError, ZeroDivisionError):
                                 mods[normal_indices[j]]["dps_pct"] = None
@@ -1727,7 +1731,8 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                 r = lua.execute(lua_code)
                 if r and str(r) != "NOT_FOUND":
                     after = float(str(r))
-                    delta_pct = round((after - base_dps) / base_dps * 100, 2)
+                    # dps_pct 表示贡献（正值=增加 DPS）
+                    delta_pct = round(-(after - base_dps) / base_dps * 100, 2)
                     mods[gi]["dps_pct"] = delta_pct
                 else:
                     mods[gi]["dps_pct"] = None
@@ -3407,31 +3412,31 @@ def _empty_breakdown(baseline: dict) -> dict:
 
 # 光环预设配置映射（7A 测试时需要启用条件配置）
 # key = 光环名称, value = [{"var": "configVar", "value": bool|int}, ...]
+# Charge 数量在运行时从构筑 output 动态读取（见 _resolve_charge_configs）
 _AURA_PRE_CONFIGS = {
     "Charge Infusion": [
         {"var": "useFrenzyCharges", "value": True},
-        {"var": "overrideFrenzyCharges", "value": 3},
+        {"var": "overrideFrenzyCharges", "value": None},  # 动态: FrenzyChargesMax
         {"var": "usePowerCharges", "value": True},
-        {"var": "overridePowerCharges", "value": 3},
+        {"var": "overridePowerCharges", "value": None},   # 动态: PowerChargesMax
         {"var": "useEnduranceCharges", "value": True},
-        {"var": "overrideEnduranceCharges", "value": 3},
+        {"var": "overrideEnduranceCharges", "value": None},  # 动态: EnduranceChargesMax
     ],
 }
 
 # 需要通过注入 mod 模拟的光环（POB 不计算的动态效果）
 # 格式：{"mod": {...}, "expect_factor": 期望系数}
-# expect_factor 用于计算期望收益（如 EC 随机选择元素，期望 = value * 1/3）
+# mod.value 在运行时从构筑实际宝石等级动态填充（见 _resolve_ec_more_value）
 _AURA_INJECT_MODS = {
     "Elemental Conflux": {
         "mod": {
-            # Level 20: 59% MORE 单个元素伤害
-            "name": "ElementalDamage", "type": "MORE", "value": 59,
+            # value 在运行时从构筑 EC 宝石等级动态读取（statSets[1].levels[level][1]）
+            # Level 20=59%, Level 21=60% 等
+            "name": "ElementalDamage", "type": "MORE", "value": None,
         },
-        # 每8秒随机选择火/冰/电中一个元素
-        # 对于纯单元素构筑，期望收益 = 59% * 1/3 = 19.7%
-        # 如果构筑有多种元素技能，收益会更高（加权平均）
+        "stat_skill_id": "ElementalConfluxPlayer",
         "expect_factor": 1/3,  # 简化：假设构筑只用一种元素
-        "description": "每8秒随机选择火/冰/电，给该元素 59% MORE (Lv20)。期望收益 = 59% * 1/3 ≈ 20%",
+        "description": "每8秒随机选择火/冰/电，给该元素 MORE 伤害。期望收益 = MORE * 元素占比",
     },
 }
 
@@ -4178,8 +4183,9 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
         _restore_pre_configs()
         return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": bool(pre_configs)}
 
-    dps_pct = ((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
-    ehp_pct = ((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+    # dps_pct 表示光环贡献（正值=增加 DPS）
+    dps_pct = -((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = -((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
 
     _restore_pre_configs()
     return {
@@ -4189,6 +4195,127 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
         "ehp_pct": ehp_pct,
         "simulated": bool(pre_configs),
     }
+
+
+def _resolve_charge_map(lua, calcs) -> dict:
+    """从构筑 output 读取最大充能球数。
+
+    Returns:
+        {"FrenzyCharges": int, "PowerCharges": int, "EnduranceCharges": int}
+    """
+    charges = lua.execute('''
+        local env = calcs.initEnv(_spike_build, "MAIN")
+        calcs.perform(env)
+        local out = env.player.output
+        return string.format("%d|%d|%d",
+            tonumber(out.FrenzyChargesMax or 0),
+            tonumber(out.PowerChargesMax or 0),
+            tonumber(out.EnduranceChargesMax or 0))
+    ''')
+    if charges and str(charges) != "nil" and "|" in str(charges):
+        parts = str(charges).split("|")
+        return {
+            "FrenzyCharges": int(parts[0]) if parts[0].isdigit() else 3,
+            "PowerCharges": int(parts[1]) if parts[1].isdigit() else 3,
+            "EnduranceCharges": int(parts[2]) if parts[2].isdigit() else 3,
+        }
+    logger.warning("无法读取构筑充能球数，使用默认值 3")
+    return {"FrenzyCharges": 3, "PowerCharges": 3, "EnduranceCharges": 3}
+
+
+def _fill_charge_configs(configs: list, charge_map: dict,
+                        context: str = "") -> list:
+    """将 configs 中 value=None 的项用 charge_map 填充。"""
+    resolved = []
+    for cfg in configs:
+        cfg = dict(cfg)
+        if cfg.get("value") is None:
+            var = cfg["var"]
+            for charge_type, max_val in charge_map.items():
+                if charge_type in var:
+                    cfg["value"] = max_val
+                    logger.info("动态设置 %s: %s = %d", context, var, max_val)
+                    break
+            if cfg.get("value") is None:
+                cfg["value"] = 0
+        resolved.append(cfg)
+    return resolved
+
+
+def _resolve_pre_configs(lua, calcs, aura_name: str):
+    """动态解析光环的预设配置，填充 None 值为构筑实际数据。
+
+    对于 Charge Infusion：从构筑 output 读取最大充能球数。
+
+    Returns:
+        tuple: (configs_list, charge_counts_dict) 或 None
+    """
+    base_configs = _AURA_PRE_CONFIGS.get(aura_name)
+    if not base_configs:
+        return None
+
+    if not any(c["value"] is None for c in base_configs):
+        return (base_configs, None)
+
+    charge_map = _resolve_charge_map(lua, calcs)
+    resolved = _fill_charge_configs(base_configs, charge_map, context=aura_name)
+    return (resolved, charge_map)
+
+
+def _resolve_inject_mods(lua, calcs, inject_config: dict, aura_name: str) -> dict:
+    """动态解析注入 mod 的值（从构筑实际数据读取）。
+
+    对于 EC：从 statSets[1].levels[actual_gem_level][1] 读取 MORE 百分比。
+    """
+    config = dict(inject_config)  # 浅拷贝避免修改原数据
+    mod = dict(config["mod"])
+    stat_skill_id = config.get("stat_skill_id")
+
+    if mod["value"] is None and stat_skill_id:
+        # 动态读取：从构筑中找到该光环的宝石等级
+        actual_level = lua.execute(f'''
+            local build = _spike_build
+            for gi = 1, #build.skillsTab.socketGroupList do
+                local group = build.skillsTab.socketGroupList[gi]
+                for j = 1, #group.gemList do
+                    local gem = group.gemList[j]
+                    local ge = gem.grantedEffect
+                        or (gem.gemData and gem.gemData.grantedEffect)
+                    if ge and ge.name and ge.name:find("{aura_name}") then
+                        return tostring(gem.level)
+                    end
+                end
+            end
+            return nil
+        ''')
+        if actual_level and str(actual_level) != "nil":
+            lvl = int(actual_level)
+            # 从 data.skills[skillId].statSets[1].levels[level][1] 读取
+            more_val = lua.execute(f'''
+                local data = _spike_build.data
+                local sk = data.skills["{stat_skill_id}"]
+                if sk and sk.statSets and sk.statSets[1] and sk.statSets[1].levels then
+                    local lvldata = sk.statSets[1].levels[{lvl}]
+                    if lvldata and lvldata[1] then
+                        return tostring(lvldata[1])
+                    end
+                end
+                return nil
+            ''')
+            if more_val and str(more_val) != "nil":
+                mod["value"] = float(more_val)
+                config["gem_level"] = lvl  # 保存实际宝石等级
+                logger.info("动态读取 %s MORE: Lv%d = %.0f%%", aura_name, lvl, mod["value"])
+            else:
+                # 回退到 statSets 第一个有数据的等级
+                logger.warning("无法从 statSets 读取 %s Lv%d MORE，使用默认值", aura_name, lvl)
+                mod["value"] = 0
+        else:
+            logger.warning("构筑中未找到 %s，跳过动态 MORE 读取", aura_name)
+            mod["value"] = 0
+
+    config["mod"] = mod
+    return config
 
 
 def _test_mod_effect(lua, calcs, baseline: dict,
@@ -4275,9 +4402,9 @@ def _test_mod_effect(lua, calcs, baseline: dict,
     # 清理临时变量
     lua.execute('_spike_base_dps, _spike_base_ehp, _spike_no_mod_dps, _spike_no_mod_ehp = nil, nil, nil, nil')
 
-    # 百分比：有 mod vs 无 mod（移除光环 = DPS 下降）
-    dps_pct = ((no_mod_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
-    ehp_pct = ((no_mod_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+    # 百分比：有 mod vs 无 mod（移除光环 = DPS 下降 → 贡献为正）
+    dps_pct = -((no_mod_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+    ehp_pct = -((no_mod_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
 
     result = {
         "dps_before": base_dps,
@@ -4287,6 +4414,7 @@ def _test_mod_effect(lua, calcs, baseline: dict,
         "simulated": True,
         "expect_factor": expect_factor,
         "raw_value": mod["value"],
+        "gem_level": aura_config.get("gem_level"),  # 构筑实际宝石等级
     }
 
     # 对于 EC，记录伤害构成用于报告
@@ -4317,7 +4445,13 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
 
     # 预设 Charge/条件配置（如有）
     charge_configs = aura.get("charge_configs", [])
-    for cfg in charge_configs:
+    # 动态解析 Charge 数量（None → 从构筑 output 读取）
+    if charge_configs and any(c.get("value") is None for c in charge_configs):
+        charge_map = _resolve_charge_map(lua, calcs)
+        resolved_configs = _fill_charge_configs(charge_configs, charge_map, context=aura["name"])
+    else:
+        resolved_configs = charge_configs
+    for cfg in resolved_configs:
         var, val = cfg["var"], cfg["value"]
         if isinstance(val, bool):
             lua_val = "true" if val else "false"
@@ -4326,7 +4460,7 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
             lua.execute(f'_spike_build.configTab.input["{var}"] = {val}')
 
     # 重建 configTab modList（使预设生效）
-    if charge_configs:
+    if resolved_configs:
         _rebuild_config_tab_modlist(lua)
 
     result = lua.execute(f'''
@@ -4356,6 +4490,13 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
             if lvl > maxLevel then maxLevel = lvl end
         end
         if maxLevel == 0 then maxLevel = 1 end
+
+        -- 动态读取精魄消耗
+        local spiritCost = 0
+        local maxLvData = ge.levels[maxLevel]
+        if maxLvData and maxLvData.spiritReservationFlat then
+            spiritCost = maxLvData.spiritReservationFlat
+        end
 
         local newGroup = {{
             enabled = true,
@@ -4407,13 +4548,13 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         -- 清理
         build.skillsTab.socketGroupList[origCount + 1] = nil
 
-        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp)
+        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp) .. "|" .. tostring(spiritCost)
     ''')
 
     def _restore_charge_configs():
         """恢复 charge 配置并重建 configTab modList。"""
-        if charge_configs:
-            for cfg in charge_configs:
+        if resolved_configs:
+            for cfg in resolved_configs:
                 lua.execute(f'_spike_build.configTab.input["{cfg["var"]}"] = nil')
             _rebuild_config_tab_modlist(lua)
 
@@ -4421,7 +4562,7 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         _restore_charge_configs()
         return {
             "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": aura["spirit"], "error": "Lua returned None",
+            "dps_pct": 0, "spirit": 0, "error": "Lua returned None",
         }
 
     parts = str(result).split('|')
@@ -4429,18 +4570,19 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         _restore_charge_configs()
         return {
             "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": aura["spirit"],
+            "dps_pct": 0, "spirit": 0,
             "error": str(result),
         }
 
     try:
         new_dps = float(parts[1])
         new_ehp = float(parts[2]) if len(parts) > 2 else base_ehp
+        spirit_cost = float(parts[3]) if len(parts) > 3 else 0
     except (ValueError, IndexError):
         _restore_charge_configs()
         return {
             "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": aura["spirit"], "error": "Parse error",
+            "dps_pct": 0, "spirit": 0, "error": "Parse error",
         }
 
     _restore_charge_configs()
@@ -4456,7 +4598,7 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         "dps_after": new_dps,
         "dps_pct": dps_pct,
         "ehp_pct": ehp_pct,
-        "spirit": aura["spirit"],
+        "spirit": spirit_cost,
         "error": None,
     }
 
@@ -4505,6 +4647,13 @@ def _test_add_spirit_support(lua, calcs, support: dict,
         end
         if maxLevel == 0 then maxLevel = 1 end
 
+        -- 动态读取精魄消耗
+        local spiritCost = 0
+        local maxLvData = ge.levels[maxLevel]
+        if maxLvData and maxLvData.spiritReservationFlat then
+            spiritCost = maxLvData.spiritReservationFlat
+        end
+
         -- 创建精魄辅助宝石对象
         local supportGem = {{
             skillId = "{skill_id}",
@@ -4543,13 +4692,13 @@ def _test_add_spirit_support(lua, calcs, support: dict,
         -- 清理
         group.gemList[origGemCount + 1] = nil
 
-        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp)
+        return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp) .. "|" .. tostring(spiritCost)
     ''')
 
     if not result:
         return {
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
             "estimated": support.get("estimated", False), "error": "Lua returned None",
         }
@@ -4558,7 +4707,7 @@ def _test_add_spirit_support(lua, calcs, support: dict,
     if parts[0] == "NOT_FOUND" or parts[0] == "ERROR":
         return {
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
             "estimated": support.get("estimated", False), "error": str(result),
         }
@@ -4566,10 +4715,11 @@ def _test_add_spirit_support(lua, calcs, support: dict,
     try:
         new_dps = float(parts[1])
         new_ehp = float(parts[2]) if len(parts) > 2 else base_ehp
+        spirit_cost = float(parts[3]) if len(parts) > 3 else 0
     except (ValueError, IndexError):
         return {
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
-            "dps_pct": 0, "spirit": support["spirit"], "target_aura": "",
+            "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
             "estimated": support.get("estimated", False), "error": "Parse error",
         }
@@ -4593,7 +4743,7 @@ def _test_add_spirit_support(lua, calcs, support: dict,
         "dps_after": new_dps,
         "dps_pct": dps_pct,
         "ehp_pct": ehp_pct,
-        "spirit": support["spirit"],
+        "spirit": spirit_cost,
         "target_aura": target_aura,
         "target_group_idx": aura_group_idx,
         "condition": support.get("condition", ""),
@@ -4668,15 +4818,20 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         seen_aura_names.add(aura_key)
 
         # 检查是否需要预设配置（如 Charge）
-        pre_configs = _AURA_PRE_CONFIGS.get(si["main_skill_name"])
+        pre_resolve = _resolve_pre_configs(lua, calcs, si["main_skill_name"])
+        pre_configs = pre_resolve[0] if pre_resolve else None
+        charge_counts = pre_resolve[1] if pre_resolve else None
 
         # 检查是否需要注入 mod 模拟（如 Elemental Conflux）
         inject_mods = _AURA_INJECT_MODS.get(si["main_skill_name"])
 
         if inject_mods:
+            # 动态解析注入 mod 的值（如 EC MORE 从实际宝石等级读取）
+            resolved_mods = _resolve_inject_mods(
+                lua, calcs, inject_mods, si["main_skill_name"])
             # 使用 mod 注入方式测试
             result = _test_mod_effect(
-                lua, calcs, baseline, inject_mods,
+                lua, calcs, baseline, resolved_mods,
                 skill_name=si["main_skill_name"])
         else:
             # 标准测试：禁用技能组
@@ -4694,6 +4849,10 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
             "gems": [g["name"] for g in si["gems"] if g["enabled"]],
             **result,
         }
+
+        # 保存 Charge 数量供报告使用
+        if charge_counts:
+            aura_entry["charge_counts"] = charge_counts
 
         # 对有条件配置的光环，测试参数范围（min/max 端点）
         # 使用"无光环"时的 DPS 作为百分比计算基准
@@ -4718,10 +4877,12 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         if aura["name"] in aura_names:
             continue
         result = _test_add_candidate_aura(lua, calcs, aura, baseline)
-        # 标注精魄是否足够
-        if aura["spirit"] > available_spirit:
-            result["spirit_shortfall"] = aura["spirit"] - available_spirit
-            result["error"] = f"精魄不足 (需 {aura['spirit']:.0f}, 缺 {result['spirit_shortfall']:.0f})"
+        # 标注精魄需求（不再标记 error，统一展示）
+        actual_spirit = result.get("spirit", 0)
+        if actual_spirit > available_spirit:
+            shortfall = actual_spirit - available_spirit
+            result["spirit_shortfall"] = shortfall
+            result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
         candidate_auras.append(result)
 
     # 排序：按 DPS 增益降序
@@ -4746,24 +4907,25 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         for aura_si in aura_groups:
             result = _test_add_spirit_support(
                 lua, calcs, ss, aura_si["group_idx"], baseline)
-            # 标注精魄是否足够
-            if ss["spirit"] > available_spirit:
-                shortfall = ss["spirit"] - available_spirit
+            # 标注精魄需求（不再标记 error，统一展示）
+            actual_spirit = result.get("spirit", 0)
+            if actual_spirit > available_spirit:
+                shortfall = actual_spirit - available_spirit
                 result["spirit_shortfall"] = shortfall
-                result["error"] = f"精魄不足 (需 {ss['spirit']:.0f}, 缺 {shortfall:.0f})"
+                result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
             spirit_support_tests.append(result)
 
-    # 排序：按 DPS 增益降序，非 error 排前面
+    # 排序：按 DPS 增益降序
     spirit_support_tests.sort(
-        key=lambda x: (x.get("error") is not None, -abs(x.get("dps_pct", 0)))
+        key=lambda x: -abs(x.get("dps_pct", 0))
     )
     logger.info("8C 完成: %d 个精魄辅助测试", len(spirit_support_tests))
 
     # === 7D: Spirit Budget ===
-    # 计算推荐精魄消耗总和
+    # 计算推荐精魄消耗总和（含精魄不足项）
     recommended_spirit = 0
     for ca in candidate_auras:
-        if ca.get("dps_pct", 0) > 0.1 and not ca.get("error"):
+        if ca.get("dps_pct", 0) > 0.1:
             recommended_spirit += ca.get("spirit", 0)
 
     spirit_budget = {
@@ -4942,7 +5104,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             sp = a.get("spirit_cost", 0)
 
 
-            # DPS 贡献列：始终展示"移除光环"的百分比（7A 核心结果）
+
+            # DPS 贡献列：正值=该光环对 DPS 的正向贡献（移除后 DPS 下降的百分比）
             dp_str = f"{dp:+.1f}%"
             if a.get("simulated"):
                 dp_str += " ⚠️模拟"
@@ -4987,6 +5150,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("")
             for a in simulated_auras:
                 name = a.get("name", "?")
+                gem_level = a.get("gem_level", "20")  # 构筑实际宝石等级
                 if name == "Elemental Conflux":
                     raw_val = a.get("raw_value", 59)
                     expect_factor = a.get("expect_factor", 1/3)
@@ -4995,20 +5159,23 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                     cold_pct = breakdown.get("cold", 0)
                     lightning_pct = breakdown.get("lightning", 0)
                     total_elemental = fire_pct + cold_pct + lightning_pct
-                    # 期望收益 = 59% × (火占比 + 冰占比 + 电占比) / 3
                     expected_more = raw_val * expect_factor
-                    lines.append(f"- **{name}**: Lv20 给选中元素 {raw_val:.0f}% MORE。主技能伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%，元素总占比 {total_elemental:.1f}%。期望收益 = {raw_val:.0f}% × {total_elemental:.1f}% ÷ 3 ≈ {expected_more:.1f}% MORE")
+                    lines.append(f"- **{name}** (Lv{gem_level}): 给选中元素 {raw_val:.0f}% MORE。主技能伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%，元素总占比 {total_elemental:.1f}%。期望收益 = {raw_val:.0f}% × {total_elemental:.1f}% ÷ 3 ≈ {expected_more:.1f}% MORE")
                 elif name == "Charge Infusion":
-                    lines.append(f"- **{name}** (Lv20): 需启用 Frenzy/Power/Endurance Charge 配置才能生效，已模拟 3 个各类型 Charge")
+                    charges = a.get("charge_counts", {})
+                    f_str = f"F={charges.get('FrenzyCharges', '?')}"
+                    p_str = f"P={charges.get('PowerCharges', '?')}"
+                    e_str = f"E={charges.get('EnduranceCharges', '?')}"
+                    lines.append(f"- **{name}** (Lv{gem_level}): 需启用 Charge 配置才能生效，已模拟 {f_str}/{p_str}/{e_str}")
                 else:
-                    lines.append(f"- **{name}** (Lv20): 已模拟条件配置")
+                    lines.append(f"- **{name}** (Lv{gem_level}): 已模拟条件配置")
             lines.append("")
 
             # 通用说明
             lines.append("**模拟方法说明：**")
             lines.append("")
-            lines.append("- **等级前提**：所有光环模拟均基于 Level 20 数据")
-            lines.append("- **DPS 贡献计算**：移除光环后 DPS 变化（分母=当前有光环 DPS）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中")
+            lines.append("- **等级前提**：光环模拟基于构筑实际宝石等级数据（非固定 Level 20）")
+            lines.append("- **DPS 贡献计算**：移除光环后 DPS 下降百分比（正值=正向贡献）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中")
             lines.append(f"- **构筑已有 modifier**：施法速度 INC {speed_inc:.0f}%，总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
             lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。自动检测 Speed 门槛效果（端点间 Speed 跳变）并标注实际边际收益")
             lines.append("- **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）")
@@ -5047,9 +5214,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("")
 
     effective_candidates = [c for c in candidate_auras
-                            if c.get("dps_pct", 0) > 0.1 and not c.get("error")]
-    spirit_short = [c for c in candidate_auras
-                    if c.get("dps_pct", 0) > 0.1 and c.get("error")]
+                            if c.get("dps_pct", 0) > 0.1]
     failed_candidates = [c for c in candidate_auras
                           if c.get("dps_pct", 0) <= 0.1]
 
@@ -5063,24 +5228,11 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             dp = c.get("dps_pct", 0)
             ep = c.get("ehp_pct", 0)
             desc = c.get("description", "")
+            # 精魄不足时在说明中标注
+            if c.get("spirit_note"):
+                desc = f"{c['spirit_note']}; {desc}" if desc else c["spirit_note"]
             display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
             lines.append(f"| {i} | {display} | {sp:.0f} | {dp:+.1f}% | {ep:+.1f}% | {desc} |")
-        lines.append("")
-
-    if spirit_short:
-        lines.append("**精魄不足但有效（释放精魄后考虑）：**")
-        lines.append("")
-        lines.append("| # | 光环 | 精魄 | DPS% | 说明 |")
-        lines.append("|---|------|------|------|------|")
-        for i, c in enumerate(spirit_short, 1):
-            name = c.get("name", "?")
-            name_cn = c.get("name_cn", "")
-            sp = c.get("spirit", 0)
-            dp = c.get("dps_pct", 0)
-            desc = c.get("description", "")
-            err = c.get("error", "")
-            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
-            lines.append(f"| {i} | {display} | {sp:.0f} | {dp:+.1f}% | {err} |")
         lines.append("")
 
     if failed_candidates:
@@ -5098,9 +5250,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("")
 
     effective_ss = [s for s in spirit_tests
-                    if s.get("dps_pct", 0) > 0.1 and not s.get("error")]
-    spirit_short_ss = [s for s in spirit_tests
-                       if s.get("dps_pct", 0) > 0.1 and s.get("error")]
+                    if s.get("dps_pct", 0) > 0.1]
     failed_ss = [s for s in spirit_tests
                  if s.get("dps_pct", 0) <= 0.1]
 
@@ -5114,25 +5264,12 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             sp = s.get("spirit", 0)
             dp = s.get("dps_pct", 0)
             cond = s.get("condition", "")
+            # 精魄不足时在条件中标注
+            if s.get("spirit_note"):
+                cond = f"{s['spirit_note']}; {cond}" if cond else s["spirit_note"]
             estimated = " ⚠️估算" if s.get("estimated") else ""
             display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
             lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} |")
-        lines.append("")
-
-    if spirit_short_ss:
-        lines.append("**精魄不足但有效（释放精魄后考虑）：**")
-        lines.append("")
-        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 说明 |")
-        lines.append("|---|----------|----------|------|------|------|")
-        for i, s in enumerate(spirit_short_ss, 1):
-            name = s.get("name", "?")
-            name_cn = s.get("name_cn", "")
-            target = s.get("target_aura", "?")
-            sp = s.get("spirit", 0)
-            dp = s.get("dps_pct", 0)
-            err = s.get("error", "")
-            display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
-            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {err} |")
         lines.append("")
 
     if failed_ss:
@@ -5164,6 +5301,71 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("**注意**: 推荐光环的精魄总消耗超过可用精魄，需要根据优先级取舍。")
 
     lines.append("")
+
+    # 7E: 数据一致性校验
+    warnings = _validate_aura_consistency(aura_data)
+    if warnings:
+        lines.append("### 7E. 数据一致性检查")
+        lines.append("")
+        lines.append("**⚠️ 以下项目需要人工确认：**")
+        lines.append("")
+        for w in warnings:
+            lines.append(f"- {w}")
+        lines.append("")
+
+
+def _validate_aura_consistency(aura_data: dict) -> list:
+    """数据一致性校验，返回警告列表。
+
+    校验规则：
+    1. EC MORE 值非零（确保动态读取成功）
+    2. Charge 数量与默认值 3 不同时标注
+    3. 候选光环无 DPS 影响时检查可能原因
+    """
+    warnings = []
+
+    existing = aura_data.get("existing_auras", [])
+    candidates = aura_data.get("candidate_auras", [])
+
+    # B1. EC MORE 值检查
+    for a in existing:
+        if a.get("name") == "Elemental Conflux" and a.get("simulated"):
+            raw_val = a.get("raw_value", 0)
+            gem_level = a.get("gem_level")
+            if raw_val <= 0:
+                warnings.append(f"EC MORE 值为 {raw_val}（动态读取可能失败），结果不可靠")
+            elif gem_level and gem_level != 20:
+                # 非标准等级时提示
+                warnings.append(f"EC 使用构筑实际等级 Lv{gem_level}（MORE={raw_val:.0f}%），非满级 Lv20")
+
+    # B2. Charge 数量标注
+    for a in existing:
+        if a.get("name") == "Charge Infusion" and a.get("simulated"):
+            cc = a.get("charge_counts", {})
+            if cc:
+                parts = []
+                for ct, val in cc.items():
+                    if val != 3:
+                        parts.append(f"{ct}={val}")
+                if parts:
+                    warnings.append(f"Charge Infusion 使用非默认 Charge 数量: {', '.join(parts)}")
+
+    # B3. 空结果归因检查
+    for c in candidates:
+        if c.get("dps_pct", 0) <= 0.1:
+            name = c.get("name", "?")
+            if name == "Berserk":
+                warnings.append(f"{name} 无 DPS 影响：可能因为构筑已通过其他方式获得 Rage 效果")
+            elif name == "Attrition":
+                warnings.append(f"{name} 无 DPS 影响：需要命中敌人才能叠加 Wither，纯模拟可能无法体现")
+
+    # B4. 精魄辅助无影响检查
+    ss_tests = aura_data.get("spirit_support_tests", [])
+    zero_ss = [s for s in ss_tests if s.get("dps_pct", 0) <= 0.1]
+    if len(zero_ss) == len(ss_tests) and len(ss_tests) > 0:
+        warnings.append("所有精魄辅助测试均无 DPS 影响：可能是法术构筑（Direstrike/Precision 对攻击构筑无效）")
+
+    return warnings
 
 
 def format_report(data: dict) -> str:
@@ -5496,7 +5698,8 @@ def format_report(data: dict) -> str:
                           if abs(j.get("dps_pct", 0)) < 0.1 and j.get("status") == "ok"]
         high_dps_jewels = sorted(
             [j for j in jewel_diag if abs(j.get("dps_pct", 0)) >= 0.1],
-            key=lambda j: j.get("dps_pct", 0)
+            key=lambda j: j.get("dps_pct", 0),
+            reverse=True,
         )
         if high_dps_jewels or low_dps_jewels:
             lines.append("### 💎 珠宝建议")
