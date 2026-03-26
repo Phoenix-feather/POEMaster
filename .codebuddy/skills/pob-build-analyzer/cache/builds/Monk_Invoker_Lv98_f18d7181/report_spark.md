@@ -1,4 +1,30 @@
-# Spark 构筑 DPS 优化报告
+# Spark 构筑全面分析报告
+
+## 0. 执行摘要
+
+### 维度概览
+
+| 维度 | 关键指标 |
+|------|---------|
+| 进攻 | TotalDPS **11,661** |
+| 防御 | TotalEHP **9,591**（最短板: Chaos） |
+| 资源 | Spirit 占用 **129%** |
+| 恢复 | 生命恢复 **341/s** |
+
+
+### 关键发现
+
+1. ⚠️ **混沌抗性/防御是最短板**（承伤仅 4,406，为最强的 24%）
+2. ⚠️ 混沌抗性差 **75%** 未满
+3. 🔴 精魄预算非常紧张（129% 占用）
+4. ⚠️ 22 个已分配天赋对 DPS 和 EHP 均无可测量影响
+5. 💡 **crit_chance_base** 对 DPS 影响最大（每 1% 提升 5.94% DPS）
+
+### 优化方向 Top 3
+
+1. **crit_chance_base** (BASE): 每 1% 提升 5.94% DPS，需要 +4% 达到 +20% DPS
+2. **mana_regen** (BASE): 每 1/s 提升 1.67% DPS，需要 +12/s 达到 +20% DPS
+3. **life_regen** (BASE): 每 1/s 提升 1.05% DPS，需要 +20/s 达到 +20% DPS
 
 ## 1. 基线概览
 
@@ -12,6 +38,7 @@
 | CritChance | 29.3% |
 | CritMultiplier | 4.00x |
 | TotalEHP | 9,591 |
+| 最短板承伤 | **4,406** (混沌) |
 
 ## 2. DPS 来源拆解
 
@@ -229,24 +256,28 @@
 | Hit DPS | Hit | +11,661 |
 | 点燃 DPS | DOT | +26.0 |
 
-## 3. 灵敏度分析
+## 3. 进攻灵敏度分析
 
 ### 有效维度（按性价比排序）
 
 | # | 维度 | 类型 | 所需值 | 单位 | DPS/单位 | 当前值 | 公式 |
 |---|------|------|--------|------|----------|--------|------|
 | 1 | crit_chance_base | BASE | +3.5% | % | 5.94%/% | 0 | baseCrit 0.0%→3.5%, 需要 +3.5% → DPS +20.8% |
-| 2 | speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
-| 3 | cast_speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
-| 4 | crit_multi_base | BASE | +42.5% | % | 0.46%/% | 100 | CritBase 100→142, 需要 +42 → DPS +19.7% |
-| 5 | damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 6 | spell_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 7 | elemental_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 8 | projectile_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 9 | lightning_damage_inc | INC | +77.0% | % | 0.26%/% | 137 | INC 137%→214%, 需要 +77 → DPS +20.1% |
-| 10 | crit_multi_inc | INC | +128.5% | % | 0.16%/% | 200 | INC 200%→328%, 需要 +128 → DPS +20.1% |
-| 11 | crit_chance_inc | INC | +139.5% | % | 0.14%/% | 226 | INC 226%→366%, 需要 +140 → DPS +20.0% |
-| 12 | fire_damage_inc | INC | +155.0% | % | 0.13%/% | 137 | INC 137%→292%, 需要 +155 → DPS +20.0% |
+| 2 | mana_regen | BASE | +12.0/s | /s | 1.67%//s | 60 | BASE 60→72, 需要 +12 → 魔力恢复 +20.0% |
+| 3 | life_regen | BASE | +19.5/s | /s | 1.05%//s | 0 | BASE 0→20, 需要 +20 → 生命恢复 +20.4% |
+| 4 | life_recovery_rate | INC | +25.5% | % | 0.80%/% | 0 | INC 0%→26%, 需要 +26 → 生命恢复 +20.4% |
+| 5 | speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
+| 6 | cast_speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
+| 7 | mana_recovery_rate | INC | +41.0% | % | 0.48%/% | 0 | INC 0%→41%, 需要 +41 → 魔力恢复 +19.8% |
+| 8 | crit_multi_base | BASE | +42.5% | % | 0.46%/% | 100 | CritBase 100→142, 需要 +42 → DPS +19.7% |
+| 9 | damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 10 | spell_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 11 | elemental_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 12 | projectile_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 13 | lightning_damage_inc | INC | +77.0% | % | 0.26%/% | 137 | INC 137%→214%, 需要 +77 → DPS +20.1% |
+| 14 | crit_multi_inc | INC | +128.5% | % | 0.16%/% | 200 | INC 200%→328%, 需要 +128 → DPS +20.1% |
+| 15 | crit_chance_inc | INC | +139.5% | % | 0.14%/% | 226 | INC 226%→366%, 需要 +140 → DPS +20.0% |
+| 16 | fire_damage_inc | INC | +155.0% | % | 0.13%/% | 137 | INC 137%→292%, 需要 +155 → DPS +20.0% |
 
 ### 无影响维度
 
@@ -263,8 +294,156 @@
 | projectile_count | BASE | 额外投射物数量（ProjectileCount没有INC类型） |
 | aoe_inc | INC | 影响范围增加（对半径是平方根关系） |
 | duration_inc | INC | 技能持续时间增加 |
+| life_inc | INC | 生命上限增加（同时提升 TotalEHP 和偷取上限） |
+| life_flat | BASE | 生命上限固定值（装备基础属性） |
+| armour_inc | INC | 护甲增加（降低物理承伤，受递减效应影响） |
+| armour_flat | BASE | 护甲固定值（装备基础属性） |
+| evasion_inc | INC | 闪避值增加 |
+| evasion_flat | BASE | 闪避值固定值（装备基础属性） |
+| fire_resist | BASE | 火焰抗性（满抗后无额外收益） |
+| cold_resist | BASE | 冰霜抗性（满抗后无额外收益） |
+| lightning_resist | BASE | 闪电抗性（满抗后无额外收益） |
+| chaos_resist | BASE | 混沌抗性（通常是最稀缺的抗性） |
+| all_elemental_resist | BASE | 全元素抗性（同时增加火/冰/电抗性） |
+| block_chance | BASE | 攻击格挡概率（受 BlockChanceMax 上限限制） |
+| spell_block | BASE | 法术格挡概率（与攻击格挡独立） |
+| damage_reduction | BASE | 额外物理伤害减免（与护甲减伤叠加，受 DamageReductionMax 限制） |
+| life_leech | BASE | 物理伤害生命偷取比例（受 MaxLifeLeechRate 上限约束） |
+| life_recoup | BASE | 伤害回收为生命（消耗能量后延迟恢复，4秒内回完） |
+| flask_effect | INC | 药剂效果增加（提升生命/魔力药剂恢复量） |
+| mana_leech | BASE | 物理伤害魔力偷取比例（受 MaxManaLeechRate 上限约束） |
 
-## 4. 已分配天赋价值
+## 4. 防御面
+
+### 4A. 生命池构成
+
+| 资源 | 数值 | 备注 |
+|------|------|------|
+| Life | 2,180 | — |
+| Energy Shield | 1,442 | — |
+| Mana | 1,505 | 可用 1,505 |
+| MoM | 100% | 魔力优先承受伤害 |
+
+### 4B. 减伤层
+
+| 层 | 数值 |
+|------|------|
+| 护甲 | 0 |
+| 闪避 | 444 |
+| 攻击格挡 | 0% |
+| 法术格挡 | 0% |
+
+### 4C. 抗性面板
+
+| 元素 | 当前 | 上限 | 状态 |
+|------|------|------|------|
+| 火焰 | 75% | 75% | 满 (+45%溢出) |
+| 冰霜 | 75% | 75% | 满 (+44%溢出) |
+| 闪电 | 75% | 75% | 满 (+37%溢出) |
+| 混沌 | 0% | 75% | 未满 (差 75%) |
+
+未满抗性: 混沌 — 优先补满可显著提升对应元素 EHP。
+
+过度堆叠: 火焰, 冰霜, 闪电 — 超出上限 20%+，可考虑将属性分配到其他维度。
+
+### 4D. 最大承伤 (MaxHitTaken)
+
+**TotalEHP = 9,591**（平均承受 2.3 次攻击）
+
+| 伤害类型 | MaxHitTaken | 占最强% |
+|----------|-------------|--------|
+| 火焰 | 18,311 | 100% |
+| 冰霜 | 18,311 | 100% |
+| 闪电 | 18,311 | 100% |
+| 混沌 | 4,406 | 24% ← 最短板 |
+
+**最短板**: 混沌（仅承受 4,406 伤害，为最强的 24%）
+
+### 4E. 承伤乘数 (TakenHitMult)
+
+数值越小越好，表示实际承受伤害占原始伤害的比例。
+
+| 伤害类型 | 承伤乘数 | 含义 |
+|----------|---------|------|
+| 火焰 | 0.280 (28.0%) | 每承受 100 伤害实际受 28 |
+| 冰霜 | 0.280 (28.0%) | 每承受 100 伤害实际受 28 |
+| 闪电 | 0.280 (28.0%) | 每承受 100 伤害实际受 28 |
+| 混沌 | 1.000 (100.0%) | 每承受 100 伤害实际受 100 ← 最短板 |
+
+### 4F. DOT 有效生命
+
+| 伤害类型 | DotEHP |
+|----------|--------|
+| 火焰 | 20,508 |
+| 冰霜 | 20,508 |
+| 闪电 | 20,508 |
+| 混沌 | 4,406 |
+
+### 4G. 防御灵敏度
+
+目标: TotalEHP +20%
+
+| 维度 | 类型 | 达到目标所需值 | 每单位 EHP 提升 |
+|------|------|---------------|---------------|
+| 格挡概率 | BASE | 31.5% | +0.00%/单位 |
+| 法术格挡概率 | BASE | 31.5% | +0.00%/单位 |
+| 生命上限 | INC | 46.5% | +0.00%/单位 |
+| 混沌抗性 | BASE | 68.5% | +0.00%/单位 |
+| 闪避值 | BASE | 1991.5 | +0.00%/单位 |
+
+**无法达到目标**: 
+- 冰霜抗性: 冰霜抗性（满抗后无额外收益）
+- 生命固定值: 生命上限固定值（装备基础属性）
+- 全元素抗性: 全元素抗性（同时增加火/冰/电抗性）
+- 护甲固定值: 护甲固定值（装备基础属性）
+- 护甲增加: 护甲增加（降低物理承伤，受递减效应影响）
+- 火焰抗性: 火焰抗性（满抗后无额外收益）
+- 物理减伤: 额外物理伤害减免（与护甲减伤叠加，受 DamageReductionMax 限制）
+- 闪电抗性: 闪电抗性（满抗后无额外收益）
+- 闪避增加: 闪避值增加
+
+
+## 5. 资源面
+
+### 5A. 资源预算
+
+| 资源 | 总量 | 可用 | 占用率 |
+|------|------|------|--------|
+| Life | 2,180 | 2,180 | — |
+| Mana | 1,505 | 1,505 | 0% |
+| Spirit | 425 | -125 | 🔴 129% |
+| ES | 1,442 | 1,442 | — |
+
+### 5B. 生命恢复能力
+
+总恢复速率: **340.6/s**（回满约 6.4s）
+偷取上限利用率: 37%（上限 589/s）
+
+| # | 来源 | 每秒恢复 | 占比 |
+|---|------|---------|------|
+| 1 | 偷取 | 218.0/s | 64% |
+| 2 | 再生 | 122.6/s | 36% |
+
+### 5C. 魔力恢复能力
+
+总恢复速率: **62.0/s**（回满可用 1,505 约需 24.3s）
+
+| # | 来源 | 每秒恢复 | 占比 |
+|---|------|---------|------|
+| 1 | 再生 | 62.0/s | 100% |
+
+### 5D. 恢复增强灵敏度
+
+注入多少恢复属性可使对应恢复指标提升 **20%**：
+
+| 增强属性 | 所需注入 | 当前总值 | 公式 |
+|---------|---------|---------|------|
+| 魔力再生 | 12.0/s | 60.2 | BASE 60→72, 需要 +12 → 魔力恢复 +20.0% |
+| 生命再生 | 19.5/s | — | BASE 0→20, 需要 +20 → 生命恢复 +20.4% |
+| 生命恢复速率 | 25.5% | — | INC 0%→26%, 需要 +26 → 生命恢复 +20.4% |
+| 魔力恢复速率 | 41.0% | — | INC 0%→41%, 需要 +41 → 魔力恢复 +19.8% |
+
+## 6. 已分配天赋价值
 
 ### DPS 影响天赋
 
@@ -297,7 +476,7 @@
 
 Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin Ice, Energise, Heavy Frost, Dynamism, Breaking Point, Marked Agility, Shimmering, Efficient Inscriptions, The Power Within, Overflowing Power, Evocational Practitioner, Infusion of Power, Marked for Sickness, Acceleration, Stormwalker, Frostwalker, The Soul Springs Eternal, Crashing Wave
 
-## 5. 未分配天赋探索
+## 7. 未分配天赋探索
 
 | # | 天赋 | 类型 | DPS% | EHP% | 分类 |
 |---|------|------|------|------|------|
@@ -314,71 +493,71 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 *（另有 147 个候选天赋未显示）*
 
-## 6. 珠宝诊断
+## 8. 珠宝诊断
 
 ### Rapture Shard (Sapphire, RARE)
 
-- **DPS 贡献**: -6.3% | **状态**: ok | **槽位**: Jewel 61834
+- **DPS 贡献**: +6.3% | **EHP 贡献**: +2.1% | **状态**: ok | **槽位**: Jewel 61834
 
-| Mod | 类型 | 值 | DPS% |
-|-----|------|-----|------|
-| EnergyShield | INC | 17 | +0.0% |
-| ElementalDamage | INC | 15 | -6.3% |
-| CurseActivation | INC | 14 | +0.0% |
+| Mod | 类型 | 值 | DPS% | EHP% |
+|-----|------|-----|------|------|
+| EnergyShield | INC | 17 | -0.0% | +2.1% |
+| ElementalDamage | INC | 15 | +6.3% | -0.0% |
+| CurseActivation | INC | 14 | -0.0% | -0.0% |
 
 ### Chimeric Spark (Sapphire, RARE)
 
-- **DPS 贡献**: -5.9% | **状态**: ok | **槽位**: Jewel 7960
+- **DPS 贡献**: +5.9% | **EHP 贡献**: +1.9% | **状态**: ok | **槽位**: Jewel 7960
 
-| Mod | 类型 | 值 | DPS% |
-|-----|------|-----|------|
-| EnergyShield | INC | 15 | +0.0% |
-| ElementalDamage | INC | 14 | -5.9% |
-| CurseActivation | INC | 15 | +0.0% |
+| Mod | 类型 | 值 | DPS% | EHP% |
+|-----|------|-----|------|------|
+| EnergyShield | INC | 15 | -0.0% | +1.9% |
+| ElementalDamage | INC | 14 | +5.9% | -0.0% |
+| CurseActivation | INC | 15 | -0.0% | -0.0% |
 
 ### Heart of the Well (Diamond, UNIQUE)
 
-- **DPS 贡献**: -5.8% | **状态**: ok | **槽位**: Jewel 32763
+- **DPS 贡献**: +5.8% | **EHP 贡献**: -0.0% | **状态**: ok | **槽位**: Jewel 32763
 
-| Mod | 类型 | 值 | DPS% |
-|-----|------|-----|------|
-| DamageGainAsLightning | BASE | 12 | -5.8% |
-| ManaOnKill | BASE | 1 | +0.0% |
-| HybridManaAndLifeCost_Life | BASE | 3 | +0.0% |
-| InstantEnergyShieldLeech | BASE | 15 | +0.0% |
-| InstantManaLeech | BASE | 15 | +0.0% |
-| InstantLifeLeech | BASE | 15 | +0.0% |
+| Mod | 类型 | 值 | DPS% | EHP% |
+|-----|------|-----|------|------|
+| DamageGainAsLightning | BASE | 12 | +5.8% | -0.0% |
+| ManaOnKill | BASE | 1 | -0.0% | -0.0% |
+| HybridManaAndLifeCost_Life | BASE | 3 | -0.0% | -0.0% |
+| InstantEnergyShieldLeech | BASE | 15 | -0.0% | -0.0% |
+| InstantManaLeech | BASE | 15 | -0.0% | -0.0% |
+| InstantLifeLeech | BASE | 15 | -0.0% | -0.0% |
 
 ### Megalomaniac (Diamond, UNIQUE)
 
-- **DPS 贡献**: -5.7% | **状态**: ok | **槽位**: Jewel 21984
-- **分配天赋**: the spring hare, savoured blood (DPS -5.7%)
+- **DPS 贡献**: +5.7% | **EHP 贡献**: -0.0% | **状态**: ok | **槽位**: Jewel 21984
+- **分配天赋**: the spring hare, savoured blood (DPS +5.7%, EHP -0.0%)
 
-| Mod | 类型 | 值 | DPS% |
-|-----|------|-----|------|
-| GrantedPassive | LIST | the spring hare | -5.7% |
-| GrantedPassive | LIST | savoured blood | +0.0% |
+| Mod | 类型 | 值 | DPS% | EHP% |
+|-----|------|-----|------|------|
+| GrantedPassive | LIST | the spring hare | +5.7% | -0.0% |
+| GrantedPassive | LIST | savoured blood | -0.0% | -0.0% |
 
 ### Controlled Metamorphosis (Diamond, UNIQUE)
 
-- **DPS 贡献**: +0.0% | **状态**: ok | **槽位**: Jewel 61419
+- **DPS 贡献**: -0.0% | **EHP 贡献**: -0.0% | **状态**: ok | **槽位**: Jewel 61419
 
-| Mod | 类型 | 值 | DPS% |
-|-----|------|-----|------|
-| JewelData | LIST | (complex data) | +0.0% |
-| JewelData | LIST | (complex data) | +0.0% |
-| ElementalResist | BASE | -6 | +0.0% |
+| Mod | 类型 | 值 | DPS% | EHP% |
+|-----|------|-----|------|------|
+| JewelData | LIST | (complex data) | -0.0% | -0.0% |
+| JewelData | LIST | (complex data) | -0.0% | -0.0% |
+| ElementalResist | BASE | -6 | -0.0% | -0.0% |
 
-## 7. 光环与精魄分析
+## 9. 光环与精魄分析
 
-### 7A. 现有光环 DPS 贡献
+### 9A. 现有光环 DPS 贡献
 
 | # | 光环 | DPS 贡献 | EHP 贡献 | 精魄消耗 | 条件参数范围 |
 |---|------|----------|----------|----------|-------------|
-| 1 | Trinity | -25.9% (条件: Total Resonance Count=150) | +0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% (Speed门槛+13.7%, 边际≈7.8%) |
-| 2 | Charge Infusion | -23.5% ⚠️模拟 | -7.0% | 30 | - |
-| 3 | Elemental Conflux | -16.7% ⚠️模拟 | +0.0% | 60 | - |
-| 4 | Purity of Fire | +0.0% | +0.0% | 130 | - |
+| 1 | Trinity | +25.9% (条件: Total Resonance Count=150) | -0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% (Speed门槛+13.7%, 边际≈7.8%) |
+| 2 | Charge Infusion | +23.5% ⚠️模拟 | +7.0% | 30 | - |
+| 3 | Elemental Conflux | +16.7% ⚠️模拟 | -0.0% | 60 | - |
+| 4 | Purity of Fire | -0.0% | -0.0% | 130 | - |
 
 **⚠️模拟值说明：**
 
@@ -388,7 +567,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 **模拟方法说明：**
 
 - **等级前提**：光环模拟基于构筑实际宝石等级数据（非固定 Level 20）
-- **DPS 贡献计算**：移除光环后 DPS 变化（分母=当前有光环 DPS）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中
+- **DPS 贡献计算**：移除光环后 DPS 下降百分比（正值=正向贡献）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中
 - **构筑已有 modifier**：施法速度 INC 75%，总 MORE ×1.20。INC 叠加为加法（新增边际递减），MORE 叠加为乘法
 - **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。自动检测 Speed 门槛效果（端点间 Speed 跳变）并标注实际边际收益
 - **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）
@@ -399,7 +578,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 - **Purity of Fire**: 精魄 130
 
-### 7B. 潜在光环推荐
+### 9B. 潜在光环推荐
 
 | # | 光环 | 精魄 | DPS% | EHP% | 说明 |
 |---|------|------|------|------|------|
@@ -410,11 +589,11 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 - Attrition（损耗）
 - Berserk（狂暴）
 
-### 7C. 精魄辅助推荐
+### 9C. 精魄辅助推荐
 
 **无 DPS 影响：** 15 个组合
 
-### 7D. 精魄预算
+### 9D. 精魄预算
 
 | 项目 | 精魄 |
 |------|------|
@@ -426,7 +605,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 **注意**: 推荐光环的精魄总消耗超过可用精魄，需要根据优先级取舍。
 
-### 7E. 数据一致性检查
+### 9E. 数据一致性检查
 
 **⚠️ 以下项目需要人工确认：**
 
@@ -436,15 +615,15 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 - Berserk 无 DPS 影响：可能因为构筑已通过其他方式获得 Rage 效果
 - 所有精魄辅助测试均无 DPS 影响：可能是法术构筑（Direstrike/Precision 对攻击构筑无效）
 
-## 8. 总结与建议
+## 10. 总结与建议
 
 当前 **Spark** TotalDPS = **11,661**，AverageHit = 4,664，Speed = 2.50/s，CritChance = 29.3%，CritMultiplier = 4.00x。
 
 ### 🎯 最高性价比优化方向
 
 1. **crit_chance_base** (BASE): 每 1% 提升 5.94% DPS，当前 0，需要 +4% 达到 +20% DPS
-2. **speed_inc** (INC): 每 1% 提升 0.56% DPS，当前 75，需要 +34% 达到 +20% DPS
-3. **cast_speed_inc** (INC): 每 1% 提升 0.56% DPS，当前 75，需要 +34% 达到 +20% DPS
+2. **mana_regen** (BASE): 每 1/s 提升 1.67% DPS，当前 60，需要 +12/s 达到 +20% DPS
+3. **life_regen** (BASE): 每 1/s 提升 1.05% DPS，当前 0，需要 +20/s 达到 +20% DPS
 
 ### 🌳 推荐点出的天赋
 
@@ -463,8 +642,8 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 ### 💎 珠宝建议
 
-- 当前 DPS 贡献最高的珠宝: **Rapture Shard** (-6.3%)
-- 无 DPS 贡献的珠宝: **Controlled Metamorphosis**，可考虑替换为伤害珠宝
+- 当前综合贡献最高的珠宝: **Rapture Shard** (DPS +6.3%, EHP +2.1%)
+- 无显著贡献的珠宝: **Controlled Metamorphosis**，可考虑替换
 
 ### 🛡️ 敌人抗性说明
 

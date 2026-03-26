@@ -94,6 +94,7 @@ logger = logging.getLogger(__name__)
 
 SENSITIVITY_PROFILES = {
     # === 伤害类 ===
+
     "damage_inc": {
         "mod_name": "Damage", "mod_type": "INC",
         "label": "increased Damage",
@@ -199,7 +200,7 @@ SENSITIVITY_PROFILES = {
     },
     "crit_chance_base": {
         "mod_name": "CritChance", "mod_type": "BASE",
-        "label": "to Critical Hit Chance",
+        "label": "暴击率",
         "description": "基础暴击率（加到技能基础暴击上，再被INC放大）",
         "search_max": 30, "unit": "%",
     },
@@ -211,7 +212,7 @@ SENSITIVITY_PROFILES = {
     },
     "crit_multi_base": {
         "mod_name": "CritMultiplier", "mod_type": "BASE",
-        "label": "to Critical Damage Bonus",
+        "label": "暴击伤害",
         "description": "暴击伤害基础（稀有词缀如力量之盾，被INC放大）",
         "search_max": 200, "unit": "%",
     },
@@ -342,6 +343,178 @@ SENSITIVITY_PROFILES = {
         "description": "添加固定物理伤害（仅攻击）",
         "search_max": 300, "unit": "",
     },
+
+    # ========== 防御灵敏度 profile (target_stat="TotalEHP") ==========
+    # 复用 sensitivity_analysis 框架，以 TotalEHP 为优化目标。
+    # 注意: 这些 profile 不带 flags，对任何技能类型都适用。
+
+    # === 生命类 ===
+    "life_inc": {
+        "mod_name": "Life", "mod_type": "INC",
+        "label": "生命上限",
+        "description": "生命上限增加（同时提升 TotalEHP 和偷取上限）",
+        "search_max": 500, "unit": "%",
+    },
+    "life_flat": {
+        "mod_name": "Life", "mod_type": "BASE",
+        "label": "生命固定值",
+        "description": "生命上限固定值（装备基础属性）",
+        "search_max": 500, "unit": "",
+    },
+
+    # === 护甲类 ===
+    "armour_inc": {
+        "mod_name": "Armour", "mod_type": "INC",
+        "label": "护甲增加",
+        "description": "护甲增加（降低物理承伤，受递减效应影响）",
+        "search_max": 300, "unit": "%",
+    },
+    "armour_flat": {
+        "mod_name": "Armour", "mod_type": "BASE",
+        "label": "护甲固定值",
+        "description": "护甲固定值（装备基础属性）",
+        "search_max": 5000, "unit": "",
+    },
+
+    # === 闪避类 ===
+    "evasion_inc": {
+        "mod_name": "Evasion", "mod_type": "INC",
+        "label": "闪避增加",
+        "description": "闪避值增加",
+        "search_max": 300, "unit": "%",
+    },
+    "evasion_flat": {
+        "mod_name": "Evasion", "mod_type": "BASE",
+        "label": "闪避值",
+        "description": "闪避值固定值（装备基础属性）",
+        "search_max": 5000, "unit": "",
+    },
+
+    # === 抗性类 ===
+    # 注: 注入 FireResist BASE 会直接叠加到抗性计算中。
+    # 如果构筑抗性已满(75%)，注入可能导致溢出，灵敏度趋近于 0。
+    "fire_resist": {
+        "mod_name": "FireResist", "mod_type": "BASE",
+        "label": "火焰抗性",
+        "description": "火焰抗性（满抗后无额外收益）",
+        "search_max": 75, "unit": "%",
+    },
+    "cold_resist": {
+        "mod_name": "ColdResist", "mod_type": "BASE",
+        "label": "冰霜抗性",
+        "description": "冰霜抗性（满抗后无额外收益）",
+        "search_max": 75, "unit": "%",
+    },
+    "lightning_resist": {
+        "mod_name": "LightningResist", "mod_type": "BASE",
+        "label": "闪电抗性",
+        "description": "闪电抗性（满抗后无额外收益）",
+        "search_max": 75, "unit": "%",
+    },
+    "chaos_resist": {
+        "mod_name": "ChaosResist", "mod_type": "BASE",
+        "label": "混沌抗性",
+        "description": "混沌抗性（通常是最稀缺的抗性）",
+        "search_max": 75, "unit": "%",
+    },
+    "all_elemental_resist": {
+        "mod_name": "ElementalResist", "mod_type": "BASE",
+        "label": "全元素抗性",
+        "description": "全元素抗性（同时增加火/冰/电抗性）",
+        "search_max": 75, "unit": "%",
+    },
+
+    # === 格挡类 ===
+    "block_chance": {
+        "mod_name": "BlockChance", "mod_type": "BASE",
+        "label": "格挡概率",
+        "description": "攻击格挡概率（受 BlockChanceMax 上限限制）",
+        "search_max": 75, "unit": "%",
+    },
+    "spell_block": {
+        "mod_name": "SpellBlockChance", "mod_type": "BASE",
+        "label": "法术格挡概率",
+        "description": "法术格挡概率（与攻击格挡独立）",
+        "search_max": 75, "unit": "%",
+    },
+
+    # === 减伤类 ===
+    "damage_reduction": {
+        "mod_name": "DamageReduction", "mod_type": "BASE",
+        "label": "物理减伤",
+        "description": "额外物理伤害减免（与护甲减伤叠加，受 DamageReductionMax 限制）",
+        "search_max": 90, "unit": "%",
+    },
+
+    # === 恢复类 ===
+    # 以 LifeRegenRecovery / LifeLeech / MaxLifeLeechRate 等为 target_stat
+    "life_regen": {
+        "mod_name": "LifeRegen", "mod_type": "BASE",
+        "label": "生命再生",
+        "description": "每秒生命再生（天赋/装备固定值，不受战斗影响）",
+        "search_max": 100, "unit": "/s",
+        "target_stat": "LifeRegenRecovery",
+    },
+    "life_leech": {
+        "mod_name": "PhysicalDamageLifeLeech", "mod_type": "BASE",
+        "label": "物理生命偷取",
+        "description": "物理伤害生命偷取比例（受 MaxLifeLeechRate 上限约束）",
+        "search_max": 20, "unit": "%",
+        "target_stat": "LifeLeech",
+    },
+    "life_recoup": {
+        "mod_name": "LifeRecoup", "mod_type": "BASE",
+        "label": "伤害回收",
+        "description": "伤害回收为生命（消耗能量后延迟恢复，4秒内回完）",
+        "search_max": 20, "unit": "%",
+        "target_stat": "LifeRecoup",
+    },
+    "life_recovery_rate": {
+        "mod_name": "LifeRecoveryRate", "mod_type": "INC",
+        "label": "生命恢复速率",
+        "description": "生命恢复速率增加（影响再生/偷取/回收/击中恢复）",
+        "search_max": 100, "unit": "%",
+        "target_stat": "LifeRegenRecovery",
+    },
+    "flask_effect": {
+        "mod_name": "FlaskEffect", "mod_type": "INC",
+        "label": "药剂效果",
+        "description": "药剂效果增加（提升生命/魔力药剂恢复量）",
+        "search_max": 100, "unit": "%",
+        "target_stat": "LifeRegenRecovery",
+    },
+    "mana_regen": {
+        "mod_name": "ManaRegen", "mod_type": "BASE",
+        "label": "魔力再生",
+        "description": "每秒魔力再生",
+        "search_max": 100, "unit": "/s",
+        "target_stat": "ManaRegenRecovery",
+    },
+    "mana_leech": {
+        "mod_name": "PhysicalDamageManaLeech", "mod_type": "BASE",
+        "label": "物理魔力偷取",
+        "description": "物理伤害魔力偷取比例（受 MaxManaLeechRate 上限约束）",
+        "search_max": 20, "unit": "%",
+        "target_stat": "ManaLeech",
+    },
+    "mana_recovery_rate": {
+        "mod_name": "ManaRecoveryRate", "mod_type": "INC",
+        "label": "魔力恢复速率",
+        "description": "魔力恢复速率增加（影响再生/偷取/回收）",
+        "search_max": 100, "unit": "%",
+        "target_stat": "ManaRegenRecovery",
+    },
+}
+
+# 目标 stat 中文显示名（公式中使用）
+_STAT_DISPLAY = {
+    "TotalDPS": "DPS",
+    "TotalEHP": "EHP",
+    "LifeRegenRecovery": "生命恢复",
+    "LifeLeech": "生命偷取",
+    "LifeRecoup": "伤害回收",
+    "ManaRegenRecovery": "魔力恢复",
+    "ManaLeech": "魔力偷取",
 }
 
 # 需要同时注入两个 mod 的特殊 profile（flat damage — 仅攻击构筑有效）
@@ -381,6 +554,24 @@ _PROJECTILE_ONLY_PROFILES = {
 _FIXED_SOURCE_PROFILES = {
     "damage_more",     # more Damage — 主要来自升华、光环、辅助宝石
     "speed_more",      # more Speed — 同上
+}
+
+# 防御灵敏度 profile 集合（以 TotalEHP 为优化目标）
+_DEFENCE_PROFILES = {
+    "life_inc", "life_flat",
+    "armour_inc", "armour_flat",
+    "evasion_inc", "evasion_flat",
+    "fire_resist", "cold_resist", "lightning_resist", "chaos_resist",
+    "all_elemental_resist",
+    "block_chance", "spell_block",
+    "damage_reduction",
+}
+
+# 恢复灵敏度 profile 集合（各恢复来源独立 target_stat）
+# 不使用统一的 target_stat（如 LifeRegenRecovery），而是每个 profile 独立评估
+_RECOVERY_PROFILES = {
+    "life_regen", "life_leech", "life_recoup", "life_recovery_rate",
+    "flask_effect", "mana_regen", "mana_leech", "mana_recovery_rate",
 }
 
 
@@ -573,8 +764,6 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
         logger.warning("基线 %s = 0，无法进行灵敏度分析", target_stat)
         return []
 
-    target_dps = base_dps * (1 + target_pct / 100)
-
     # 预查询所有 INC 类型的合并汇总值
     merged_inc_cache = _query_all_merged_inc(lua, calcs)
 
@@ -591,6 +780,25 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
         description = profile["description"]
         search_max = profile["search_max"]
         unit = profile.get("unit", "%")
+
+        # per-profile target_stat 覆盖（恢复类 profile 各有独立目标）
+        profile_target = profile.get("target_stat", target_stat)
+        profile_base = baseline.get(profile_target, 0)
+        profile_target_dps = profile_base * (1 + target_pct / 100)
+
+        # 如果该 profile 的基线为 0，跳过
+        if profile_base == 0:
+            logger.debug("profile '%s' 基线 %s = 0，跳过", key, profile_target)
+            results.append({
+                "key": key, "label": label, "description": description,
+                "mod_name": mod_name, "mod_type": mod_type,
+                "needed_value": None, "unit": unit,
+                "dps_per_unit": None, "target_pct": target_pct,
+                "actual_pct": 0, "current_total": 0,
+                "formula": f"基线 {profile_target}=0，无法分析",
+                "sample_diff": {},
+            })
+            continue
 
         # 查询当前 modDB 汇总值
         if mod_type == "INC" and mod_name in _DAMAGE_INC_STATS:
@@ -618,10 +826,10 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
         else:
             current_total = _query_mod_total_single(lua, calcs, mod_name, mod_type)
 
-        # 二分搜索：找到达到 target_dps 所需的最小注入值
+        # 二分搜索：找到达到 profile_target_dps 所需的最小注入值
         needed_value = _binary_search_needed_value(
             lua, calcs, key, profile, baseline,
-            target_stat, target_dps, search_max
+            profile_target, profile_target_dps, search_max
         )
 
         # 计算实际注入 needed_value 后的 diff（用于 formula 和验证）
@@ -630,13 +838,16 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
         if needed_value is not None:
             sample_diff = _inject_profile(lua, calcs, key, profile,
                                           needed_value, baseline)
-            after_entry = sample_diff.get(target_stat)
+            after_entry = sample_diff.get(profile_target)
             if after_entry:
-                actual_pct = (after_entry[2] / base_dps * 100) if base_dps != 0 else 0
+                actual_pct = (after_entry[2] / profile_base * 100) if profile_base != 0 else 0
 
         # 生成公式
+        tl = profile_target if profile_target != target_stat else "DPS"
+        tl = _STAT_DISPLAY.get(tl, tl)
         formula = _make_formula(mod_name, mod_type, needed_value,
-                                current_total, target_pct, actual_pct)
+                                current_total, target_pct, actual_pct,
+                                target_label=tl)
 
         # 计算每单位数值对 DPS 的贡献百分比
         # dps_per_unit = target_pct / needed_value（即每 1 单位注入带来多少 % DPS）
@@ -967,52 +1178,53 @@ def _diff_outputs(before: dict, after: dict, threshold: float = 0.001) -> dict:
 
 def _make_formula(mod_name: str, mod_type: str, needed_value: float | None,
                   current_total: float, target_pct: float,
-                  actual_pct: float) -> str:
+                  actual_pct: float, target_label: str = "DPS") -> str:
     """生成一行简洁的增量公式字符串（等基准版本）。
 
     Args:
         needed_value: 达到目标所需的注入值，None=无法达到
         current_total: 当前 modDB 合并汇总值
-        target_pct: 目标 DPS 增幅百分比
-        actual_pct: 实际 DPS 增幅百分比（二分搜索精度范围内）
+        target_pct: 目标增幅百分比
+        actual_pct: 实际增幅百分比（二分搜索精度范围内）
+        target_label: 目标指标名称（默认 "DPS"，恢复 profile 用恢复指标名）
 
     Returns:
         如 "INC 238%→297%, 需要 +59 → DPS +30.0%"
     """
     if needed_value is None:
-        return f"无法在搜索范围内达到 DPS +{target_pct:.0f}%"
+        return f"无法在搜索范围内达到 {target_label} +{target_pct:.0f}%"
 
-    dps_part = f"DPS +{actual_pct:.1f}%"
+    effect_part = f"{target_label} +{actual_pct:.1f}%"
 
     if mod_type == "INC":
         old_inc = current_total
         new_inc = old_inc + needed_value
-        return f"INC {old_inc:.0f}%→{new_inc:.0f}%, 需要 +{needed_value:.0f} → {dps_part}"
+        return f"INC {old_inc:.0f}%→{new_inc:.0f}%, 需要 +{needed_value:.0f} → {effect_part}"
 
     elif mod_type == "MORE":
         more_factor = needed_value
-        return f"需要 MORE +{more_factor:.0f}% (×{1+more_factor/100:.2f}) → {dps_part}"
+        return f"需要 MORE +{more_factor:.0f}% (×{1+more_factor/100:.2f}) → {effect_part}"
 
     elif mod_type == "BASE":
         if "Penetration" in mod_name:
-            return f"需要 +{needed_value:.0f}% 穿透 → {dps_part}"
+            return f"需要 +{needed_value:.0f}% 穿透 → {effect_part}"
         elif mod_name == "ProjectileCount":
             old_base = current_total
-            return f"投射物 {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {dps_part}"
+            return f"投射物 {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {effect_part}"
         elif mod_name in ("CritChance",):
             old_base = current_total
-            return f"baseCrit {old_base:.1f}%→{old_base+needed_value:.1f}%, 需要 +{needed_value:.1f}% → {dps_part}"
+            return f"baseCrit {old_base:.1f}%→{old_base+needed_value:.1f}%, 需要 +{needed_value:.1f}% → {effect_part}"
         elif mod_name == "CritMultiplier":
             old_base = current_total
-            return f"CritBase {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {dps_part}"
+            return f"CritBase {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {effect_part}"
         elif "Min+Max" in mod_name:
             max_val = needed_value * 2
-            return f"需要添加 {needed_value:.0f}-{max_val:.0f} 基础伤害 → {dps_part}"
+            return f"需要添加 {needed_value:.0f}-{max_val:.0f} 基础伤害 → {effect_part}"
         else:
             old_base = current_total
-            return f"BASE {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {dps_part}"
+            return f"BASE {old_base:.0f}→{old_base+needed_value:.0f}, 需要 +{needed_value:.0f} → {effect_part}"
 
-    return f"需要 +{needed_value:.1f} → {dps_part}"
+    return f"需要 +{needed_value:.1f} → {effect_part}"
 
 
 def what_if_mod(lua, calcs, mod_name: str, mod_type: str, value: float,
@@ -1380,10 +1592,11 @@ def passive_node_exploration(lua, calcs, baseline: dict = None,
 
 
 def diagnose_jewels(lua, calcs, baseline: dict = None,
-                    dps_stat: str = "TotalDPS") -> list[dict]:
-    """诊断构筑中所有珠宝的加载状态和 DPS 贡献。
+                    dps_stat: str = "TotalDPS",
+                    ehp_stat: str = "TotalEHP") -> list[dict]:
+    """诊断构筑中所有珠宝的加载状态和 DPS+EHP 贡献。
 
-    检查每个珠宝是否正确加载、mod 是否被解析、是否影响 DPS。
+    检查每个珠宝是否正确加载、mod 是否被解析、是否影响 DPS 和 EHP。
     特别关注 Megalomaniac 等通过 "Allocates" 分配天赋的珠宝。
 
     Returns:
@@ -1398,6 +1611,7 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
             "mods": mod 列表 [{"name", "type", "value", "source"}],
             "granted_passives": 分配的天赋节点名称列表,
             "dps_pct": 移除此珠宝后 DPS 下降百分比（正值=正向贡献）,
+            "ehp_pct": 移除此珠宝后 EHP 下降百分比（正值=正向贡献）,
             "status": "ok" / "empty" / "no_base" / "no_mods",
         }, ...]
     """
@@ -1405,6 +1619,7 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
         baseline = calculate(lua, calcs)
 
     base_dps = baseline.get(dps_stat, 0)
+    base_ehp = baseline.get(ehp_stat, 0)
 
     # 从 Lua 端获取所有珠宝槽位信息
     result = lua.execute('''
@@ -1562,7 +1777,7 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
             diff_result = lua.execute(f'''
                 local build = _spike_build
                 local slot = build.itemsTab.slots['{slot_name}']
-                if not slot then return tostring({base_dps}) end
+                if not slot then return "ERR" end
                 local originalId = slot.selItemId
                 local originalJewel = build.spec.jewels[{node_id}]
                 slot.selItemId = 0
@@ -1570,15 +1785,23 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                 local env = calcs.initEnv(build, "MAIN")
                 calcs.perform(env)
                 local dps = env.player.output.TotalDPS or 0
+                local ehp = env.player.output.TotalEHP or 0
                 slot.selItemId = originalId
                 build.spec.jewels[{node_id}] = originalJewel
-                return tostring(dps)
+                return tostring(dps) .. "|" .. tostring(ehp)
             ''')
-            after_dps = float(str(diff_result)) if diff_result else base_dps
+            if diff_result and str(diff_result) != "ERR" and "|" in str(diff_result):
+                parts = str(diff_result).split("|")
+                after_dps = float(parts[0]) if parts else base_dps
+                after_ehp = float(parts[1]) if len(parts) > 1 else base_ehp
+            else:
+                after_dps = base_dps
+                after_ehp = base_ehp
             dps_delta = after_dps - base_dps
-            # dps_pct 表示珠宝的 DPS 贡献（正值=增加 DPS，负值=降低 DPS）
-            # 计算方式：移除珠宝后 DPS 下降 → 贡献为正
+            ehp_delta = after_ehp - base_ehp
+            # dps_pct/ehp_pct 表示珠宝的贡献（正值=正向贡献）
             jewel["dps_pct"] = round(-dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
+            jewel["ehp_pct"] = round(-ehp_delta / base_ehp * 100, 2) if base_ehp != 0 else 0.0
         except Exception as e:
             logger.warning("珠宝 DPS 诊断失败 %s: %s", slot_name, e)
 
@@ -1603,20 +1826,33 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                     local override = {{ removeNodes = removeNodes }}
                     local env = calcs.initEnv(build, "CALCULATOR", override)
                     calcs.perform(env)
-                    return tostring(env.player.output.TotalDPS or 0)
+                    return tostring(env.player.output.TotalDPS or 0) .. "|"
+                           .. tostring(env.player.output.TotalEHP or 0)
                 ''')
-                gp_after_dps = float(str(granted_diff)) if granted_diff else base_dps
+                if granted_diff and "|" in str(granted_diff):
+                    parts = str(granted_diff).split("|")
+                    gp_after_dps = float(parts[0])
+                    gp_after_ehp = float(parts[1]) if len(parts) > 1 else base_ehp
+                else:
+                    gp_after_dps = base_dps
+                    gp_after_ehp = base_ehp
                 gp_dps_delta = gp_after_dps - base_dps
-                # dps_pct 表示贡献（正值=增加 DPS）
+                gp_ehp_delta = gp_after_ehp - base_ehp
+                # dps_pct/ehp_pct 表示贡献（正值=正向贡献）
                 gp_dps_pct = round(-gp_dps_delta / base_dps * 100, 2) if base_dps != 0 else 0.0
+                gp_ehp_pct = round(-gp_ehp_delta / base_ehp * 100, 2) if base_ehp != 0 else 0.0
 
                 jewel["granted_dps_pct"] = gp_dps_pct
+                jewel["granted_ehp_pct"] = gp_ehp_pct
                 # 取物品移除和节点移除中影响更大的作为总 DPS 贡献
                 if abs(gp_dps_pct) > abs(jewel["dps_pct"]):
                     jewel["dps_pct"] = gp_dps_pct
                     jewel["dps_source"] = "granted_passives"
                 else:
                     jewel["dps_source"] = "item_mods"
+                # 取物品移除和节点移除中影响更大的作为总 EHP 贡献
+                if abs(gp_ehp_pct) > abs(jewel["ehp_pct"]):
+                    jewel["ehp_pct"] = gp_ehp_pct
             except Exception as e:
                 logger.warning("GrantedPassive DPS 诊断失败 %s: %s", slot_name, e)
 
@@ -1670,22 +1906,32 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                                             and type(origVal) == "number"
                             if canZero then
                                 m.value = 0
-                                local ok, dps = pcall(function()
+                                local ok, dps, ehp = pcall(function()
                                     local env = calcs.initEnv(build, "MAIN")
                                     calcs.perform(env)
-                                    return env.player.output.TotalDPS or 0
+                                    return env.player.output.TotalDPS or 0,
+                                           env.player.output.TotalEHP or 0
                                 end)
                                 m.value = origVal
-                                results[#results+1] = ok and tostring(dps) or "ERR"
+                                if ok then
+                                    results[#results+1] = tostring(dps) .. "|" .. tostring(ehp)
+                                else
+                                    results[#results+1] = "ERR"
+                                end
                             else
                                 table.remove(ml, idx)
-                                local ok, dps = pcall(function()
+                                local ok, dps, ehp = pcall(function()
                                     local env = calcs.initEnv(build, "MAIN")
                                     calcs.perform(env)
-                                    return env.player.output.TotalDPS or 0
+                                    return env.player.output.TotalDPS or 0,
+                                           env.player.output.TotalEHP or 0
                                 end)
                                 table.insert(ml, idx, m)
-                                results[#results+1] = ok and tostring(dps) or "ERR"
+                                if ok then
+                                    results[#results+1] = tostring(dps) .. "|" .. tostring(ehp)
+                                else
+                                    results[#results+1] = "ERR"
+                                end
                             end
                         end
                     end
@@ -1693,18 +1939,24 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                 ''')
 
                 if per_mod_result:
-                    dps_values = str(per_mod_result).split(",")
-                    for j, dps_str in enumerate(dps_values):
-                        if j < len(normal_indices) and dps_str != "ERR":
+                    mod_values = str(per_mod_result).split(",")
+                    for j, val_str in enumerate(mod_values):
+                        if j < len(normal_indices) and val_str != "ERR" and "|" in val_str:
                             try:
-                                after = float(dps_str)
-                                # dps_pct 表示贡献（正值=增加 DPS）
-                                delta_pct = round(-(after - base_dps) / base_dps * 100, 2)
-                                mods[normal_indices[j]]["dps_pct"] = delta_pct
+                                parts = val_str.split("|")
+                                after_dps = float(parts[0])
+                                after_ehp = float(parts[1]) if len(parts) > 1 else base_ehp
+                                # dps_pct/ehp_pct 表示贡献（正值=正向贡献）
+                                mods[normal_indices[j]]["dps_pct"] = round(
+                                    -(after_dps - base_dps) / base_dps * 100, 2) if base_dps != 0 else 0.0
+                                mods[normal_indices[j]]["ehp_pct"] = round(
+                                    -(after_ehp - base_ehp) / base_ehp * 100, 2) if base_ehp != 0 else 0.0
                             except (ValueError, ZeroDivisionError):
                                 mods[normal_indices[j]]["dps_pct"] = None
+                                mods[normal_indices[j]]["ehp_pct"] = None
                         elif j < len(normal_indices):
                             mods[normal_indices[j]]["dps_pct"] = None
+                            mods[normal_indices[j]]["ehp_pct"] = None
             except Exception as e:
                 logger.warning("珠宝普通 mod DPS 诊断失败 %s: %s", slot_name, e)
 
@@ -1712,6 +1964,7 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
         for gi, gname in zip(granted_indices, granted_names):
             if not gname:
                 mods[gi]["dps_pct"] = None
+                mods[gi]["ehp_pct"] = None
                 continue
             try:
                 # 用单行 Lua 避免多行字符串嵌套问题
@@ -1726,23 +1979,30 @@ def diagnose_jewels(lua, calcs, baseline: dict = None,
                     'local override = { removeNodes = removeNodes }; '
                     'local env = calcs.initEnv(build, "CALCULATOR", override); '
                     'calcs.perform(env); '
-                    'return tostring(env.player.output.TotalDPS or 0)'
+                    'return tostring(env.player.output.TotalDPS or 0) .. "|"'
+                    '.. tostring(env.player.output.TotalEHP or 0)'
                 )
                 r = lua.execute(lua_code)
-                if r and str(r) != "NOT_FOUND":
-                    after = float(str(r))
-                    # dps_pct 表示贡献（正值=增加 DPS）
-                    delta_pct = round(-(after - base_dps) / base_dps * 100, 2)
-                    mods[gi]["dps_pct"] = delta_pct
+                if r and str(r) != "NOT_FOUND" and "|" in str(r):
+                    parts = str(r).split("|")
+                    after_dps = float(parts[0])
+                    after_ehp = float(parts[1]) if len(parts) > 1 else base_ehp
+                    # dps_pct/ehp_pct 表示贡献（正值=正向贡献）
+                    mods[gi]["dps_pct"] = round(
+                        -(after_dps - base_dps) / base_dps * 100, 2) if base_dps != 0 else 0.0
+                    mods[gi]["ehp_pct"] = round(
+                        -(after_ehp - base_ehp) / base_ehp * 100, 2) if base_ehp != 0 else 0.0
                 else:
                     mods[gi]["dps_pct"] = None
+                    mods[gi]["ehp_pct"] = None
             except Exception as e:
                 logger.warning("GrantedPassive 逐条 DPS 诊断失败 %s[%s]: %s",
                                slot_name, gname, e)
                 mods[gi]["dps_pct"] = None
+                mods[gi]["ehp_pct"] = None
 
-    # 按 DPS 贡献降序排列（绝对值最大的在前）
-    jewels.sort(key=lambda x: abs(x["dps_pct"]), reverse=True)
+    # 按 DPS+EHP 综合贡献降序排列
+    jewels.sort(key=lambda x: abs(x.get("dps_pct", 0)) + abs(x.get("ehp_pct", 0)), reverse=True)
     return jewels
 
 
@@ -3467,11 +3727,11 @@ _AURA_CANDIDATES = [
         "description": "Frenzy/Power/Endurance Charge 增益",
         "charge_configs": [
             {"var": "useFrenzyCharges", "type": "check", "value": True},
-            {"var": "overrideFrenzyCharges", "type": "count", "value": 3},
+            {"var": "overrideFrenzyCharges", "type": "count", "value": None},  # 动态
             {"var": "usePowerCharges", "type": "check", "value": True},
-            {"var": "overridePowerCharges", "type": "count", "value": 3},
+            {"var": "overridePowerCharges", "type": "count", "value": None},   # 动态
             {"var": "useEnduranceCharges", "type": "check", "value": True},
-            {"var": "overrideEnduranceCharges", "type": "count", "value": 3},
+            {"var": "overrideEnduranceCharges", "type": "count", "value": None},  # 动态
         ],
     },
     {
@@ -4753,6 +5013,377 @@ def _test_add_spirit_support(lua, calcs, support: dict,
     }
 
 
+def defence_overview(baseline: dict) -> dict:
+    """Section 2A: 防御概览 — 从 baseline output 读取防御数据。
+
+    零 Lua 交互，纯 output 数据读取。
+
+    Args:
+        baseline: 基线 output dict
+
+    Returns:
+        {
+            "pools": {Life, LifeUnreserved, LifeRecoverable, EnergyShield,
+                      EnergyShieldRecoveryCap, Mana, ManaUnreserved,
+                      Ward, sharedMindOverMatter},
+            "armour": Armour,
+            "evasion": Evasion,
+            "block": {BlockChance, SpellBlockChance, EffectiveAverageBlockChance,
+                      BlockEffect},
+            "suppression": EffectiveSpellSuppressionChance,
+            "deflect": DeflectChance,
+            "resistances": {Fire, Cold, Lightning, Chaos} × {Resist, ResistMax, ResistOverCap},
+            "max_hit_taken": {Physical, Fire, Cold, Lightning, Chaos} MaximumHitTaken,
+            "dot_ehp": {Physical, Fire, Cold, Lightning, Chaos} DotEHP,
+            "total_ehp": TotalEHP,
+            "total_number_of_hits": TotalNumberOfHits,
+        }
+    """
+    bl = baseline
+
+    # Pool 构成
+    pools = {
+        "Life": bl.get("Life", 0),
+        "LifeUnreserved": bl.get("LifeUnreserved", 0),
+        "LifeRecoverable": bl.get("LifeRecoverable", 0),
+        "EnergyShield": bl.get("EnergyShield", 0),
+        "ESRecoveryCap": bl.get("EnergyShieldRecoveryCap", 0),
+        "Mana": bl.get("Mana", 0),
+        "ManaUnreserved": bl.get("ManaUnreserved", 0),
+        "Ward": bl.get("Ward", 0),
+        "MoMPct": bl.get("sharedMindOverMatter", 0),
+    }
+
+    # 减伤层
+    armour = bl.get("Armour", 0)
+    evasion = bl.get("Evasion", 0)
+    block = {
+        "BlockChance": bl.get("BlockChance", 0),
+        "SpellBlockChance": bl.get("SpellBlockChance", 0),
+        "EffectiveAvgBlock": bl.get("EffectiveAverageBlockChance", 0),
+        "BlockEffect": bl.get("BlockEffect", 0),
+    }
+    suppression = bl.get("EffectiveSpellSuppressionChance", 0)
+    deflect = bl.get("DeflectChance", 0)
+
+    # 抗性面板
+    resist_types = ["Fire", "Cold", "Lightning", "Chaos"]
+    resistances = {}
+    for elem in resist_types:
+        resistances[elem] = {
+            "Resist": bl.get(f"{elem}Resist", 0),
+            "ResistMax": bl.get(f"{elem}ResistMax", 75),
+            "ResistOverCap": bl.get(f"{elem}ResistOverCap", 0),
+        }
+
+    # MaxHitTaken（5 种伤害类型）
+    max_hit = {}
+    for dtype in resist_types:
+        max_hit[dtype] = bl.get(f"{dtype}MaximumHitTaken", 0)
+
+    # DotEHP
+    dot_ehp = {}
+    for dtype in resist_types:
+        dot_ehp[dtype] = bl.get(f"{dtype}DotEHP", 0)
+
+    # 承伤乘数（每种伤害类型最终承受比例，越小越好）
+    taken_hit_mult = {}
+    for dtype in resist_types:
+        taken_hit_mult[dtype] = bl.get(f"{dtype}TakenHitMult", 0)
+
+    # 找最短板
+    weakest = min(max_hit, key=max_hit.get) if any(max_hit.values()) else None
+    # 找最短板对应的承伤占比（vs 最大值）
+    if weakest and max( max_hit.values(), default=0) > 0:
+        weakest_pct = max_hit[weakest] / max( max_hit.values(), default=1) * 100
+    else:
+        weakest_pct = 0
+
+    return {
+        "pools": pools,
+        "armour": armour,
+        "evasion": evasion,
+        "block": block,
+        "suppression": suppression,
+        "deflect": deflect,
+        "resistances": resistances,
+        "max_hit_taken": max_hit,
+        "dot_ehp": dot_ehp,
+        "taken_hit_mult": taken_hit_mult,
+        "total_ehp": bl.get("TotalEHP", 0),
+        "total_number_of_hits": bl.get("TotalNumberOfHits", 0),
+        "weakest_type": weakest,
+        "weakest_pct": weakest_pct,
+    }
+
+
+# =============================================================================
+# 资源面分析
+# =============================================================================
+
+
+def resource_overview(baseline: dict) -> dict:
+    """Part 3.1: 资源预算概览 — 从 baseline output 读取资源数据。
+
+    零 Lua 交互，纯 output 数据读取。
+
+    Returns:
+        {
+            "life": {total, unreserved, recoverable},
+            "mana": {total, unreserved, reserved_pct},
+            "spirit": {total, unreserved, reserved_pct},
+            "es": {total, recovery_cap},
+            "ward": Ward,
+            "life_sustainability": "可续航"/"不可续航"/"未知",
+            "mana_sustainability": ...,
+        }
+    """
+    bl = baseline
+
+    life_total = bl.get("Life", 0)
+    life_unreserved = bl.get("LifeUnreserved", 0)
+    life_recoverable = bl.get("LifeRecoverable", life_total)
+
+    mana_total = bl.get("Mana", 0)
+    mana_unreserved = bl.get("ManaUnreserved", mana_total)
+    mana_reserved_pct = ((mana_total - mana_unreserved) / mana_total * 100
+                         if mana_total > 0 else 0)
+
+    spirit_total = bl.get("Spirit", 0)
+    spirit_unreserved = bl.get("SpiritUnreserved", spirit_total)
+    spirit_reserved_pct = ((spirit_total - spirit_unreserved) / spirit_total * 100
+                           if spirit_total > 0 else 0)
+
+    es_total = bl.get("EnergyShield", 0)
+    es_recovery_cap = bl.get("EnergyShieldRecoveryCap", es_total)
+
+    ward = bl.get("Ward", 0)
+
+    return {
+        "life": {
+            "total": life_total,
+            "unreserved": life_unreserved,
+            "recoverable": life_recoverable,
+        },
+        "mana": {
+            "total": mana_total,
+            "unreserved": mana_unreserved,
+            "reserved_pct": mana_reserved_pct,
+        },
+        "spirit": {
+            "total": spirit_total,
+            "unreserved": spirit_unreserved,
+            "reserved_pct": spirit_reserved_pct,
+        },
+        "es": {
+            "total": es_total,
+            "recovery_cap": es_recovery_cap,
+        },
+        "ward": ward,
+    }
+
+
+def life_recovery_analysis(baseline: dict) -> dict:
+    """Part 3.2: 生命恢复能力分析 — 聚合所有恢复来源。
+
+    Returns:
+        {
+            "sources": [
+                {"name": "偷取", "rate": 120.0, "details": {...}},
+                {"name": "再生", "rate": 45.0, "details": {...}},
+                ...
+            ],
+            "total_rate": 173.3,
+            "time_to_full": 18.8,
+            "leech_rate_pct": 37.0,
+        }
+    """
+    bl = baseline
+    sources = []
+
+    # 再生
+    regen = bl.get("LifeRegenRecovery", 0)
+    if regen != 0:
+        sources.append({
+            "name": "再生",
+            "rate": regen,
+            "details": {"LifeRegenRecovery": regen},
+        })
+
+    # 偷取 (Leech)
+    leech = bl.get("LifeLeech", 0)
+    leech_instant = bl.get("LifeLeechInstant", 0)
+    leech_rate = leech + leech_instant
+    if leech_rate != 0:
+        max_leech_rate = bl.get("MaxLifeLeechRate", 0)
+        leech_util = (leech_rate / max_leech_rate * 100) if max_leech_rate > 0 else 0
+        sources.append({
+            "name": "偷取",
+            "rate": leech_rate,
+            "details": {
+                "LifeLeech": leech,
+                "LifeLeechInstant": leech_instant,
+                "MaxLifeLeechRate": max_leech_rate,
+                "利用率": round(leech_util, 1),
+            },
+        })
+
+    # 回收 (Recoup)
+    recoup = bl.get("LifeRecoup", 0)
+    if recoup != 0:
+        sources.append({
+            "name": "回收",
+            "rate": recoup,
+            "details": {"LifeRecoup": recoup},
+        })
+
+    # 击中恢复
+    on_hit = bl.get("LifeOnHitRate", 0)
+    if on_hit != 0:
+        sources.append({
+            "name": "击中恢复",
+            "rate": on_hit,
+            "details": {"LifeOnHitRate": on_hit},
+        })
+
+    # 按贡献排序
+    sources.sort(key=lambda x: abs(x["rate"]), reverse=True)
+
+    total_rate = sum(s["rate"] for s in sources)
+    life = bl.get("Life", 1)
+    time_to_full = life / total_rate if total_rate > 0 else float("inf")
+
+    max_leech = bl.get("MaxLifeLeechRate", 0)
+    leech_rate_pct = ((leech_rate / max_leech * 100) if max_leech > 0 and leech_rate > 0
+                      else 0)
+
+    return {
+        "sources": sources,
+        "total_rate": round(total_rate, 1),
+        "time_to_full": round(time_to_full, 1),
+        "leech_rate_pct": round(leech_rate_pct, 1),
+        "max_leech_rate": max_leech,
+    }
+
+
+def mana_recovery_analysis(baseline: dict) -> dict:
+    """Part 3.3: 魔力恢复能力分析 — 结构同 life_recovery_analysis。
+
+    Returns:
+        {
+            "sources": [...],
+            "total_rate": ...,
+            "time_to_full": ...,
+        }
+    """
+    bl = baseline
+    sources = []
+
+    # 魔力再生
+    regen = bl.get("ManaRegenRecovery", 0)
+    if regen != 0:
+        sources.append({
+            "name": "再生",
+            "rate": regen,
+            "details": {"ManaRegenRecovery": regen},
+        })
+
+    # 魔力偷取
+    leech = bl.get("ManaLeech", 0)
+    leech_instant = bl.get("ManaLeechInstant", 0)
+    leech_rate = leech + leech_instant
+    if leech_rate != 0:
+        max_leech_rate = bl.get("MaxManaLeechRate", 0)
+        leech_util = (leech_rate / max_leech_rate * 100) if max_leech_rate > 0 else 0
+        sources.append({
+            "name": "偷取",
+            "rate": leech_rate,
+            "details": {
+                "ManaLeech": leech,
+                "ManaLeechInstant": leech_instant,
+                "MaxManaLeechRate": max_leech_rate,
+                "利用率": round(leech_util, 1),
+            },
+        })
+
+    # 魔力回收
+    recoup = bl.get("ManaRecoup", 0)
+    if recoup != 0:
+        sources.append({
+            "name": "回收",
+            "rate": recoup,
+            "details": {"ManaRecoup": recoup},
+        })
+
+    sources.sort(key=lambda x: abs(x["rate"]), reverse=True)
+
+    total_rate = sum(s["rate"] for s in sources)
+    mana = bl.get("ManaUnreserved", 1)
+    time_to_full = mana / total_rate if total_rate > 0 else float("inf")
+
+    return {
+        "sources": sources,
+        "total_rate": round(total_rate, 1),
+        "time_to_full": round(time_to_full, 1),
+    }
+
+
+def _validate_aura_consistency(aura_data: dict) -> list:
+    """数据一致性校验，返回警告列表。
+
+    校验规则：
+    1. EC MORE 值非零（确保动态读取成功）
+    2. Charge 数量与默认值 3 不同时标注
+    3. 候选光环无 DPS 影响时检查可能原因
+    """
+    warnings = []
+
+    existing = aura_data.get("existing_auras", [])
+    candidates = aura_data.get("candidate_auras", [])
+
+    # B1. EC MORE 值检查
+    for a in existing:
+        if a.get("name") == "Elemental Conflux" and a.get("simulated"):
+            raw_val = a.get("raw_value", 0)
+            gem_level = a.get("gem_level")
+            if raw_val <= 0:
+                warnings.append(f"EC MORE 值为 {raw_val}（动态读取可能失败），结果不可靠")
+            elif gem_level and gem_level != 20:
+                warnings.append(f"EC 使用构筑实际等级 Lv{gem_level}（MORE={raw_val:.0f}%），非满级 Lv20")
+
+    # B2. Charge 数量标注
+    for a in existing:
+        if a.get("name") == "Charge Infusion" and a.get("simulated"):
+            cc = a.get("charge_counts", {})
+            if cc:
+                parts = []
+                for ct, val in cc.items():
+                    if val != 3:
+                        parts.append(f"{ct}={val}")
+                if parts:
+                    warnings.append(f"Charge Infusion 使用非默认 Charge 数量: {', '.join(parts)}")
+
+    # B3. 空结果归因检查
+    for c in candidates:
+        if c.get("dps_pct", 0) <= 0.1:
+            name = c.get("name", "?")
+            if name == "Berserk":
+                warnings.append(f"{name} 无 DPS 影响：可能因为构筑已通过其他方式获得 Rage 效果")
+            elif name == "Attrition":
+                warnings.append(f"{name} 无 DPS 影响：需要命中敌人才能叠加 Wither，纯模拟可能无法体现")
+
+    # B4. 精魄辅助无影响检查
+    ss_tests = aura_data.get("spirit_support_tests", [])
+    zero_ss = [s for s in ss_tests if s.get("dps_pct", 0) <= 0.1]
+    if len(zero_ss) == len(ss_tests) and len(ss_tests) > 0:
+        warnings.append("所有精魄辅助测试均无 DPS 影响：可能是法术构筑（Direstrike/Precision 对攻击构筑无效）")
+
+    return warnings
+
+
+
+
+
 def aura_spirit_analysis(lua, calcs, baseline: dict = None,
                          skill_flags: dict = None,
                          dps_breakdown: dict = None) -> dict:
@@ -4947,12 +5578,21 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
             if key and total:
                 build_modifiers[key] = {"total": total, "display": display}
 
+    # 运行一致性校验
+    aura_data = {
+        "existing_auras": existing_auras,
+        "candidate_auras": candidate_auras,
+        "spirit_support_tests": spirit_support_tests,
+    }
+    warnings = _validate_aura_consistency(aura_data)
+
     return {
         "existing_auras": existing_auras,
         "candidate_auras": candidate_auras,
         "spirit_support_tests": spirit_support_tests,
         "spirit_budget": spirit_budget,
         "build_modifiers": build_modifiers,
+        "warnings": warnings,
     }
 
 
@@ -5055,6 +5695,35 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
         dps_breakdown=dps_bd)
     logger.info("光环与精魄分析完成")
 
+    # 8. 防御概览（纯 output 读取，零 Lua 交互）
+    defence_ov = defence_overview(baseline)
+    logger.info("防御概览完成")
+
+    # 9. 防御灵敏度分析（复用 sensitivity_analysis 框架，target_stat=TotalEHP）
+    def_sens = sensitivity_analysis(
+        lua, calcs,
+        profiles=list(_DEFENCE_PROFILES),
+        target_stat="TotalEHP",
+        target_pct=target_pct,
+        baseline=baseline,
+    )
+    logger.info("防御灵敏度分析完成: %d 个 profile", len(def_sens))
+
+    # 10. 资源面分析（纯 output 读取，零 Lua 交互）
+    res_ov = resource_overview(baseline)
+    life_recov = life_recovery_analysis(baseline)
+    mana_recov = mana_recovery_analysis(baseline)
+    logger.info("资源面分析完成")
+
+    # 11. 恢复增强灵敏度（复用 sensitivity_analysis 框架，各 profile 独立 target_stat）
+    recovery_sens = sensitivity_analysis(
+        lua, calcs,
+        profiles=list(_RECOVERY_PROFILES),
+        target_pct=target_pct,
+        baseline=baseline,
+    )
+    logger.info("恢复灵敏度分析完成: %d 个 profile", len(recovery_sens))
+
     return {
         "baseline": baseline,
         "main_skill": main_skill,
@@ -5065,6 +5734,12 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
         "jewel_diagnosis": jewel_diag,
         "dps_breakdown": dps_bd,
         "aura_spirit": aura_spirit,
+        "defence_overview": defence_ov,
+        "defence_sensitivity": def_sens,
+        "resource_overview": res_ov,
+        "life_recovery": life_recov,
+        "mana_recovery": mana_recov,
+        "recovery_sensitivity": recovery_sens,
     }
 
 
@@ -5087,11 +5762,11 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     # Damage_MORE 是所有 MORE 修饰符的汇总乘数（如 ×1.20 表示 20% MORE）
     total_more = bm.get("Damage_MORE", {}).get("total", 1)
 
-    lines.append("## 7. 光环与精魄分析")
+    lines.append("## 9. 光环与精魄分析")
     lines.append("")
 
     # 7A: 现有光环
-    lines.append("### 7A. 现有光环 DPS 贡献")
+    lines.append("### 9A. 现有光环 DPS 贡献")
     lines.append("")
 
     if existing_auras:
@@ -5210,7 +5885,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("")
 
     # 7B: 潜在光环推荐
-    lines.append("### 7B. 潜在光环推荐")
+    lines.append("### 9B. 潜在光环推荐")
     lines.append("")
 
     effective_candidates = [c for c in candidate_auras
@@ -5245,8 +5920,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append(f"- {display}")
         lines.append("")
 
-    # 7C: 精魄辅助推荐
-    lines.append("### 7C. 精魄辅助推荐")
+    # 9C: 精魄辅助推荐
+    lines.append("### 9C. 精魄辅助推荐")
     lines.append("")
 
     effective_ss = [s for s in spirit_tests
@@ -5277,7 +5952,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("")
 
     # 7D: Spirit Budget
-    lines.append("### 7D. 精魄预算")
+    lines.append("### 9D. 精魄预算")
     lines.append("")
 
     total = budget.get("total", 0)
@@ -5303,9 +5978,9 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("")
 
     # 7E: 数据一致性校验
-    warnings = _validate_aura_consistency(aura_data)
+    warnings = aura_data.get("warnings", [])
     if warnings:
-        lines.append("### 7E. 数据一致性检查")
+        lines.append("### 9E. 数据一致性检查")
         lines.append("")
         lines.append("**⚠️ 以下项目需要人工确认：**")
         lines.append("")
@@ -5314,58 +5989,192 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("")
 
 
-def _validate_aura_consistency(aura_data: dict) -> list:
-    """数据一致性校验，返回警告列表。
+def _format_section_defence(lines: list, defence_ov: dict,
+                              defence_sens: list, baseline: dict):
+    """格式化 Part 2: 防御面（概览 + 灵敏度）。"""
+    if not defence_ov:
+        return
 
-    校验规则：
-    1. EC MORE 值非零（确保动态读取成功）
-    2. Charge 数量与默认值 3 不同时标注
-    3. 候选光环无 DPS 影响时检查可能原因
-    """
-    warnings = []
+    total_ehp = defence_ov.get("total_ehp", 0)
+    if total_ehp <= 0:
+        return
 
-    existing = aura_data.get("existing_auras", [])
-    candidates = aura_data.get("candidate_auras", [])
+    pools = defence_ov.get("pools", {})
+    resistances = defence_ov.get("resistances", {})
+    max_hit = defence_ov.get("max_hit_taken", {})
+    dot_ehp = defence_ov.get("dot_ehp", {})
+    taken_hit_mult = defence_ov.get("taken_hit_mult", {})
+    weakest = defence_ov.get("weakest_type", "")
+    weakest_pct = defence_ov.get("weakest_pct", 0)
+    num_hits = defence_ov.get("total_number_of_hits", 0)
 
-    # B1. EC MORE 值检查
-    for a in existing:
-        if a.get("name") == "Elemental Conflux" and a.get("simulated"):
-            raw_val = a.get("raw_value", 0)
-            gem_level = a.get("gem_level")
-            if raw_val <= 0:
-                warnings.append(f"EC MORE 值为 {raw_val}（动态读取可能失败），结果不可靠")
-            elif gem_level and gem_level != 20:
-                # 非标准等级时提示
-                warnings.append(f"EC 使用构筑实际等级 Lv{gem_level}（MORE={raw_val:.0f}%），非满级 Lv20")
+    # === Part 4.1: 防御概览 ===
+    lines.append("## 4. 防御面")
+    lines.append("")
 
-    # B2. Charge 数量标注
-    for a in existing:
-        if a.get("name") == "Charge Infusion" and a.get("simulated"):
-            cc = a.get("charge_counts", {})
-            if cc:
-                parts = []
-                for ct, val in cc.items():
-                    if val != 3:
-                        parts.append(f"{ct}={val}")
-                if parts:
-                    warnings.append(f"Charge Infusion 使用非默认 Charge 数量: {', '.join(parts)}")
+    # 4A 生命池构成
+    lines.append("### 4A. 生命池构成")
+    lines.append("")
+    lines.append("| 资源 | 数值 | 备注 |")
+    lines.append("|------|------|------|")
 
-    # B3. 空结果归因检查
-    for c in candidates:
-        if c.get("dps_pct", 0) <= 0.1:
-            name = c.get("name", "?")
-            if name == "Berserk":
-                warnings.append(f"{name} 无 DPS 影响：可能因为构筑已通过其他方式获得 Rage 效果")
-            elif name == "Attrition":
-                warnings.append(f"{name} 无 DPS 影响：需要命中敌人才能叠加 Wither，纯模拟可能无法体现")
+    life = pools.get("Life", 0)
+    es = pools.get("EnergyShield", 0)
+    mana = pools.get("Mana", 0)
+    ward = pools.get("Ward", 0)
+    mom_pct = pools.get("MoMPct", 0)
 
-    # B4. 精魄辅助无影响检查
-    ss_tests = aura_data.get("spirit_support_tests", [])
-    zero_ss = [s for s in ss_tests if s.get("dps_pct", 0) <= 0.1]
-    if len(zero_ss) == len(ss_tests) and len(ss_tests) > 0:
-        warnings.append("所有精魄辅助测试均无 DPS 影响：可能是法术构筑（Direstrike/Precision 对攻击构筑无效）")
+    lines.append(f"| Life | {life:,.0f} | — |")
+    if es > 0:
+        lines.append(f"| Energy Shield | {es:,.0f} | — |")
+    lines.append(f"| Mana | {mana:,.0f} | 可用 {pools.get('ManaUnreserved', 0):,.0f} |")
+    if ward > 0:
+        lines.append(f"| Ward | {ward:,.0f} | 每次受击刷新 |")
+    if mom_pct > 0:
+        lines.append(f"| MoM | {mom_pct:.0f}% | 魔力优先承受伤害 |")
+    lines.append("")
 
-    return warnings
+    # 4B 减伤层
+    lines.append("### 4B. 减伤层")
+    lines.append("")
+
+    block = defence_ov.get("block", {})
+    suppression = defence_ov.get("suppression", 0)
+    deflect = defence_ov.get("deflect", 0)
+
+    lines.append("| 层 | 数值 |")
+    lines.append("|------|------|")
+    lines.append(f"| 护甲 | {defence_ov.get('armour', 0):,.0f} |")
+    lines.append(f"| 闪避 | {defence_ov.get('evasion', 0):,.0f} |")
+    lines.append(f"| 攻击格挡 | {block.get('BlockChance', 0):.0f}% |")
+    lines.append(f"| 法术格挡 | {block.get('SpellBlockChance', 0):.0f}% |")
+    if suppression > 0:
+        lines.append(f"| 法术压制 | {suppression:.0f}% |")
+    if deflect > 0:
+        lines.append(f"| 偏转 | {deflect:.0f}% |")
+    lines.append("")
+
+    # 4C 抗性面板
+    lines.append("### 4C. 抗性面板")
+    lines.append("")
+    lines.append("| 元素 | 当前 | 上限 | 状态 |")
+    lines.append("|------|------|------|------|")
+
+    elem_cn = {"Fire": "火焰", "Cold": "冰霜", "Lightning": "闪电", "Chaos": "混沌"}
+    for elem, res_data in resistances.items():
+        cur = res_data["Resist"]
+        mx = res_data["ResistMax"]
+        over = res_data["ResistOverCap"]
+        gap = mx - cur
+        if gap <= 0:
+            status = f"满 ({over:+.0f}%溢出)" if over > 0 else "满"
+        elif gap <= 5:
+            status = f"接近 (差 {gap:.0f}%)"
+        else:
+            status = f"未满 (差 {gap:.0f}%)"
+        cn = elem_cn.get(elem, elem)
+        lines.append(f"| {cn} | {cur:.0f}% | {mx:.0f}% | {status} |")
+    lines.append("")
+
+    # 抗性分析总结
+    unfilled = [elem_cn.get(e, e) for e, r in resistances.items() if r["Resist"] < r["ResistMax"]]
+    overcapped = [elem_cn.get(e, e) for e, r in resistances.items() if r["ResistOverCap"] > 20]
+    if unfilled:
+        lines.append(f"未满抗性: {', '.join(unfilled)} — 优先补满可显著提升对应元素 EHP。")
+        lines.append("")
+    if overcapped:
+        lines.append(f"过度堆叠: {', '.join(overcapped)} — 超出上限 20%+，可考虑将属性分配到其他维度。")
+        lines.append("")
+
+    # 4D MaxHitTaken
+    lines.append("### 4D. 最大承伤 (MaxHitTaken)")
+    lines.append("")
+    lines.append(f"**TotalEHP = {total_ehp:,.0f}**（平均承受 {num_hits:.1f} 次攻击）")
+    lines.append("")
+    lines.append("| 伤害类型 | MaxHitTaken | 占最强% |")
+    lines.append("|----------|-------------|--------|")
+
+    max_val = max(max_hit.values(), default=1)
+    for dtype, val in max_hit.items():
+        pct = val / max_val * 100 if max_val > 0 else 0
+        marker = " ← 最短板" if dtype == weakest else ""
+        cn = elem_cn.get(dtype, dtype)
+        lines.append(f"| {cn} | {val:,.0f} | {pct:.0f}%{marker} |")
+
+    if weakest:
+        lines.append("")
+        lines.append(f"**最短板**: {elem_cn.get(weakest, weakest)}"
+                     f"（仅承受 {max_hit.get(weakest, 0):,.0f} 伤害"
+                     f"，为最强的 {weakest_pct:.0f}%）")
+    lines.append("")
+
+    # 2.1e 承伤乘数（弱点诊断）
+    has_thm = any(v > 0 for v in taken_hit_mult.values())
+    if has_thm:
+        lines.append("### 4E. 承伤乘数 (TakenHitMult)")
+        lines.append("")
+        lines.append("数值越小越好，表示实际承受伤害占原始伤害的比例。")
+        lines.append("")
+        lines.append("| 伤害类型 | 承伤乘数 | 含义 |")
+        lines.append("|----------|---------|------|")
+        for dtype, mult in taken_hit_mult.items():
+            if mult > 0:
+                cn = elem_cn.get(dtype, dtype)
+                pct = mult * 100
+                marker = " ← 最短板" if dtype == weakest else ""
+                lines.append(f"| {cn} | {mult:.3f} ({pct:.1f}%) | 每承受 100 伤害实际受 {pct:.0f}{marker} |")
+        lines.append("")
+
+    # 2.1f DotEHP
+    has_dot = any(v > 0 for v in dot_ehp.values())
+    if has_dot:
+        lines.append("### 4F. DOT 有效生命")
+        lines.append("")
+        lines.append("| 伤害类型 | DotEHP |")
+        lines.append("|----------|--------|")
+        for dtype, val in dot_ehp.items():
+            if val > 0:
+                cn = elem_cn.get(dtype, dtype)
+                lines.append(f"| {cn} | {val:,.0f} |")
+        lines.append("")
+
+    # === Part 4.2: 防御灵敏度 ===
+    if defence_sens:
+        lines.append("### 4G. 防御灵敏度")
+        lines.append("")
+
+        # 从第一个 profile 的 metadata 读取 target_pct
+        target_pct_str = f"+{20:.0f}%"
+        if defence_sens and defence_sens[0].get("target_pct"):
+            target_pct_str = f"+{defence_sens[0]['target_pct']:.0f}%"
+        lines.append(f"目标: TotalEHP {target_pct_str}")
+        lines.append("")
+
+        effective = [s for s in defence_sens if s.get("needed_value") is not None]
+        unreachable = [s for s in defence_sens if s.get("needed_value") is None]
+
+        if effective:
+            lines.append("| 维度 | 类型 | 达到目标所需值 | 每单位 EHP 提升 |")
+            lines.append("|------|------|---------------|---------------|")
+            for s in effective:
+                label = s.get("label", s.get("key", "?"))
+                mod_type = s.get("mod_type", "?")
+                needed = s.get("needed_value", 0)
+                delta_pct = s.get("delta_pct_per_unit", 0)
+                unit = s.get("unit", "")
+                needed_str = f"{needed:.1f}{unit}" if needed is not None else "—"
+                lines.append(f"| {label} | {mod_type} | {needed_str} | +{delta_pct:.2f}%/单位 |")
+            lines.append("")
+
+        if unreachable:
+            lines.append("**无法达到目标**: ")
+            for s in unreachable:
+                label = s.get("label", s.get("key", "?"))
+                desc = s.get("description", "无法达到目标")
+                lines.append(f"- {label}: {desc}")
+            lines.append("")
+
+    lines.append("")
 
 
 def format_report(data: dict) -> str:
@@ -5389,6 +6198,12 @@ def format_report(data: dict) -> str:
     talent_exploration = data.get("talent_exploration", [])
     jewel_diag = data.get("jewel_diagnosis", [])
     dps_bd = data.get("dps_breakdown", {})
+    defence_ov = data.get("defence_overview", {})
+    defence_sens = data.get("defence_sensitivity", [])
+    res_ov = data.get("resource_overview", {})
+    life_recov = data.get("life_recovery", {})
+    mana_recov = data.get("mana_recovery", {})
+    recovery_sens = data.get("recovery_sensitivity", [])
 
     skill_name = main_skill.get("name", "未知")
     total_dps = baseline.get("TotalDPS", 0)
@@ -5399,10 +6214,102 @@ def format_report(data: dict) -> str:
     total_ehp = baseline.get("TotalEHP", 0)
 
     # --- 标题 ---
-    lines.append(f"# {skill_name} 构筑 DPS 优化报告")
+    lines.append(f"# {skill_name} 构筑全面分析报告")
     lines.append("")
 
-    # --- Section 1: 基线概览 ---
+    # 零效天赋（提前计算，用于执行摘要和 Section 4）
+    zero_talents = [t for t in talent_value
+                    if abs(t.get("dps_pct", 0)) <= 0.1 and abs(t.get("ehp_pct", 0)) <= 0.1]
+
+    # === Part 0: 执行摘要 ===
+    lines.append("## 0. 执行摘要")
+    lines.append("")
+
+    # 0a. 维度评分
+    lines.append("### 维度概览")
+    lines.append("")
+    lines.append("| 维度 | 关键指标 |")
+    lines.append("|------|---------|")
+    lines.append(f"| 进攻 | TotalDPS **{total_dps:,.0f}** |")
+    lines.append(f"| 防御 | TotalEHP **{defence_ov.get('total_ehp', 0):,.0f}**"
+                 f"（最短板: {defence_ov.get('weakest_type', '—')}） |")
+    if res_ov:
+        spirit_data = res_ov.get("spirit", {})
+        spirit_pct = spirit_data.get("reserved_pct", 0)
+        lines.append(f"| 资源 | Spirit 占用 **{spirit_pct:.0f}%** |")
+    if life_recov and life_recov.get("total_rate", 0) > 0:
+        lines.append(f"| 恢复 | 生命恢复 **{life_recov['total_rate']:,.0f}/s** |")
+    lines.append("")
+
+    # 0b. 关键发现
+    findings = []
+
+    # 防御短板
+    if defence_ov and defence_ov.get("weakest_type"):
+        weakest_name = defence_ov["weakest_type"]
+        elem_cn = {"Physical": "物理", "Fire": "火焰", "Cold": "冰霜",
+                   "Lightning": "闪电", "Chaos": "混沌"}
+        weakest_cn = elem_cn.get(weakest_name, weakest_name)
+        weakest_val = defence_ov["max_hit_taken"].get(weakest_name, 0)
+        strongest_val = max(defence_ov["max_hit_taken"].values(), default=1)
+        if strongest_val > 0 and weakest_val / strongest_val < 0.7:
+            findings.append(f"⚠️ **{weakest_cn}抗性/防御是最短板**"
+                            f"（承伤仅 {weakest_val:,.0f}，为最强的"
+                            f" {weakest_val/strongest_val*100:.0f}%）")
+
+    # 抗性未满
+    if defence_ov:
+        for elem, res in defence_ov.get("resistances", {}).items():
+            gap = res.get("ResistMax", 75) - res.get("Resist", 0)
+            if gap > 10:
+                cn = elem_cn.get(elem, elem)
+                findings.append(f"⚠️ {cn}抗性差 **{gap:.0f}%** 未满")
+
+    # 精魄紧张
+    if res_ov:
+        spirit_pct = res_ov.get("spirit", {}).get("reserved_pct", 0)
+        if spirit_pct > 80:
+            findings.append(f"🔴 精魄预算非常紧张（{spirit_pct:.0f}% 占用）")
+        elif spirit_pct > 60:
+            findings.append(f"⚠️ 精魄预算紧张（{spirit_pct:.0f}% 占用）")
+
+    # 零效天赋
+    if zero_talents:
+        findings.append(f"⚠️ {len(zero_talents)} 个已分配天赋对 DPS 和 EHP 均无可测量影响")
+
+    # DPS 灵敏度 Top 1
+    effective_sens = [s for s in sensitivity if s.get("needed_value") is not None]
+    if effective_sens:
+        top = effective_sens[0]
+        lines.append("")  # suppress unused warning
+        findings.append(f"💡 **{top.get('key', '?')}** 对 DPS 影响最大"
+                        f"（每 1{top.get('unit', '')} 提升 {top.get('dps_per_unit', 0):.2f}% DPS）")
+
+    if findings:
+        lines.append("### 关键发现")
+        lines.append("")
+        for i, f in enumerate(findings[:5], 1):
+            lines.append(f"{i}. {f}")
+        lines.append("")
+
+    # 0c. Top 优化建议
+    if effective_sens:
+        lines.append("### 优化方向 Top 3")
+        lines.append("")
+        for i, s in enumerate(effective_sens[:3], 1):
+            key = s.get("key", "?")
+            mod_type = s.get("mod_type", "?")
+            needed = s.get("needed_value", 0)
+            unit = s.get("unit", "")
+            dpu = s.get("dps_per_unit", 0)
+            lines.append(
+                f"{i}. **{key}** ({mod_type}): "
+                f"每 1{unit} 提升 {dpu:.2f}% DPS，"
+                f"需要 +{needed:.0f}{unit} 达到 +20% DPS"
+            )
+        lines.append("")
+
+    # === Section 1: 基线概览 ===
     lines.append("## 1. 基线概览")
     lines.append("")
     lines.append("| 指标 | 数值 |")
@@ -5429,6 +6336,12 @@ def format_report(data: dict) -> str:
     if crit_multi:
         lines.append(f"| CritMultiplier | {crit_multi:.2f}x |")
     lines.append(f"| TotalEHP | {total_ehp:,.0f} |")
+    # 最短板 MaxHitTaken（从 defence_overview 读取，如已计算）
+    if defence_ov and defence_ov.get("weakest_type"):
+        weakest_name = defence_ov["weakest_type"]
+        weakest_val = defence_ov["max_hit_taken"].get(weakest_name, 0)
+        elem_cn = {"Physical": "物理", "Fire": "火焰", "Cold": "冰霜", "Lightning": "闪电", "Chaos": "混沌"}
+        lines.append(f"| 最短板承伤 | **{weakest_val:,.0f}** ({elem_cn.get(weakest_name, weakest_name)}) |")
     lines.append("")
 
     # --- Section 2: DPS 来源拆解 ---
@@ -5484,8 +6397,8 @@ def format_report(data: dict) -> str:
                 lines.append(f"| {label} | {cat} | {val_str} |")
             lines.append("")
 
-    # --- Section 3: 灵敏度分析 ---
-    lines.append("## 3. 灵敏度分析")
+    # --- Section 3: 灵敏度分析（进攻） ---
+    lines.append("## 3. 进攻灵敏度分析")
     lines.append("")
 
     effective = [s for s in sensitivity if s.get("needed_value") is not None]
@@ -5524,15 +6437,122 @@ def format_report(data: dict) -> str:
             lines.append(f"| {key} | {mod_type} | {desc} |")
         lines.append("")
 
-    # --- Section 4: 天赋价值 ---
-    lines.append("## 4. 已分配天赋价值")
-    lines.append("")
+    # --- Part 4: 防御面 ---
+    _format_section_defence(lines, defence_ov, defence_sens, baseline)
 
+    # --- Part 5: 资源面 ---
+    if res_ov or life_recov or mana_recov or recovery_sens:
+        lines.append("## 5. 资源面")
+        lines.append("")
+
+        # 5A 资源预算
+        if res_ov:
+            lines.append("### 5A. 资源预算")
+            lines.append("")
+            lines.append("| 资源 | 总量 | 可用 | 占用率 |")
+            lines.append("|------|------|------|--------|")
+
+            life_data = res_ov.get("life", {})
+            lines.append(f"| Life | {life_data.get('total', 0):,.0f} | "
+                         f"{life_data.get('unreserved', 0):,.0f} | — |")
+
+            mana_data = res_ov.get("mana", {})
+            mana_pct = mana_data.get("reserved_pct", 0)
+            mana_status = f"⚠️ {mana_pct:.0f}%" if mana_pct > 50 else f"{mana_pct:.0f}%"
+            lines.append(f"| Mana | {mana_data.get('total', 0):,.0f} | "
+                         f"{mana_data.get('unreserved', 0):,.0f} | {mana_status} |")
+
+            spirit_data = res_ov.get("spirit", {})
+            spirit_pct = spirit_data.get("reserved_pct", 0)
+            spirit_status = f"🔴 {spirit_pct:.0f}%" if spirit_pct > 80 else (
+                f"⚠️ {spirit_pct:.0f}%" if spirit_pct > 50 else f"{spirit_pct:.0f}%")
+            lines.append(f"| Spirit | {spirit_data.get('total', 0):,.0f} | "
+                         f"{spirit_data.get('unreserved', 0):,.0f} | {spirit_status} |")
+
+            es_data = res_ov.get("es", {})
+            if es_data.get("total", 0) > 0:
+                lines.append(f"| ES | {es_data['total']:,.0f} | "
+                             f"{es_data.get('recovery_cap', 0):,.0f} | — |")
+
+            ward = res_ov.get("ward", 0)
+            if ward > 0:
+                lines.append(f"| Ward | {ward:,.0f} | — | 每次受击刷新 |")
+
+            lines.append("")
+
+        # 5B 生命恢复能力
+        if life_recov and life_recov.get("sources"):
+            lines.append("### 5B. 生命恢复能力")
+            lines.append("")
+
+            total_rate = life_recov.get("total_rate", 0)
+            time_to_full = life_recov.get("time_to_full", 0)
+            leech_util = life_recov.get("leech_rate_pct", 0)
+            life = baseline.get("Life", 1)
+
+            lines.append(f"总恢复速率: **{total_rate:,.1f}/s**"
+                         f"（回满约 {time_to_full:.1f}s）")
+            if leech_util > 0:
+                lines.append(f"偷取上限利用率: {leech_util:.0f}%"
+                             f"（上限 {life_recov.get('max_leech_rate', 0):,.0f}/s）")
+            lines.append("")
+
+            lines.append("| # | 来源 | 每秒恢复 | 占比 |")
+            lines.append("|---|------|---------|------|")
+            for i, src in enumerate(life_recov["sources"], 1):
+                rate = src.get("rate", 0)
+                pct = rate / total_rate * 100 if total_rate > 0 else 0
+                lines.append(f"| {i} | {src['name']} | {rate:,.1f}/s | {pct:.0f}% |")
+            lines.append("")
+
+        # 5C 魔力恢复能力
+        if mana_recov and mana_recov.get("sources"):
+            lines.append("### 5C. 魔力恢复能力")
+            lines.append("")
+
+            mana_total_rate = mana_recov.get("total_rate", 0)
+            mana_time = mana_recov.get("time_to_full", 0)
+            mana_avail = baseline.get("ManaUnreserved", 0)
+
+            lines.append(f"总恢复速率: **{mana_total_rate:,.1f}/s**"
+                         f"（回满可用 {mana_avail:,.0f} 约需 {mana_time:.1f}s）")
+            lines.append("")
+
+            lines.append("| # | 来源 | 每秒恢复 | 占比 |")
+            lines.append("|---|------|---------|------|")
+            for i, src in enumerate(mana_recov["sources"], 1):
+                rate = src.get("rate", 0)
+                pct = rate / mana_total_rate * 100 if mana_total_rate > 0 else 0
+                lines.append(f"| {i} | {src['name']} | {rate:,.1f}/s | {pct:.0f}% |")
+            lines.append("")
+
+        # 5D 恢复增强灵敏度
+        if recovery_sens:
+            valid_sens = [s for s in recovery_sens if s.get("needed_value") is not None]
+            if valid_sens:
+                lines.append("### 5D. 恢复增强灵敏度")
+                lines.append("")
+                lines.append(f"注入多少恢复属性可使对应恢复指标提升 **{recovery_sens[0].get('target_pct', 20):.0f}%**：")
+                lines.append("")
+                lines.append("| 增强属性 | 所需注入 | 当前总值 | 公式 |")
+                lines.append("|---------|---------|---------|------|")
+                for s in valid_sens[:5]:
+                    nv = s["needed_value"]
+                    u = s.get("unit", "%")
+                    ct = s.get("current_total", 0)
+                    ct_str = f"{ct:,.1f}" if ct > 0 else "—"
+                    formula = s.get("formula", "—")
+                    lines.append(f"| {s['label']} | {nv:,.1f}{u} | {ct_str} | {formula} |")
+                lines.append("")
+
+    # --- Part 6: 已分配天赋价值 ---
     dps_talents = [t for t in talent_value if abs(t.get("dps_pct", 0)) > 0.1]
     def_talents = [t for t in talent_value
                    if abs(t.get("dps_pct", 0)) <= 0.1 and abs(t.get("ehp_pct", 0)) > 0.1]
-    zero_talents = [t for t in talent_value
-                    if abs(t.get("dps_pct", 0)) <= 0.1 and abs(t.get("ehp_pct", 0)) <= 0.1]
+
+    if dps_talents or def_talents or zero_talents:
+        lines.append("## 6. 已分配天赋价值")
+        lines.append("")
 
     if dps_talents:
         lines.append("### DPS 影响天赋")
@@ -5563,11 +6583,10 @@ def format_report(data: dict) -> str:
         lines.append(f"{names}")
         lines.append("")
 
-    # --- Section 5: 天赋探索 ---
-    lines.append("## 5. 未分配天赋探索")
-    lines.append("")
-
+    # --- Part 7: 未分配天赋探索 ---
     if talent_exploration:
+        lines.append("## 7. 未分配天赋探索")
+        lines.append("")
         top_n = 10
         shown = talent_exploration[:top_n]
         rest = len(talent_exploration) - len(shown)
@@ -5584,12 +6603,9 @@ def format_report(data: dict) -> str:
             lines.append("")
             lines.append(f"*（另有 {rest} 个候选天赋未显示）*")
         lines.append("")
-    else:
-        lines.append("无有意义的候选天赋。")
-        lines.append("")
 
-    # --- Section 6: 珠宝诊断 ---
-    lines.append("## 6. 珠宝诊断")
+    # --- Section 8: 珠宝诊断 ---
+    lines.append("## 8. 珠宝诊断")
     lines.append("")
 
     if jewel_diag:
@@ -5598,36 +6614,40 @@ def format_report(data: dict) -> str:
             base = j.get("base_type", "?")
             rarity = j.get("rarity", "?")
             dp = j.get("dps_pct", 0)
+            ep = j.get("ehp_pct", 0)
             status = j.get("status", "?")
             slot = j.get("slot_name", "")
 
             lines.append(f"### {name} ({base}, {rarity})")
             lines.append("")
-            lines.append(f"- **DPS 贡献**: {dp:+.1f}% | **状态**: {status} | **槽位**: {slot}")
+            lines.append(f"- **DPS 贡献**: {dp:+.1f}% | **EHP 贡献**: {ep:+.1f}% | **状态**: {status} | **槽位**: {slot}")
 
             # granted passives
             gp = j.get("granted_passives", [])
             if gp:
                 gdp = j.get("granted_dps_pct", 0)
-                lines.append(f"- **分配天赋**: {', '.join(gp)} (DPS {gdp:+.1f}%)")
+                gep = j.get("granted_ehp_pct", 0)
+                lines.append(f"- **分配天赋**: {', '.join(gp)} (DPS {gdp:+.1f}%, EHP {gep:+.1f}%)")
 
             lines.append("")
 
             # mods 明细表
             mods = j.get("mods", [])
             if mods:
-                lines.append("| Mod | 类型 | 值 | DPS% |")
-                lines.append("|-----|------|-----|------|")
+                lines.append("| Mod | 类型 | 值 | DPS% | EHP% |")
+                lines.append("|-----|------|-----|------|------|")
                 for m in mods:
                     mname = m.get("name", "?")
                     mtype = m.get("type", "?")
                     mval = m.get("value", "?")
                     mdps = m.get("dps_pct")
+                    mehp = m.get("ehp_pct")
                     # 跳过无意义的 Lua table 指针
                     if isinstance(mval, str) and mval.startswith("table:"):
                         mval = "(complex data)"
                     dps_str = f"{mdps:+.1f}%" if mdps is not None else "—"
-                    lines.append(f"| {mname} | {mtype} | {mval} | {dps_str} |")
+                    ehp_str = f"{mehp:+.1f}%" if mehp is not None else "—"
+                    lines.append(f"| {mname} | {mtype} | {mval} | {dps_str} | {ehp_str} |")
                 lines.append("")
 
     else:
@@ -5640,8 +6660,8 @@ def format_report(data: dict) -> str:
     _format_section7(lines, aura_data, skill_flags, baseline,
                     build_modifiers=bm)
 
-    # --- Section 8: 总结与建议 ---
-    lines.append("## 8. 总结与建议")
+    # --- Part 10: 总结与建议 ---
+    lines.append("## 10. 总结与建议")
     lines.append("")
 
     # 8a. 核心数据一句话
@@ -5694,23 +6714,27 @@ def format_report(data: dict) -> str:
 
     # 8e. 珠宝优化建议
     if jewel_diag:
-        low_dps_jewels = [j for j in jewel_diag
-                          if abs(j.get("dps_pct", 0)) < 0.1 and j.get("status") == "ok"]
-        high_dps_jewels = sorted(
-            [j for j in jewel_diag if abs(j.get("dps_pct", 0)) >= 0.1],
-            key=lambda j: j.get("dps_pct", 0),
+        low_impact_jewels = [j for j in jewel_diag
+                            if abs(j.get("dps_pct", 0)) < 0.1
+                            and abs(j.get("ehp_pct", 0)) < 0.1
+                            and j.get("status") == "ok"]
+        high_impact_jewels = sorted(
+            [j for j in jewel_diag
+             if abs(j.get("dps_pct", 0)) >= 0.1 or abs(j.get("ehp_pct", 0)) >= 0.1],
+            key=lambda j: abs(j.get("dps_pct", 0)) + abs(j.get("ehp_pct", 0)),
             reverse=True,
         )
-        if high_dps_jewels or low_dps_jewels:
+        if high_impact_jewels or low_impact_jewels:
             lines.append("### 💎 珠宝建议")
             lines.append("")
-            if high_dps_jewels:
-                best = high_dps_jewels[0]
-                lines.append(f"- 当前 DPS 贡献最高的珠宝: **{best.get('name', '?')}** "
-                             f"({best.get('dps_pct', 0):+.1f}%)")
-            if low_dps_jewels:
-                names = ", ".join(f"**{j.get('name', '?')}**" for j in low_dps_jewels)
-                lines.append(f"- 无 DPS 贡献的珠宝: {names}，可考虑替换为伤害珠宝")
+            if high_impact_jewels:
+                best = high_impact_jewels[0]
+                lines.append(f"- 当前综合贡献最高的珠宝: **{best.get('name', '?')}** "
+                             f"(DPS {best.get('dps_pct', 0):+.1f}%, "
+                             f"EHP {best.get('ehp_pct', 0):+.1f}%)")
+            if low_impact_jewels:
+                names = ", ".join(f"**{j.get('name', '?')}**" for j in low_impact_jewels)
+                lines.append(f"- 无显著贡献的珠宝: {names}，可考虑替换")
             lines.append("")
 
     # 8f. 敌人抗性/穿透提醒
