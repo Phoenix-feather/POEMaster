@@ -23,8 +23,8 @@
 ### 优化方向 Top 3
 
 1. **crit_chance_base** (BASE): 每 1% 提升 5.94% DPS，需要 +4% 达到 +20% DPS
-2. **mana_regen** (BASE): 每 1/s 提升 1.67% DPS，需要 +12/s 达到 +20% DPS
-3. **life_regen** (BASE): 每 1/s 提升 1.05% DPS，需要 +20/s 达到 +20% DPS
+2. **cast_speed_inc** (INC): 每 1% 提升 0.56% DPS，需要 +34% 达到 +20% DPS
+3. **crit_multi_base** (BASE): 每 1% 提升 0.46% DPS，需要 +42% 达到 +20% DPS
 
 ## 1. 基线概览
 
@@ -256,62 +256,47 @@
 | Hit DPS | Hit | +11,661 |
 | 点燃 DPS | DOT | +26.0 |
 
-## 3. 进攻灵敏度分析
+## 3. 灵敏度分析
 
-### 有效维度（按性价比排序）
+### 3A. 进攻灵敏度（DPS）
 
-| # | 维度 | 类型 | 所需值 | 单位 | DPS/单位 | 当前值 | 公式 |
+| # | 维度 | 类型 | 所需值 | 单位 | 效果/单位 | 当前值 | 公式 |
 |---|------|------|--------|------|----------|--------|------|
 | 1 | crit_chance_base | BASE | +3.5% | % | 5.94%/% | 0 | baseCrit 0.0%→3.5%, 需要 +3.5% → DPS +20.8% |
-| 2 | mana_regen | BASE | +12.0/s | /s | 1.67%//s | 60 | BASE 60→72, 需要 +12 → 魔力恢复 +20.0% |
-| 3 | life_regen | BASE | +19.5/s | /s | 1.05%//s | 0 | BASE 0→20, 需要 +20 → 生命恢复 +20.4% |
-| 4 | life_recovery_rate | INC | +25.5% | % | 0.80%/% | 0 | INC 0%→26%, 需要 +26 → 生命恢复 +20.4% |
-| 5 | speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
-| 6 | cast_speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
-| 7 | mana_recovery_rate | INC | +41.0% | % | 0.48%/% | 0 | INC 0%→41%, 需要 +41 → 魔力恢复 +19.8% |
-| 8 | crit_multi_base | BASE | +42.5% | % | 0.46%/% | 100 | CritBase 100→142, 需要 +42 → DPS +19.7% |
-| 9 | damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 10 | spell_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 11 | elemental_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 12 | projectile_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
-| 13 | lightning_damage_inc | INC | +77.0% | % | 0.26%/% | 137 | INC 137%→214%, 需要 +77 → DPS +20.1% |
-| 14 | crit_multi_inc | INC | +128.5% | % | 0.16%/% | 200 | INC 200%→328%, 需要 +128 → DPS +20.1% |
-| 15 | crit_chance_inc | INC | +139.5% | % | 0.14%/% | 226 | INC 226%→366%, 需要 +140 → DPS +20.0% |
-| 16 | fire_damage_inc | INC | +155.0% | % | 0.13%/% | 137 | INC 137%→292%, 需要 +155 → DPS +20.0% |
+| 2 | cast_speed_inc | INC | +34.5% | % | 0.56%/% | 75 | INC 75%→110%, 需要 +34 → DPS +19.4% |
+| 3 | crit_multi_base | BASE | +42.5% | % | 0.46%/% | 100 | CritBase 100→142, 需要 +42 → DPS +19.7% |
+| 4 | spell_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 5 | projectile_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 6 | elemental_damage_inc | INC | +48.0% | % | 0.42%/% | 137 | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 7 | lightning_damage_inc | INC | +77.0% | % | 0.26%/% | 137 | INC 137%→214%, 需要 +77 → DPS +20.1% |
+| 8 | crit_multi_inc | INC | +128.5% | % | 0.16%/% | 200 | INC 200%→328%, 需要 +128 → DPS +20.1% |
+| 9 | crit_chance_inc | INC | +139.5% | % | 0.14%/% | 226 | INC 226%→366%, 需要 +140 → DPS +20.0% |
+| 10 | fire_damage_inc | INC | +155.0% | % | 0.13%/% | 137 | INC 137%→292%, 需要 +155 → DPS +20.0% |
 
-### 无影响维度
+**无影响维度**: physical_damage_inc, cold_damage_inc, chaos_damage_inc, lightning_pen, fire_pen, cold_pen, elemental_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
 
-| 维度 | 类型 | 说明 |
-|------|------|------|
-| physical_damage_inc | INC | 物理伤害增加，仅对物理伤害生效 |
-| cold_damage_inc | INC | 冰霜伤害增加 |
-| chaos_damage_inc | INC | 混沌伤害增加 |
-| lightning_pen | BASE | 闪电抗性穿透（敌人负抗时无效） |
-| fire_pen | BASE | 火焰抗性穿透（敌人负抗时无效） |
-| cold_pen | BASE | 冰霜抗性穿透（敌人负抗时无效） |
-| elemental_pen | BASE | 元素抗性穿透（对火/冰/电都生效，敌人负抗时无效） |
-| chaos_pen | BASE | 混沌抗性穿透（敌人负抗时无效） |
-| projectile_count | BASE | 额外投射物数量（ProjectileCount没有INC类型） |
-| aoe_inc | INC | 影响范围增加（对半径是平方根关系） |
-| duration_inc | INC | 技能持续时间增加 |
-| life_inc | INC | 生命上限增加（同时提升 TotalEHP 和偷取上限） |
-| life_flat | BASE | 生命上限固定值（装备基础属性） |
-| armour_inc | INC | 护甲增加（降低物理承伤，受递减效应影响） |
-| armour_flat | BASE | 护甲固定值（装备基础属性） |
-| evasion_inc | INC | 闪避值增加 |
-| evasion_flat | BASE | 闪避值固定值（装备基础属性） |
-| fire_resist | BASE | 火焰抗性（满抗后无额外收益） |
-| cold_resist | BASE | 冰霜抗性（满抗后无额外收益） |
-| lightning_resist | BASE | 闪电抗性（满抗后无额外收益） |
-| chaos_resist | BASE | 混沌抗性（通常是最稀缺的抗性） |
-| all_elemental_resist | BASE | 全元素抗性（同时增加火/冰/电抗性） |
-| block_chance | BASE | 攻击格挡概率（受 BlockChanceMax 上限限制） |
-| spell_block | BASE | 法术格挡概率（与攻击格挡独立） |
-| damage_reduction | BASE | 额外物理伤害减免（与护甲减伤叠加，受 DamageReductionMax 限制） |
-| life_leech | BASE | 物理伤害生命偷取比例（受 MaxLifeLeechRate 上限约束） |
-| life_recoup | BASE | 伤害回收为生命（消耗能量后延迟恢复，4秒内回完） |
-| flask_effect | INC | 药剂效果增加（提升生命/魔力药剂恢复量） |
-| mana_leech | BASE | 物理伤害魔力偷取比例（受 MaxManaLeechRate 上限约束） |
+### 3B. 防御灵敏度（EHP）
+
+| 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
+|------|------|--------|---------------|------|
+| 法术格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
+| 格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
+| 生命上限 | INC | 46.5% | +0.44%/单位 | INC 5%→52%, 需要 +46 → EHP +20.3% |
+| 混沌抗性 | BASE | 68.5% | +0.29%/单位 | BASE 0→68, 需要 +68 → EHP +19.9% |
+| 闪避值 | BASE | 1991.5 | +0.01%/单位 | BASE 7→1998, 需要 +1992 → EHP +20.3% |
+
+**无法达到目标**: 火焰抗性, 生命固定值, 护甲固定值, 护甲增加, 闪避增加, 闪电抗性, 物理减伤, 冰霜抗性, 全元素抗性
+
+### 3C. 恢复增强灵敏度
+
+注入多少恢复属性可使对应恢复指标提升 **20%**：
+
+| 增强属性 | 所需注入 | 当前总值 | 公式 |
+|---------|---------|---------|------|
+| 魔力再生 | 12.0/s | 60.2 | BASE 60→72, 需要 +12 → 魔力恢复 +20.0% |
+| 生命再生 | 19.5/s | — | BASE 0→20, 需要 +20 → 生命恢复 +20.4% |
+| 生命恢复速率 | 25.5% | — | INC 0%→26%, 需要 +26 → 生命恢复 +20.4% |
+| 魔力恢复速率 | 41.0% | — | INC 0%→41%, 需要 +41 → 魔力恢复 +19.8% |
 
 ## 4. 防御面
 
@@ -379,29 +364,6 @@
 | 闪电 | 20,508 |
 | 混沌 | 4,406 |
 
-### 4G. 防御灵敏度
-
-目标: TotalEHP +20%
-
-| 维度 | 类型 | 达到目标所需值 | 每单位 EHP 提升 |
-|------|------|---------------|---------------|
-| 格挡概率 | BASE | 31.5% | +0.00%/单位 |
-| 法术格挡概率 | BASE | 31.5% | +0.00%/单位 |
-| 生命上限 | INC | 46.5% | +0.00%/单位 |
-| 混沌抗性 | BASE | 68.5% | +0.00%/单位 |
-| 闪避值 | BASE | 1991.5 | +0.00%/单位 |
-
-**无法达到目标**: 
-- 冰霜抗性: 冰霜抗性（满抗后无额外收益）
-- 生命固定值: 生命上限固定值（装备基础属性）
-- 全元素抗性: 全元素抗性（同时增加火/冰/电抗性）
-- 护甲固定值: 护甲固定值（装备基础属性）
-- 护甲增加: 护甲增加（降低物理承伤，受递减效应影响）
-- 火焰抗性: 火焰抗性（满抗后无额外收益）
-- 物理减伤: 额外物理伤害减免（与护甲减伤叠加，受 DamageReductionMax 限制）
-- 闪电抗性: 闪电抗性（满抗后无额外收益）
-- 闪避增加: 闪避值增加
-
 
 ## 5. 资源面
 
@@ -431,17 +393,6 @@
 | # | 来源 | 每秒恢复 | 占比 |
 |---|------|---------|------|
 | 1 | 再生 | 62.0/s | 100% |
-
-### 5D. 恢复增强灵敏度
-
-注入多少恢复属性可使对应恢复指标提升 **20%**：
-
-| 增强属性 | 所需注入 | 当前总值 | 公式 |
-|---------|---------|---------|------|
-| 魔力再生 | 12.0/s | 60.2 | BASE 60→72, 需要 +12 → 魔力恢复 +20.0% |
-| 生命再生 | 19.5/s | — | BASE 0→20, 需要 +20 → 生命恢复 +20.4% |
-| 生命恢复速率 | 25.5% | — | INC 0%→26%, 需要 +26 → 生命恢复 +20.4% |
-| 魔力恢复速率 | 41.0% | — | INC 0%→41%, 需要 +41 → 魔力恢复 +19.8% |
 
 ## 6. 已分配天赋价值
 
@@ -554,15 +505,16 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 | # | 光环 | DPS 贡献 | EHP 贡献 | 精魄消耗 | 条件参数范围 |
 |---|------|----------|----------|----------|-------------|
-| 1 | Trinity | +25.9% (条件: Total Resonance Count=150) | -0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% (Speed门槛+13.7%, 边际≈7.8%) |
-| 2 | Charge Infusion | +23.5% ⚠️模拟 | +7.0% | 30 | - |
-| 3 | Elemental Conflux | +16.7% ⚠️模拟 | -0.0% | 60 | - |
-| 4 | Purity of Fire | -0.0% | -0.0% | 130 | - |
+| 1 | Trinity | +35.0% (条件: Total Resonance Count=150) | +0.0% | 100 | Total Resonance Count=0: +0.0%, Total Resonance Count=300: +93.3% (Speed门槛+13.7%, 边际≈7.8%) |
+| 2 | Charge Infusion | +30.8% ⚠️模拟 | +7.5% | 30 | - |
+| 3 | Elemental Conflux | +20.0% ⚠️模拟 | +0.0% | 60 | - |
+| 4 | Purity of Fire | +0.0% | +0.0% | 130 | - |
 
 **⚠️模拟值说明：**
 
 - **Charge Infusion** (Lv20): 需启用 Charge 配置才能生效，已模拟 F=3/P=8/E=3
-- **Elemental Conflux** (Lv21): 给选中元素 60% MORE。主技能伤害构成：火 30.6% / 冰 7.6% / 电 61.7%，元素总占比 100.0%。期望收益 = 60% × 100.0% ÷ 3 ≈ 20.0% MORE
+- **Elemental Conflux** (Lv21): 分别注入 60% MORE 到火/冰/电取平均。伤害构成：火 30.6% / 冰 7.6% / 电 61.7%
+  三次模拟 DPS：火 25804 / 冰 22795 / 电 29863
 
 **模拟方法说明：**
 
@@ -619,13 +571,39 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 当前 **Spark** TotalDPS = **11,661**，AverageHit = 4,664，Speed = 2.50/s，CritChance = 29.3%，CritMultiplier = 4.00x。
 
-### 🎯 最高性价比优化方向
+### ⚔️ 进攻面
 
-1. **crit_chance_base** (BASE): 每 1% 提升 5.94% DPS，当前 0，需要 +4% 达到 +20% DPS
-2. **mana_regen** (BASE): 每 1/s 提升 1.67% DPS，当前 60，需要 +12/s 达到 +20% DPS
-3. **life_regen** (BASE): 每 1/s 提升 1.05% DPS，当前 0，需要 +20/s 达到 +20% DPS
+**DPS 灵敏度 Top 5**（所需投入越少 = 性价比越高）：
 
-### 🌳 推荐点出的天赋
+| # | 维度 | 类型 | 当前值 | 所需值 | 公式 |
+|---|------|------|--------|--------|------|
+| 1 | crit_chance_base | BASE | 0 | +4% | baseCrit 0.0%→3.5%, 需要 +3.5% → DPS +20.8% |
+| 2 | cast_speed_inc | INC | 75 | +34% | INC 75%→110%, 需要 +34 → DPS +19.4% |
+| 3 | crit_multi_base | BASE | 100 | +42% | CritBase 100→142, 需要 +42 → DPS +19.7% |
+| 4 | spell_damage_inc | INC | 137 | +48% | INC 137%→185%, 需要 +48 → DPS +20.2% |
+| 5 | projectile_damage_inc | INC | 137 | +48% | INC 137%→185%, 需要 +48 → DPS +20.2% |
+
+*穿透维度均无影响（敌人抗性已为负值），面对高抗 Boss 时会成为有效优化方向。*
+
+### 🛡️ 防御面
+
+**最短板**: Chaos（承伤仅为最强的 24%）
+
+**防御性价比最高**: 法术格挡概率，需要 +32% 即可提升 EHP +20%
+
+### 💧 资源与恢复
+
+**⚠️ 精魄超载**: 占用 129%，需要缩减光环或精魄辅助
+
+**恢复增强 Top 3**：
+
+1. 魔力再生: BASE 60→72, 需要 +12 → 魔力恢复 +20.0%
+2. 生命再生: BASE 0→20, 需要 +20 → 生命恢复 +20.4%
+3. 生命恢复速率: INC 0%→26%, 需要 +26 → 生命恢复 +20.4%
+
+### 🌳 天赋
+
+**推荐点出 Top 5**：
 
 1. **Arcane Intensity**: DPS +18.9%
 2. **Stand and Deliver**: DPS +17.4%
@@ -633,18 +611,9 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 4. **Sacrificial Blood**: DPS +16.8%
 5. **Jack of all Trades**: DPS +14.3%
 
-### ⚠️ 低效天赋
+**⚠️ 22 个无效天赋**: Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin Ice, Energise, Heavy Frost, Dynamism 等 22 个
 
-有 **22** 个已分配天赋对 DPS 和 EHP 均无可测量影响，可考虑重新规划路径或替换为高收益节点：
+### 💎 珠宝
 
-**Invocated Echoes**, **...and I Shall Rage**, **Impending Doom**, **Blood Transfusion**, **Thin Ice**, **Energise**, **Heavy Frost**, **Dynamism**, **Breaking Point**, **Marked Agility**
-  …及其他 12 个
-
-### 💎 珠宝建议
-
-- 当前综合贡献最高的珠宝: **Rapture Shard** (DPS +6.3%, EHP +2.1%)
-- 无显著贡献的珠宝: **Controlled Metamorphosis**，可考虑替换
-
-### 🛡️ 敌人抗性说明
-
-所有穿透维度均无影响 — 当前构筑配置下敌人抗性已为负值或零值，穿透无法进一步降低负抗。如果面对高抗性 Boss（抗性 > 0），穿透会成为有效优化维度。
+**最佳**: Rapture Shard (DPS +6.3%, EHP +2.1%)
+**可替换**: Controlled Metamorphosis

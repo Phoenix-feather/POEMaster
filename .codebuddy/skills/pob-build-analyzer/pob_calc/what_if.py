@@ -842,9 +842,8 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
             if after_entry:
                 actual_pct = (after_entry[2] / profile_base * 100) if profile_base != 0 else 0
 
-        # 生成公式
-        tl = profile_target if profile_target != target_stat else "DPS"
-        tl = _STAT_DISPLAY.get(tl, tl)
+        # 生成公式（target_label 从 _STAT_DISPLAY 获取中文显示名）
+        tl = _STAT_DISPLAY.get(profile_target, profile_target)
         formula = _make_formula(mod_name, mod_type, needed_value,
                                 current_total, target_pct, actual_pct,
                                 target_label=tl)
@@ -870,10 +869,33 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
             "current_total": current_total,
             "formula": formula,
             "sample_diff": sample_diff,
+            "target_label": tl,
+            "flags": profile.get("flags"),
         })
 
     # 按所需值升序排列（值越小 = 性价比越高），None 排最后
     results.sort(key=lambda x: (x["needed_value"] is None, x["needed_value"] or 999999))
+
+
+
+    # 同 mod_name + mod_type + needed_value 的 profile 去重
+    # 规则：同一 pool 中，无 flags 的被有 flags 的替代（通用被精确替代）
+    #       有 flags 的互相之间都保留（不同词缀来源，如 spell vs projectile）
+    #       不同 mod_name 不去重（Damage vs ElementalDamage vs LightningDamage）
+    _grouped = {}  # dk -> [profiles]
+    for s in results:
+        dk = (s.get("mod_name"), s.get("mod_type"), s.get("needed_value"))
+        _grouped.setdefault(dk, []).append(s)
+    _deduped = []
+    for dk, group in _grouped.items():
+        flagged = [s for s in group if s.get("flags")]
+        if flagged:
+            _deduped.extend(flagged)  # 保留所有有 flags 的
+        else:
+            _deduped.append(group[0])  # 无 flags 的只保留一个
+    results = _deduped
+    results.sort(key=lambda x: (x["needed_value"] is None, x["needed_value"] or 999999))
+
     return results
 
 
@@ -897,7 +919,6 @@ _DAMAGE_INC_STATS = {
     "Damage", "PhysicalDamage", "FireDamage", "ColdDamage",
     "LightningDamage", "ElementalDamage", "ChaosDamage",
 }
-
 
 def _query_all_merged_inc(lua, calcs) -> dict:
     """从 Lua 端查询构筑当前伤害 INC 合并值。
@@ -4444,8 +4465,9 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
         return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": bool(pre_configs)}
 
     # dps_pct 表示光环贡献（正值=增加 DPS）
-    dps_pct = -((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
-    ehp_pct = -((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+    # 基数统一用"移除光环后"的 DPS（即无该效果的 baseline）
+    dps_pct = ((base_dps - new_dps) / new_dps * 100) if new_dps > 0 else 0
+    ehp_pct = ((base_ehp - new_ehp) / new_ehp * 100) if new_ehp > 0 else 0
 
     _restore_pre_configs()
     return {
@@ -4599,48 +4621,87 @@ def _test_mod_effect(lua, calcs, baseline: dict,
     mod = aura_config["mod"]
     default_expect_factor = aura_config.get("expect_factor", 1.0)
 
-    # 对于 EC，动态计算期望系数
+    # 对于 EC，分别注入每个元素 60% MORE，三次计算取平均
     if skill_name == "Elemental Conflux":
-        # 获取主技能的伤害类型分布
-        damage_breakdown = lua.execute('''
+        raw_value = mod["value"]  # e.g. 60
+        # 获取伤害构成
+        damage_breakdown = lua.execute(r'''
             local env = calcs.initEnv(_spike_build, "MAIN")
             calcs.perform(env)
-            local output = env.player.output
-
-            -- 获取各元素的伤害贡献（StoredCombinedAvg 是各元素的平均DPS贡献）
-            local fire = output.FireStoredCombinedAvg or 0
-            local cold = output.ColdStoredCombinedAvg or 0
-            local lightning = output.LightningStoredCombinedAvg or 0
-            local total = fire + cold + lightning
-
-            -- 计算元素伤害占比
-            local fire_pct = total > 0 and (fire / total) or 0
-            local cold_pct = total > 0 and (cold / total) or 0
-            local lightning_pct = total > 0 and (lightning / total) or 0
-
-            -- EC 期望收益 = (火占比 + 冰占比 + 电占比) / 3
-            -- 因为 EC 随机选择一个元素，选中的元素如果主技能用到了，才有收益
-            local expect_factor = (fire_pct + cold_pct + lightning_pct) / 3
-
+            local o = env.player.output
+            local f = o.FireStoredCombinedAvg or 0
+            local c = o.ColdStoredCombinedAvg or 0
+            local l = o.LightningStoredCombinedAvg or 0
+            local t = f + c + l
             return string.format("%.4f|%.4f|%.4f|%.4f",
-                expect_factor, fire_pct, cold_pct, lightning_pct)
+                t > 0 and (f/t) or 0, t > 0 and (c/t) or 0,
+                t > 0 and (l/t) or 0, t > 0 and 1.0 or 0)
         ''')
         parts = str(damage_breakdown).split('|')
-        expect_factor = float(parts[0]) if parts else default_expect_factor
-        fire_pct = float(parts[1]) * 100 if len(parts) > 1 else 0
-        cold_pct = float(parts[2]) * 100 if len(parts) > 2 else 0
-        lightning_pct = float(parts[3]) * 100 if len(parts) > 3 else 0
-    else:
-        expect_factor = default_expect_factor
-        fire_pct = cold_pct = lightning_pct = 0
+        fire_pct = float(parts[0]) * 100 if len(parts) > 0 else 0
+        cold_pct = float(parts[1]) * 100 if len(parts) > 1 else 0
+        lightning_pct = float(parts[2]) * 100 if len(parts) > 2 else 0
+        elemental_pct = float(parts[3]) * 100 if len(parts) > 3 else 0
 
-    # 计算期望值
-    expected_value = mod["value"] * expect_factor
+        # 三次分别注入：FireDamage MORE / ColdDamage MORE / LightningDamage MORE
+        ec_results = lua.execute(r'''
+            local raw_val = ''' + str(raw_value) + r'''
+            local elements = {"FireDamage", "ColdDamage", "LightningDamage"}
+            local envs = {}
+            for _, elem in ipairs(elements) do
+                local env = calcs.initEnv(_spike_build, "MAIN")
+                env.player.modDB:NewMod(elem, "MORE", raw_val, "EC_sim")
+                calcs.perform(env)
+                envs[#envs+1] = env.player.output.TotalDPS or 0
+            end
+            return table.concat(envs, "|")
+        ''')
+        ec_parts = str(ec_results).split('|')
+        dps_fire = float(ec_parts[0]) if len(ec_parts) > 0 else 0
+        dps_cold = float(ec_parts[1]) if len(ec_parts) > 1 else 0
+        dps_lightning = float(ec_parts[2]) if len(ec_parts) > 2 else 0
+        base_dps = (dps_fire + dps_cold + dps_lightning) / 3
 
-    # 注入期望值 mod 到 modDB
+        # 无 EC 的基准 DPS
+        no_mod_result = lua.execute(r'''
+            local env = calcs.initEnv(_spike_build, "MAIN")
+            calcs.perform(env)
+            return tostring(env.player.output.TotalDPS or 0)
+        ''')
+        no_mod_dps = float(no_mod_result)
+        no_mod_ehp = 0  # EC 无 EHP 效果
+
+        dps_pct = ((base_dps - no_mod_dps) / no_mod_dps * 100) if no_mod_dps > 0 else 0
+        ehp_pct = 0
+        base_ehp = 0
+
+        result = {
+            "dps_before": base_dps,
+            "dps_after": no_mod_dps,
+            "dps_pct": dps_pct,
+            "ehp_pct": ehp_pct,
+            "simulated": True,
+            "expect_factor": 1.0 / 3,
+            "raw_value": raw_value,
+            "gem_level": aura_config.get("gem_level"),
+            "damage_breakdown": {
+                "fire": fire_pct,
+                "cold": cold_pct,
+                "lightning": lightning_pct,
+                "elemental_total": elemental_pct,
+            },
+        }
+        result["ec_detail"] = {
+            "fire_more_dps": dps_fire,
+            "cold_more_dps": dps_cold,
+            "lightning_more_dps": dps_lightning,
+        }
+        return result
+
+    # 非 EC 模拟
+    expected_value = mod["value"] * default_expect_factor
     lua.execute(f'''
         local env = calcs.initEnv(_spike_build, "MAIN")
-        -- 注入期望值 mod（已乘期望系数）
         env.player.modDB:NewMod("{mod["name"]}", "{mod["type"]}", {expected_value}, "{skill_name} (期望)")
         calcs.perform(env)
         _spike_base_dps = env.player.output.TotalDPS or 0
@@ -4649,8 +4710,7 @@ def _test_mod_effect(lua, calcs, baseline: dict,
     base_dps = float(lua.eval('_spike_base_dps') or 0)
     base_ehp = float(lua.eval('_spike_base_ehp') or 0)
 
-    # 计算无 mod 的 DPS（移除光环后的 DPS）
-    lua.execute('''
+    lua.execute(r'''
         local env = calcs.initEnv(_spike_build, "MAIN")
         calcs.perform(env)
         _spike_no_mod_dps = env.player.output.TotalDPS or 0
@@ -4659,12 +4719,10 @@ def _test_mod_effect(lua, calcs, baseline: dict,
     no_mod_dps = float(lua.eval('_spike_no_mod_dps') or 0)
     no_mod_ehp = float(lua.eval('_spike_no_mod_ehp') or 0)
 
-    # 清理临时变量
     lua.execute('_spike_base_dps, _spike_base_ehp, _spike_no_mod_dps, _spike_no_mod_ehp = nil, nil, nil, nil')
 
-    # 百分比：有 mod vs 无 mod（移除光环 = DPS 下降 → 贡献为正）
-    dps_pct = -((no_mod_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
-    ehp_pct = -((no_mod_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
+    dps_pct = ((base_dps - no_mod_dps) / no_mod_dps * 100) if no_mod_dps > 0 else 0
+    ehp_pct = ((base_ehp - no_mod_ehp) / no_mod_ehp * 100) if no_mod_ehp > 0 else 0
 
     result = {
         "dps_before": base_dps,
@@ -4672,18 +4730,10 @@ def _test_mod_effect(lua, calcs, baseline: dict,
         "dps_pct": dps_pct,
         "ehp_pct": ehp_pct,
         "simulated": True,
-        "expect_factor": expect_factor,
+        "expect_factor": default_expect_factor,
         "raw_value": mod["value"],
-        "gem_level": aura_config.get("gem_level"),  # 构筑实际宝石等级
+        "gem_level": aura_config.get("gem_level"),
     }
-
-    # 对于 EC，记录伤害构成用于报告
-    if skill_name == "Elemental Conflux":
-        result["damage_breakdown"] = {
-            "fire": fire_pct,
-            "cold": cold_pct,
-            "lightning": lightning_pct,
-        }
 
     return result
 
@@ -4844,8 +4894,6 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
             "name": aura["name"], "dps_before": base_dps, "dps_after": base_dps,
             "dps_pct": 0, "spirit": 0, "error": "Parse error",
         }
-
-    _restore_charge_configs()
 
     dps_pct = ((new_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
     ehp_pct = ((new_ehp - base_ehp) / base_ehp * 100) if base_ehp > 0 else 0
@@ -5661,12 +5709,25 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
     # 3. 技能 flags
     skill_flags = _detect_skill_flags(lua, calcs)
 
-    # 4. 灵敏度分析
+    # 4. 灵敏度分析（仅进攻 profile，排除防御、恢复和来源固定）
+    _excluded_from_offence = _DEFENCE_PROFILES | _RECOVERY_PROFILES | _FIXED_SOURCE_PROFILES
+
+    # 基于技能 flags 排除不适用的 profile
+    if skill_flags["is_spell"]:
+        _excluded_from_offence |= _ATTACK_ONLY_PROFILES
+    else:
+        _excluded_from_offence |= _SPELL_ONLY_PROFILES
+    if not skill_flags["is_projectile"]:
+        _excluded_from_offence |= _PROJECTILE_ONLY_PROFILES
+    if not skill_flags["is_dot"]:
+        _excluded_from_offence |= _DOT_ONLY_PROFILES
+
+    _offence_only_profiles = [k for k in SENSITIVITY_PROFILES if k not in _excluded_from_offence]
     sens = sensitivity_analysis(
         lua, calcs,
+        profiles=_offence_only_profiles,
         target_pct=target_pct,
         baseline=baseline,
-        is_spell=skill_flags["is_spell"],
     )
     logger.info("灵敏度分析完成: %d 个 profile", len(sens))
 
@@ -5828,14 +5889,16 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                 gem_level = a.get("gem_level", "20")  # 构筑实际宝石等级
                 if name == "Elemental Conflux":
                     raw_val = a.get("raw_value", 59)
-                    expect_factor = a.get("expect_factor", 1/3)
                     breakdown = a.get("damage_breakdown", {})
                     fire_pct = breakdown.get("fire", 0)
                     cold_pct = breakdown.get("cold", 0)
                     lightning_pct = breakdown.get("lightning", 0)
-                    total_elemental = fire_pct + cold_pct + lightning_pct
-                    expected_more = raw_val * expect_factor
-                    lines.append(f"- **{name}** (Lv{gem_level}): 给选中元素 {raw_val:.0f}% MORE。主技能伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%，元素总占比 {total_elemental:.1f}%。期望收益 = {raw_val:.0f}% × {total_elemental:.1f}% ÷ 3 ≈ {expected_more:.1f}% MORE")
+                    ec_detail = a.get("ec_detail", {})
+                    dps_f = ec_detail.get("fire_more_dps", 0)
+                    dps_c = ec_detail.get("cold_more_dps", 0)
+                    dps_l = ec_detail.get("lightning_more_dps", 0)
+                    lines.append(f"- **{name}** (Lv{gem_level}): 分别注入 {raw_val:.0f}% MORE 到火/冰/电取平均。伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%")
+                    lines.append(f"  三次模拟 DPS：火 {dps_f:.0f} / 冰 {dps_c:.0f} / 电 {dps_l:.0f}")
                 elif name == "Charge Infusion":
                     charges = a.get("charge_counts", {})
                     f_str = f"F={charges.get('FrenzyCharges', '?')}"
@@ -5989,9 +6052,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("")
 
 
-def _format_section_defence(lines: list, defence_ov: dict,
-                              defence_sens: list, baseline: dict):
-    """格式化 Part 2: 防御面（概览 + 灵敏度）。"""
+def _format_section_defence(lines: list, defence_ov: dict, baseline: dict):
+    """格式化 Part 4: 防御面（概览）。灵敏度已移至 Section 3B。"""
     if not defence_ov:
         return
 
@@ -6138,42 +6200,6 @@ def _format_section_defence(lines: list, defence_ov: dict,
                 lines.append(f"| {cn} | {val:,.0f} |")
         lines.append("")
 
-    # === Part 4.2: 防御灵敏度 ===
-    if defence_sens:
-        lines.append("### 4G. 防御灵敏度")
-        lines.append("")
-
-        # 从第一个 profile 的 metadata 读取 target_pct
-        target_pct_str = f"+{20:.0f}%"
-        if defence_sens and defence_sens[0].get("target_pct"):
-            target_pct_str = f"+{defence_sens[0]['target_pct']:.0f}%"
-        lines.append(f"目标: TotalEHP {target_pct_str}")
-        lines.append("")
-
-        effective = [s for s in defence_sens if s.get("needed_value") is not None]
-        unreachable = [s for s in defence_sens if s.get("needed_value") is None]
-
-        if effective:
-            lines.append("| 维度 | 类型 | 达到目标所需值 | 每单位 EHP 提升 |")
-            lines.append("|------|------|---------------|---------------|")
-            for s in effective:
-                label = s.get("label", s.get("key", "?"))
-                mod_type = s.get("mod_type", "?")
-                needed = s.get("needed_value", 0)
-                delta_pct = s.get("delta_pct_per_unit", 0)
-                unit = s.get("unit", "")
-                needed_str = f"{needed:.1f}{unit}" if needed is not None else "—"
-                lines.append(f"| {label} | {mod_type} | {needed_str} | +{delta_pct:.2f}%/单位 |")
-            lines.append("")
-
-        if unreachable:
-            lines.append("**无法达到目标**: ")
-            for s in unreachable:
-                label = s.get("label", s.get("key", "?"))
-                desc = s.get("description", "无法达到目标")
-                lines.append(f"- {label}: {desc}")
-            lines.append("")
-
     lines.append("")
 
 
@@ -6281,9 +6307,10 @@ def format_report(data: dict) -> str:
     effective_sens = [s for s in sensitivity if s.get("needed_value") is not None]
     if effective_sens:
         top = effective_sens[0]
+        tl = top.get("target_label", "DPS")
         lines.append("")  # suppress unused warning
-        findings.append(f"💡 **{top.get('key', '?')}** 对 DPS 影响最大"
-                        f"（每 1{top.get('unit', '')} 提升 {top.get('dps_per_unit', 0):.2f}% DPS）")
+        findings.append(f"💡 **{top.get('key', '?')}** 对 {tl} 影响最大"
+                        f"（每 1{top.get('unit', '')} 提升 {top.get('dps_per_unit', 0):.2f}% {tl}）")
 
     if findings:
         lines.append("### 关键发现")
@@ -6302,10 +6329,12 @@ def format_report(data: dict) -> str:
             needed = s.get("needed_value", 0)
             unit = s.get("unit", "")
             dpu = s.get("dps_per_unit", 0)
+            tl = s.get("target_label", "DPS")
+            tp = s.get("target_pct", 20)
             lines.append(
                 f"{i}. **{key}** ({mod_type}): "
-                f"每 1{unit} 提升 {dpu:.2f}% DPS，"
-                f"需要 +{needed:.0f}{unit} 达到 +20% DPS"
+                f"每 1{unit} 提升 {dpu:.2f}% {tl}，"
+                f"需要 +{needed:.0f}{unit} 达到 +{tp:.0f}% {tl}"
             )
         lines.append("")
 
@@ -6397,19 +6426,21 @@ def format_report(data: dict) -> str:
                 lines.append(f"| {label} | {cat} | {val_str} |")
             lines.append("")
 
-    # --- Section 3: 灵敏度分析（进攻） ---
-    lines.append("## 3. 进攻灵敏度分析")
+    # --- Section 3: 灵敏度分析（分维度） ---
+    lines.append("## 3. 灵敏度分析")
     lines.append("")
 
-    effective = [s for s in sensitivity if s.get("needed_value") is not None]
-    unreachable = [s for s in sensitivity if s.get("needed_value") is None]
+    # 3A: 进攻灵敏度（DPS）
+    lines.append("### 3A. 进攻灵敏度（DPS）")
+    lines.append("")
 
-    if effective:
-        lines.append("### 有效维度（按性价比排序）")
-        lines.append("")
-        lines.append("| # | 维度 | 类型 | 所需值 | 单位 | DPS/单位 | 当前值 | 公式 |")
+    off_effective = [s for s in sensitivity if s.get("needed_value") is not None]
+    off_unreachable = [s for s in sensitivity if s.get("needed_value") is None]
+
+    if off_effective:
+        lines.append("| # | 维度 | 类型 | 所需值 | 单位 | 效果/单位 | 当前值 | 公式 |")
         lines.append("|---|------|------|--------|------|----------|--------|------|")
-        for i, s in enumerate(effective, 1):
+        for i, s in enumerate(off_effective, 1):
             key = s.get("key", "?")
             mod_type = s.get("mod_type", "?")
             needed = s.get("needed_value", 0)
@@ -6425,20 +6456,68 @@ def format_report(data: dict) -> str:
             )
         lines.append("")
 
-    if unreachable:
-        lines.append("### 无影响维度")
+    if off_unreachable:
+        lines.append("**无影响维度**: "
+                     + ", ".join(s.get("key", "?") for s in off_unreachable))
         lines.append("")
-        lines.append("| 维度 | 类型 | 说明 |")
-        lines.append("|------|------|------|")
-        for s in unreachable:
-            key = s.get("key", "?")
-            mod_type = s.get("mod_type", "?")
-            desc = s.get("description", "无法达到目标")
-            lines.append(f"| {key} | {mod_type} | {desc} |")
+
+    # 3B: 防御灵敏度（EHP）
+    lines.append("### 3B. 防御灵敏度（EHP）")
+    lines.append("")
+
+    if defence_sens:
+        def_effective = [s for s in defence_sens if s.get("needed_value") is not None]
+        def_unreachable = [s for s in defence_sens if s.get("needed_value") is None]
+
+        if def_effective:
+            lines.append("| 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |")
+            lines.append("|------|------|--------|---------------|------|")
+            for s in def_effective:
+                label = s.get("label", s.get("key", "?"))
+                mod_type = s.get("mod_type", "?")
+                needed = s.get("needed_value", 0)
+                unit = s.get("unit", "")
+                dpu = s.get("dps_per_unit", 0) or 0
+                formula = s.get("formula", "")
+                needed_str = f"{needed:.1f}{unit}" if needed is not None else "—"
+                lines.append(f"| {label} | {mod_type} | {needed_str} | +{dpu:.2f}%/单位 | {formula} |")
+            lines.append("")
+
+        if def_unreachable:
+            lines.append("**无法达到目标**: "
+                         + ", ".join(f"{s.get('label', s.get('key', '?'))}" for s in def_unreachable))
+            lines.append("")
+    else:
+        lines.append("无数据")
+        lines.append("")
+
+    # 3C: 恢复增强灵敏度
+    lines.append("### 3C. 恢复增强灵敏度")
+    lines.append("")
+
+    if recovery_sens:
+        rec_effective = [s for s in recovery_sens if s.get("needed_value") is not None]
+        if rec_effective:
+            tp = rec_effective[0].get("target_pct", 20)
+            lines.append(f"注入多少恢复属性可使对应恢复指标提升 **{tp:.0f}%**：")
+            lines.append("")
+            lines.append("| 增强属性 | 所需注入 | 当前总值 | 公式 |")
+            lines.append("|---------|---------|---------|------|")
+            for s in rec_effective:
+                label = s.get("label", s.get("key", "?"))
+                needed = s.get("needed_value", 0)
+                unit = s.get("unit", "")
+                cur = s.get("current_total", 0)
+                formula = s.get("formula", "")
+                cur_str = f"{cur:,.1f}" if cur > 0 else "—"
+                lines.append(f"| {label} | {needed:.1f}{unit} | {cur_str} | {formula} |")
+            lines.append("")
+    else:
+        lines.append("无数据")
         lines.append("")
 
     # --- Part 4: 防御面 ---
-    _format_section_defence(lines, defence_ov, defence_sens, baseline)
+    _format_section_defence(lines, defence_ov, baseline)
 
     # --- Part 5: 资源面 ---
     if res_ov or life_recov or mana_recov or recovery_sens:
@@ -6525,25 +6604,6 @@ def format_report(data: dict) -> str:
                 pct = rate / mana_total_rate * 100 if mana_total_rate > 0 else 0
                 lines.append(f"| {i} | {src['name']} | {rate:,.1f}/s | {pct:.0f}% |")
             lines.append("")
-
-        # 5D 恢复增强灵敏度
-        if recovery_sens:
-            valid_sens = [s for s in recovery_sens if s.get("needed_value") is not None]
-            if valid_sens:
-                lines.append("### 5D. 恢复增强灵敏度")
-                lines.append("")
-                lines.append(f"注入多少恢复属性可使对应恢复指标提升 **{recovery_sens[0].get('target_pct', 20):.0f}%**：")
-                lines.append("")
-                lines.append("| 增强属性 | 所需注入 | 当前总值 | 公式 |")
-                lines.append("|---------|---------|---------|------|")
-                for s in valid_sens[:5]:
-                    nv = s["needed_value"]
-                    u = s.get("unit", "%")
-                    ct = s.get("current_total", 0)
-                    ct_str = f"{ct:,.1f}" if ct > 0 else "—"
-                    formula = s.get("formula", "—")
-                    lines.append(f"| {s['label']} | {nv:,.1f}{u} | {ct_str} | {formula} |")
-                lines.append("")
 
     # --- Part 6: 已分配天赋价值 ---
     dps_talents = [t for t in talent_value if abs(t.get("dps_pct", 0)) > 0.1]
@@ -6664,55 +6724,114 @@ def format_report(data: dict) -> str:
     lines.append("## 10. 总结与建议")
     lines.append("")
 
-    # 8a. 核心数据一句话
+    # 10a. 核心数据一句话
     lines.append(f"当前 **{skill_name}** TotalDPS = **{total_dps:,.0f}**，"
                  f"AverageHit = {avg_hit:,.0f}，Speed = {speed:.2f}/s，"
                  f"CritChance = {crit_chance:.1f}%，CritMultiplier = {crit_multi:.2f}x。")
     lines.append("")
 
-    # 8b. 最高性价比优化方向（灵敏度 Top 3）
+    # 10b. 进攻面建议
     effective_sens = [s for s in sensitivity if s.get("needed_value") is not None]
+    lines.append("### ⚔️ 进攻面")
+    lines.append("")
     if effective_sens:
-        lines.append("### 🎯 最高性价比优化方向")
+        lines.append("**DPS 灵敏度 Top 5**（所需投入越少 = 性价比越高）：")
         lines.append("")
-        for i, s in enumerate(effective_sens[:3], 1):
+        lines.append("| # | 维度 | 类型 | 当前值 | 所需值 | 公式 |")
+        lines.append("|---|------|------|--------|--------|------|")
+        for i, s in enumerate(effective_sens[:5], 1):
             key = s.get("key", "?")
             mod_type = s.get("mod_type", "?")
+            cur = s.get("current_total", 0)
             needed = s.get("needed_value", 0)
             unit = s.get("unit", "")
-            dpu = s.get("dps_per_unit", 0)
-            cur = s.get("current_total", 0)
+            formula = s.get("formula", "")
             lines.append(
-                f"{i}. **{key}** ({mod_type}): "
-                f"每 1{unit} 提升 {dpu:.2f}% DPS，"
-                f"当前 {cur:.0f}，需要 +{needed:.0f}{unit} 达到 +20% DPS"
+                f"| {i} | {key} | {mod_type} | {cur:.0f} | "
+                f"+{needed:.0f}{unit} | {formula} |"
             )
         lines.append("")
 
-    # 8c. 推荐点出的天赋（探索 Top 5）
+    # 穿透提醒
+    unreachable_sens = [s for s in sensitivity if s.get("needed_value") is None]
+    pen_unreachable = [s for s in unreachable_sens if "pen" in s.get("key", "")]
+    if pen_unreachable:
+        lines.append("*穿透维度均无影响（敌人抗性已为负值），面对高抗 Boss 时会成为有效优化方向。*")
+        lines.append("")
+
+    # 10c. 防御面建议
+    lines.append("### 🛡️ 防御面")
+    lines.append("")
+    if defence_ov:
+        weakest = defence_ov.get("weakest_type", "")
+        weakest_pct = defence_ov.get("weakest_pct", 0)
+        total_ehp = defence_ov.get("total_ehp", 0)
+        if weakest:
+            lines.append(f"**最短板**: {weakest}（承伤仅为最强的 {weakest_pct:.0f}%）")
+            lines.append("")
+
+        # 抗性建议
+        resist = defence_ov.get("resistances", {})
+        unfilled = [r for r, v in resist.items() if v.get("unfilled", 0) > 0]
+        overfilled = [r for r, v in resist.items() if v.get("overflow", 0) >= 20]
+        if unfilled:
+            lines.append(f"**未满抗性**: {', '.join(unfilled)} — 优先补满可显著提升 EHP")
+            lines.append("")
+        if overfilled:
+            lines.append(f"**过度堆叠**: {', '.join(overfilled)} — 超出上限 20%+，可考虑分配到其他维度")
+            lines.append("")
+
+    if defence_sens:
+        def_effective = [s for s in defence_sens if s.get("needed_value") is not None]
+        if def_effective:
+            top_def = def_effective[0]
+            label = top_def.get("label", top_def.get("key", "?"))
+            needed = top_def.get("needed_value", 0)
+            unit = top_def.get("unit", "")
+            lines.append(f"**防御性价比最高**: {label}，需要 +{needed:.0f}{unit} 即可提升 EHP +{top_def.get('target_pct', 20):.0f}%")
+            lines.append("")
+
+    # 10d. 资源面建议
+    lines.append("### 💧 资源与恢复")
+    lines.append("")
+    if res_ov:
+        spirit_data = res_ov.get("spirit", {})
+        spirit_pct = spirit_data.get("reserved_pct", 0)
+        if spirit_pct > 100:
+            lines.append(f"**⚠️ 精魄超载**: 占用 {spirit_pct:.0f}%，需要缩减光环或精魄辅助")
+            lines.append("")
+
+    if recovery_sens:
+        rec_effective = [s for s in recovery_sens if s.get("needed_value") is not None]
+        if rec_effective:
+            lines.append("**恢复增强 Top 3**：")
+            lines.append("")
+            for i, s in enumerate(rec_effective[:3], 1):
+                label = s.get("label", s.get("key", "?"))
+                needed = s.get("needed_value", 0)
+                unit = s.get("unit", "")
+                formula = s.get("formula", "")
+                lines.append(f"{i}. {label}: {formula}")
+            lines.append("")
+
+    # 10e. 天赋建议
+    lines.append("### 🌳 天赋")
+    lines.append("")
     if talent_exploration:
-        lines.append("### 🌳 推荐点出的天赋")
+        lines.append("**推荐点出 Top 5**：")
         lines.append("")
         for i, t in enumerate(talent_exploration[:5], 1):
             ehp_note = f"，EHP {t.get('ehp_pct', 0):+.1f}%" if abs(t.get('ehp_pct', 0)) > 0.1 else ""
             lines.append(f"{i}. **{t['name']}**: DPS {t['dps_pct']:+.1f}%{ehp_note}")
         lines.append("")
 
-    # 8d. 低效天赋提醒
     if zero_talents:
-        lines.append("### ⚠️ 低效天赋")
-        lines.append("")
-        lines.append(f"有 **{len(zero_talents)}** 个已分配天赋对 DPS 和 EHP 均无可测量影响，"
-                     "可考虑重新规划路径或替换为高收益节点：")
-        lines.append("")
-        # 列出前 10 个，避免过长
-        shown_zero = zero_talents[:10]
-        lines.append(", ".join(f"**{t['name']}**" for t in shown_zero))
-        if len(zero_talents) > 10:
-            lines.append(f"  …及其他 {len(zero_talents) - 10} 个")
+        lines.append(f"**⚠️ {len(zero_talents)} 个无效天赋**: "
+                     f"{', '.join(t['name'] for t in zero_talents[:8])}"
+                     + (f" 等 {len(zero_talents)} 个" if len(zero_talents) > 8 else ""))
         lines.append("")
 
-    # 8e. 珠宝优化建议
+    # 10f. 珠宝建议
     if jewel_diag:
         low_impact_jewels = [j for j in jewel_diag
                             if abs(j.get("dps_pct", 0)) < 0.1
@@ -6725,27 +6844,16 @@ def format_report(data: dict) -> str:
             reverse=True,
         )
         if high_impact_jewels or low_impact_jewels:
-            lines.append("### 💎 珠宝建议")
+            lines.append("### 💎 珠宝")
             lines.append("")
             if high_impact_jewels:
                 best = high_impact_jewels[0]
-                lines.append(f"- 当前综合贡献最高的珠宝: **{best.get('name', '?')}** "
+                lines.append(f"**最佳**: {best.get('name', '?')} "
                              f"(DPS {best.get('dps_pct', 0):+.1f}%, "
                              f"EHP {best.get('ehp_pct', 0):+.1f}%)")
             if low_impact_jewels:
-                names = ", ".join(f"**{j.get('name', '?')}**" for j in low_impact_jewels)
-                lines.append(f"- 无显著贡献的珠宝: {names}，可考虑替换")
+                names = ", ".join(f"{j.get('name', '?')}" for j in low_impact_jewels)
+                lines.append(f"**可替换**: {names}")
             lines.append("")
-
-    # 8f. 敌人抗性/穿透提醒
-    unreachable_sens = [s for s in sensitivity if s.get("needed_value") is None]
-    pen_unreachable = [s for s in unreachable_sens if "pen" in s.get("key", "")]
-    if pen_unreachable:
-        lines.append("### 🛡️ 敌人抗性说明")
-        lines.append("")
-        lines.append("所有穿透维度均无影响 — 当前构筑配置下敌人抗性已为负值或零值，"
-                     "穿透无法进一步降低负抗。如果面对高抗性 Boss（抗性 > 0），"
-                     "穿透会成为有效优化维度。")
-        lines.append("")
 
     return "\n".join(lines)
