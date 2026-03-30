@@ -7,10 +7,14 @@
 # - 光环类技能：在 aura_spirit_analysis 中自动注入
 # - 主动技能：在报告格式化时添加预估效果标注
 #
-# 扫描结果：
+# 扫描结果（2026-03-30）：
 # - SkillStatMap 已映射: 880 个 stats
-# - 未映射: 711 个 stats
-# - 玩家受益相关: ~120 个
+# - 未映射: 449 个 stats
+# - 玩家受益相关: 226 个
+#   - 主动技能: 4 个
+#   - 辅助宝石: 115 个
+#   - 触发类: 17 个
+#   - 其他: 90 个
 #
 # 更新方式：
 # 1. 运行 python -B _scan_all.py 查看完整扫描结果
@@ -47,9 +51,13 @@ skills:
       - type: "mod"
         mod_name: "SpellDamage"
         mod_type: "MORE"
-        value: 10  # 假设平均层数，实际需要动态读取
+        value: null  # 动态读取层数
         source: "DemonForm_stacks"
         description: "每层 +MORE 法术伤害（需动态读取层数）"
+    # 特殊处理：需要动态计算层数
+    dynamic_value:
+      type: "stack_based"
+      stat_pattern: "demon_form_spell_damage_+%_final_per_stack"
 
   "Charged Blast":
     detect:
@@ -60,9 +68,80 @@ skills:
       - type: "mod"
         mod_name: "SpellDamage"
         mod_type: "MORE"
-        value: 20  # 假设平均层数
+        value: null  # 动态读取层数
         source: "ChargedBlast_stacks"
         description: "每层 +MORE 法术伤害（需动态读取层数）"
+    dynamic_value:
+      type: "stack_based"
+      stat_pattern: "charged_blast_spell_damage_+%_final_per_stack"
+
+  # ===================================================================
+  # 元技能/触发类（skill_type: trigger）
+  # ===================================================================
+  
+  "Meta Gem Trigger":
+    detect:
+      type: "stat_pattern"
+      pattern: "trigger_meta_gem_damage_+%_final"
+    skill_type: "trigger"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "MORE"
+        value: null  # 从宝石等级读取
+        source: "MetaGem_trigger"
+        description: "元技能触发时 MORE 伤害"
+    applies_to:
+      - "SupportMetaCastOnCritPlayer"
+      - "SupportMetaCastOnBlockPlayer"
+      - "SupportMetaCastOnHitPlayer"
+
+  # ===================================================================
+  # 辅助宝石（skill_type: support）
+  # ===================================================================
+  
+  # 注意：大部分 support_*_damage_+%_final 类型的 stat
+  # POB 已通过 ModCache.lua 正确处理，无需手动注入
+  # 仅当确认某辅助效果缺失时才添加
+  
+  "Brutality Support":
+    detect:
+      type: "gem_name"
+      name: "Brutality"
+    skill_type: "support"
+    effects:
+      - type: "mod"
+        mod_name: "PhysicalDamage"
+        mod_type: "MORE"
+        value: null  # 从宝石等级读取
+        source: "Brutality_support"
+        description: "MORE 物理伤害（需验证是否已实现）"
+
+  "Controlled Destruction Support":
+    detect:
+      type: "gem_name"
+      name: "Controlled Destruction"
+    skill_type: "support"
+    effects:
+      - type: "mod"
+        mod_name: "SpellDamage"
+        mod_type: "MORE"
+        value: null  # 从宝石等级读取
+        source: "ControlledDestruction_support"
+        description: "MORE 法术伤害（需验证是否已实现）"
+
+  "Elemental Damage Support":
+    detect:
+      type: "stat_pattern"
+      pattern: "support_attack_skills_elemental_damage_+%_final"
+    skill_type: "support"
+    effects:
+      - type: "mod"
+        mod_name: "ElementalDamage"
+        mod_type: "MORE"
+        value: null  # 从宝石等级读取
+        source: "ElementalDamage_support"
+        description: "MORE 元素伤害（攻击技能）"
 
   # ===================================================================
   # 光环/被动效果（skill_type: aura）
@@ -85,15 +164,7 @@ skills:
     expect_factor: 0.333  # 期望 = MORE * 1/3
 
   # ===================================================================
-  # 辅助技能（support_ 开头的 stat）
-  # ===================================================================
-  
-  # 注意：大部分 support_*_damage_+%_final 类型的 stat
-  # POB 已通过 ModCache.lua 正确处理，无需手动注入
-  # 仅当确认某辅助效果缺失时才添加
-
-  # ===================================================================
-  # 预留：其他重要未实现效果
+  # 预留：其他重要未实现效果（已扫描但未添加）
   # ===================================================================
   
   # 以下 stat 在扫描中发现，但需要进一步确认是否影响玩家：
@@ -102,17 +173,39 @@ skills:
   # - chance_to_trigger_living_lightning_on_lightning_damage
   # - plague_bearer_gains_%_of_damage_from_inflicted_poison
   # - feeding_frenzy_minion_damage_taken_+%_final
-  # - demon_form_spell_damage_+%_final_per_stack
-  # - charged_blast_spell_damage_+%_final_per_stack
   # - skill_attrition_hit_damage_+%_final_vs_rare_or_unique
-  # - trigger_meta_gem_damage_+%_final
+  # - arc_damage_+%_final_from_infusion_consumption
+  # - cascadeable_offering_support_offering_casted_spell_damage_+%_final
   
+  # 辅助宝石 MORE 伤害效果（共 115 个，仅列出重要的）：
+  # - support_ablation_offering_skill_damage_+%_final
+  # - support_advancing_assault_melee_damage_+%_final_if_*
+  # - support_bloodlust_melee_physical_damage_+%_final_vs_bleeding_enemies
+  # - support_chanelling_damage_+%_final_per_second_channelling
+  # - support_chaos_damage_+%_final_if_corpse_consumed_on_use
+  # - support_close_combat_attack_damage_+%_final_from_distance
+  # - support_deadly_poison_hit_damage_+%_final
+  # - support_debilitate_hit_damage_+%_final_per_poison_stack
+  # - support_elemental_armament_attack_damage_+%_final_per_elemental_ailment_on_target
+  # - support_elemental_assault_melee_damage_+%_final_per_elemental_ailment_on_target
+  # - support_executioner_damage_vs_enemies_on_low_life_+%_final
+  # - support_gambleshot_projectile_damage_+%_final
+  # - support_hourglass_damage_+%_final
+  # - support_inhibitor_damage_+%_final_per_charge_type_or_infusion_type
+  # - support_mobility_damage_+%_final
+  # - support_pierce_damage_+%_final_per_pierced_target
+  # - support_spell_damage_+%_final_while_above_90%_maximum_mana
+  # - support_sticky_grenade_damage_+%_final
+  # - support_stunning_magic_grant_spell_damage_+%_buff_on_heavy_stunning
+  # - support_unseen_critical_damage_multiplier_+%_final_vs_blinded_enemies
+  # - support_withering_touch_damage_+%_final
+
   # 如需添加新效果，请按以下格式：
   # "技能名称":
   #   detect:
   #     type: "gem_name" | "stat_pattern"
   #     name: "技能名称" | pattern: "stat_pattern"
-  #   skill_type: "active" | "aura" | "support"
+  #   skill_type: "active" | "aura" | "support" | "trigger"
   #   effects:
   #     - type: "mod"
   #       mod_name: "Modifier名称"
