@@ -3824,6 +3824,47 @@ _AURA_CANDIDATES = [
     },
 ]
 
+# ==============================================================================
+# 精魄辅助候选配置（混合方案）
+# ==============================================================================
+#
+# 本列表包含高价值的精魄辅助，提供精确的中文名称和详细说明。
+# 
+# 混合方案说明：
+#   1. 硬编码候选（本列表）: 5 个核心辅助，有详细标注
+#   2. 动态扫描候选: 从 POB data.gems 自动发现所有精魄辅助
+#   3. 合并去重: 使用 merge_candidates() 函数合并，优先保留硬编码版本
+#
+# 工作流程：
+#   discover_spirit_supports(lua)  →  动态扫描发现 25+ 个辅助
+#          ↓
+#   merge_candidates(硬编码, 动态)  →  合并并去重
+#          ↓
+#   filter_spirit_supports()       →  根据构筑类型过滤
+#          ↓
+#   测试并返回 Top 5               →  只显示最有效的结果
+#
+# 优势：
+#   - 硬编码候选: 用户友好的中文名称、详细说明、已知条件标注
+#   - 动态扫描候选: 自动发现新宝石，无需手动维护
+#   - 去重机制: 避免重复，硬编码版本优先（更好的描述）
+#
+# 示例：
+#   硬编码: "猛击 I" (Direstrike I, 有中文标注)
+#   动态扫描: "Direstrike I" (无中文标注)
+#   合并结果: 保留硬编码版本
+#
+# 参考：
+#   - discover_spirit_supports(): 动态扫描函数
+#   - merge_candidates(): 合并去重函数
+#   - filter_spirit_supports(): 智能过滤函数
+#
+# 维护说明：
+#   - 只需添加高价值、需要详细标注的辅助
+#   - 其他辅助会自动从 POB 数据库发现
+#   - POB 更新后无需手动同步
+# ==============================================================================
+
 _SPIRIT_SUPPORT_CANDIDATES = [
     {
         "key": "direstrike_1",
@@ -3877,6 +3918,277 @@ _SPIRIT_SUPPORT_CANDIDATES = [
         "estimated": True,
     },
 ]
+
+
+def _generate_support_description(gem_data: dict, granted_effect: dict) -> str:
+    """为动态发现的精魄辅助生成描述。
+    
+    Args:
+        gem_data: POB data.gems 中的宝石数据
+        granted_effect: POB data.skills 中的 grantedEffect 数据
+    
+    Returns:
+        描述字符串
+    """
+    # 优先使用 grantedEffect.description
+    if granted_effect and granted_effect.get("description"):
+        return granted_effect["description"]
+    
+    # 其次尝试从 statDescription 提取
+    if granted_effect and granted_effect.get("statDescription"):
+        # 简化：只取第一行
+        stat_desc = granted_effect["statDescription"]
+        if isinstance(stat_desc, str):
+            return stat_desc.split("\n")[0]
+    
+    # 最后生成默认描述
+    name = gem_data.get("name", "Unknown Support")
+    return f"{name}: 精魄辅助效果"
+
+
+def discover_spirit_supports(lua) -> list[dict]:
+    """动态发现所有精魄辅助宝石。
+    
+    扫描 POB 的 data.gems 数据库，找出所有消耗精魄的辅助宝石。
+    
+    Args:
+        lua: LuaRuntime 实例
+    
+    Returns:
+        [{name, skill_id, spirit, description}, ...]
+        - name: 宝石名称
+        - skill_id: grantedEffectId
+        - spirit: 精魄消耗
+        - description: 效果描述
+    """
+    import time
+    start_time = time.time()
+    
+    result = lua.execute('''
+        local discovered = {}
+        local idx = 1
+        local count = 0
+        for gem_id, gem in pairs(data.gems) do
+            -- 检查是否消耗精魄
+            local spiritCost = 0
+            if gem.grantedEffect and gem.grantedEffect.levels then
+                -- 从最高等级读取精魄消耗
+                local maxLevel = 0
+                for lvl, _ in pairs(gem.grantedEffect.levels) do
+                    if lvl > maxLevel then maxLevel = lvl end
+                end
+                if maxLevel > 0 then
+                    local levelData = gem.grantedEffect.levels[maxLevel]
+                    if levelData and levelData.spiritReservationFlat then
+                        spiritCost = levelData.spiritReservationFlat
+                    end
+                end
+            end
+            
+            -- 过滤：只保留精魄消耗 > 0 且是 Support 的宝石
+            if spiritCost > 0 and gem.grantedEffectId and string.find(gem.grantedEffectId, "Support") then
+                count = count + 1
+                local desc = ""
+                if gem.grantedEffect and gem.grantedEffect.description then
+                    desc = gem.grantedEffect.description
+                elseif gem.grantedEffect and gem.grantedEffect.statDescription then
+                    desc = type(gem.grantedEffect.statDescription) == "string" and gem.grantedEffect.statDescription or ""
+                end
+                
+                discovered[idx] = {
+                    name = gem.name or gem.grantedEffectId,
+                    skill_id = gem.grantedEffectId,
+                    spirit = spiritCost,
+                    description = desc,
+                }
+                idx = idx + 1
+            end
+        end
+        -- 返回计数和列表
+        return count, discovered
+    ''')
+    
+    elapsed_ms = (time.time() - start_time) * 1000
+    
+    # 处理双重返回值 (count, table)
+    logger.debug("Lua 返回值类型: %s, 长度: %s", type(result), len(result) if hasattr(result, '__len__') else 'N/A')
+    
+    if not result or len(result) < 2:
+        logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - result 无效", elapsed_ms)
+        return []
+    
+    count = result[0]  # Lua 返回的第一个值：计数
+    table = result[1]  # Lua 返回的第二个值：列表
+    
+    logger.debug("count = %s, table type = %s", count, type(table))
+    
+    if not table or count == 0:
+        logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - count=0 或 table 为空", elapsed_ms)
+        return []
+    
+    # 转换为 Python dict 列表
+    # Lua 返回的 table，直接遍历
+    discovered = []
+    try:
+        # 方法：使用 lupa 的 items() 遍历
+        if hasattr(table, 'items'):
+            logger.debug("使用 items() 遍历 Lua table")
+            for key, item in table.items():
+                # item 是 LuaTable，使用 [] 访问字段
+                if item:
+                    try:
+                        # LuaTable 使用 [] 访问字段
+                        name = item["name"] if "name" in item else ""
+                        skill_id = item["skill_id"] if "skill_id" in item else ""
+                        spirit = item["spirit"] if "spirit" in item else 0
+                        description = item["description"] if "description" in item else ""
+                        
+                        discovered.append({
+                            "name": str(name) if name else "",
+                            "skill_id": str(skill_id) if skill_id else "",
+                            "spirit": int(spirit) if spirit else 0,
+                            "description": str(description) if description else "",
+                        })
+                    except Exception as e:
+                        logger.warning("处理单个 item 失败: %s", e)
+        else:
+            # 备用方法：直接用索引遍历
+            logger.debug("使用索引遍历 Lua table")
+            i = 1
+            while i <= count:
+                try:
+                    item = table[i]
+                    if item:
+                        name = item["name"] if "name" in item else ""
+                        skill_id = item["skill_id"] if "skill_id" in item else ""
+                        spirit = item["spirit"] if "spirit" in item else 0
+                        description = item["description"] if "description" in item else ""
+                        
+                        discovered.append({
+                            "name": str(name) if name else "",
+                            "skill_id": str(skill_id) if skill_id else "",
+                            "spirit": int(spirit) if spirit else 0,
+                            "description": str(description) if description else "",
+                        })
+                except Exception as e:
+                    logger.debug("索引 %d 失败: %s", i, e)
+                i += 1
+    except Exception as e:
+        logger.error("遍历 Lua 结果失败: %s", e)
+        import traceback
+        traceback.print_exc()
+    
+    logger.info("动态扫描发现 %d 个精魄辅助 (%.0fms)", 
+                len(discovered), elapsed_ms)
+    
+    return discovered
+
+
+def filter_spirit_supports(candidates: list[dict], 
+                          is_attack: bool, 
+                          is_spell: bool,
+                          skill_tags: dict = None) -> list[dict]:
+    """根据构筑特征过滤精魄辅助候选。
+    
+    Args:
+        candidates: 候选列表 [{name, skill_id, spirit, description, ...}, ...]
+        is_attack: 是否为攻击构筑
+        is_spell: 是否为法术构筑
+        skill_tags: 技能标签字典（可选）
+    
+    Returns:
+        过滤后的候选列表
+    """
+    filtered = []
+    skipped_count = 0
+    
+    for candidate in candidates:
+        skip = False
+        reason = ""
+        
+        # 1. 硬编码候选的已知条件过滤
+        condition = candidate.get("condition", "")
+        if condition:
+            # 精确匹配已知条件
+            if "仅攻击构筑" in condition and not is_attack:
+                skip = True
+                reason = "仅攻击构筑"
+            elif "Low Life" in condition and is_spell:
+                # 法术构筑通常不是 Low Life 构筑
+                skip = True
+                reason = "需要 Low Life"
+        
+        # 2. 基于名称的启发式过滤（动态候选）
+        name = candidate.get("name", "").lower()
+        skill_id = candidate.get("skill_id", "").lower()
+        
+        if not skip and is_spell:
+            # 法术构筑：过滤攻击专属辅助
+            attack_keywords = ["precision", "direstrike", "melee", "attack speed"]
+            if any(kw in name or kw in skill_id for kw in attack_keywords):
+                # 进一步检查：如果名字里明确标注是攻击相关
+                if "precision" in name or "direstrike" in name:
+                    skip = True
+                    reason = "攻击专属辅助"
+        
+        if not skip and is_attack:
+            # 攻击构筑：过滤法术专属辅助
+            spell_keywords = ["spell damage", "cast speed", "arcane"]
+            if any(kw in name or kw in skill_id for kw in spell_keywords):
+                # 进一步检查：如果名字里明确标注是法术相关
+                if "spell damage" in name and "attack" not in name:
+                    skip = True
+                    reason = "法术专属辅助"
+        
+        if skip:
+            skipped_count += 1
+            logger.debug("过滤候选: %s (原因: %s)", candidate.get("name"), reason)
+        else:
+            filtered.append(candidate)
+    
+    logger.info("过滤精魄辅助: %d 个候选，跳过 %d 个，保留 %d 个",
+                len(candidates), skipped_count, len(filtered))
+    
+    return filtered
+
+
+def merge_candidates(hardcoded: list[dict], discovered: list[dict]) -> list[dict]:
+    """合并硬编码和动态发现的候选，去重并优先保留硬编码。
+    
+    Args:
+        hardcoded: 硬编码候选列表（有详细标注）
+        discovered: 动态发现的候选列表
+    
+    Returns:
+        合并后的候选列表
+    """
+    # 使用 skill_id 作为去重键
+    merged = {}
+    
+    # 先添加动态发现的（优先级低）
+    for candidate in discovered:
+        skill_id = candidate.get("skill_id", "")
+        if skill_id:
+            merged[skill_id] = {
+                **candidate,
+                "source": "dynamic",  # 标记来源
+            }
+    
+    # 再添加硬编码的（覆盖动态发现，优先级高）
+    for candidate in hardcoded:
+        skill_id = candidate.get("skill_id", "")
+        if skill_id:
+            merged[skill_id] = {
+                **candidate,
+                "source": "hardcoded",  # 标记来源
+            }
+    
+    result = list(merged.values())
+    logger.info("合并候选: 硬编码 %d + 动态 %d = 合并后 %d",
+                len(hardcoded), len(discovered), len(result))
+    
+    return result
+
 
 # POB ConfigOptions 中 count 类型的可测试范围上限。
 # apply 函数内部用 m_max(m_min(val, N), 0) 做 clamp，
@@ -5620,31 +5932,64 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     # 找到所有可以作为精魄辅助目标的光环技能组
     aura_groups = [si for si in skills_info if si["is_aura"]]
 
-    # 过滤出适合的精魄候选
-    # Precision 仅对攻击构筑有效
-    filtered_supports = []
+    # === 动态扫描 + 合并 + 过滤 ===
+    # Step 1: 动态扫描
+    discovered_supports = discover_spirit_supports(lua)
+    
+    # Step 2: 合并硬编码和动态候选
+    # 将硬编码候选转换为统一格式
+    hardcoded_formatted = []
     for ss in _SPIRIT_SUPPORT_CANDIDATES:
-        if ss["key"] in ("precision_1", "precision_2") and not is_attack:
-            continue
-        filtered_supports.append(ss)
+        hardcoded_formatted.append({
+            "key": ss.get("key", ""),
+            "name": ss.get("name", ""),
+            "name_cn": ss.get("name_cn", ""),
+            "skill_id": ss.get("skill_id", ""),
+            "spirit": ss.get("spirit", 0),
+            "description": ss.get("description", ""),
+            "condition": ss.get("condition", ""),
+            "note": ss.get("note", ""),
+            "estimated": ss.get("estimated", False),
+        })
+    
+    merged_supports = merge_candidates(hardcoded_formatted, discovered_supports)
+    
+    # Step 3: 智能过滤
+    filtered_supports = filter_spirit_supports(
+        merged_supports, is_attack, is_spell, skill_flags)
+    
+    # Step 4: 按精魄消耗排序（优先测试小消耗的）
+    filtered_supports.sort(key=lambda x: x.get("spirit", 0))
+    
+    logger.info("精魄辅助候选: 硬编码 %d + 动态 %d = 合并 %d → 过滤后 %d",
+                len(hardcoded_formatted), len(discovered_supports),
+                len(merged_supports), len(filtered_supports))
 
+    # 测试所有过滤后的候选
     for ss in filtered_supports:
         for aura_si in aura_groups:
             result = _test_add_spirit_support(
                 lua, calcs, ss, aura_si["group_idx"], baseline)
-            # 标注精魄需求（不再标记 error，统一展示）
+            # 标注精魄需求
             actual_spirit = result.get("spirit", 0)
             if actual_spirit > available_spirit:
                 shortfall = actual_spirit - available_spirit
                 result["spirit_shortfall"] = shortfall
                 result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
+            # 标注来源
+            result["source"] = ss.get("source", "unknown")
             spirit_support_tests.append(result)
 
-    # 排序：按 DPS 增益降序
-    spirit_support_tests.sort(
-        key=lambda x: -abs(x.get("dps_pct", 0))
-    )
-    logger.info("8C 完成: %d 个精魄辅助测试", len(spirit_support_tests))
+    # Step 5: 过滤有效结果（DPS > 0.1%）并取 Top 5
+    effective_tests = [t for t in spirit_support_tests if t.get("dps_pct", 0) > 0.1]
+    effective_tests.sort(key=lambda x: -abs(x.get("dps_pct", 0)))
+    top_5_tests = effective_tests[:5]
+    
+    logger.info("8C 完成: %d 个精魄辅助测试，%d 个有效，Top 5 已选择",
+                len(spirit_support_tests), len(effective_tests))
+    
+    # 使用 Top 5 作为最终结果
+    spirit_support_tests = top_5_tests
 
     # === 7D: Spirit Budget ===
     # 计算推荐精魄消耗总和（含精魄不足项）
@@ -6059,16 +6404,12 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     # 9C: 精魄辅助推荐
     lines.append("### 9C. 精魄辅助推荐")
     lines.append("")
-
-    effective_ss = [s for s in spirit_tests
-                    if s.get("dps_pct", 0) > 0.1]
-    failed_ss = [s for s in spirit_tests
-                 if s.get("dps_pct", 0) <= 0.1]
-
-    if effective_ss:
-        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 条件 |")
-        lines.append("|---|----------|----------|------|------|------|")
-        for i, s in enumerate(effective_ss, 1):
+    
+    # 注意：spirit_tests 已经是 Top 5 了（在 aura_spirit_analysis 中过滤）
+    if spirit_tests:
+        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 条件 | 来源 |")
+        lines.append("|---|----------|----------|------|------|------|------|")
+        for i, s in enumerate(spirit_tests, 1):
             name = s.get("name", "?")
             name_cn = s.get("name_cn", "")
             target = s.get("target_aura", "?")
@@ -6079,8 +6420,13 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             if s.get("spirit_note"):
                 cond = f"{s['spirit_note']}; {cond}" if cond else s["spirit_note"]
             estimated = " ⚠️估算" if s.get("estimated") else ""
+            
+            # 来源标注
+            source = s.get("source", "unknown")
+            source_display = "硬编码" if source == "hardcoded" else "动态扫描" if source == "dynamic" else "未知"
+            
             display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
-            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} |")
+            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} | {source_display} |")
         lines.append("")
 
     if failed_ss:
