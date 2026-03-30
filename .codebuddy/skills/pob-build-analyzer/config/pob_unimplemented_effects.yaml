@@ -1,0 +1,122 @@
+# POB 未实现的技能效果配置
+# 
+# 用途：POB 的 SkillStatMap.lua 未映射某些技能的 stats，
+#       导致这些效果无法在 DPS 计算中体现。本配置提供手动注入方案。
+#
+# 集成点：
+# - 光环类技能：在 aura_spirit_analysis 中自动注入
+# - 主动技能：在报告格式化时添加预估效果标注
+#
+# 扫描结果：
+# - SkillStatMap 已映射: 880 个 stats
+# - 未映射: 711 个 stats
+# - 玩家受益相关: ~120 个
+#
+# 更新方式：
+# 1. 运行 python -B _scan_all.py 查看完整扫描结果
+# 2. 从输出中筛选影响玩家数值的 stats
+# 3. 按下面的格式添加到 skills 部分
+
+skills:
+  # ===================================================================
+  # 主动技能（skill_type: active）
+  # ===================================================================
+  
+  "Unbound Avatar":
+    detect:
+      type: "gem_name"
+      name: "Unbound Avatar"
+    ascendancy_node:
+      pattern: "Rage"
+    condition: "Condition:Unbound"
+    skill_type: "active"
+    effects:
+      - type: "mod"
+        mod_name: "ElementalDamage"
+        mod_type: "MORE"
+        value: 40
+        source: "UA_Unbound"
+        description: "40% MORE 元素伤害（Unbound 状态）"
+
+  "Demon Form":
+    detect:
+      type: "gem_name"
+      name: "Demon Form"
+    skill_type: "active"
+    effects:
+      - type: "mod"
+        mod_name: "SpellDamage"
+        mod_type: "MORE"
+        value: 10  # 假设平均层数，实际需要动态读取
+        source: "DemonForm_stacks"
+        description: "每层 +MORE 法术伤害（需动态读取层数）"
+
+  "Charged Blast":
+    detect:
+      type: "gem_name"
+      name: "Charged Blast"
+    skill_type: "active"
+    effects:
+      - type: "mod"
+        mod_name: "SpellDamage"
+        mod_type: "MORE"
+        value: 20  # 假设平均层数
+        source: "ChargedBlast_stacks"
+        description: "每层 +MORE 法术伤害（需动态读取层数）"
+
+  # ===================================================================
+  # 光环/被动效果（skill_type: aura）
+  # ===================================================================
+  
+  "Elemental Conflux":
+    detect:
+      type: "gem_name"
+      name: "Elemental Conflux"
+    skill_type: "aura"
+    effects:
+      - type: "mod"
+        mod_name: "ElementalDamage"
+        mod_type: "MORE"
+        value: null  # 动态从宝石等级读取
+        source: "EC_sim"
+        description: "每8秒随机选择火/冰/电，给该元素 MORE 伤害"
+    # 特殊处理：需要在 what_if.py 中动态解析
+    stat_skill_id: "ElementalConfluxPlayer"
+    expect_factor: 0.333  # 期望 = MORE * 1/3
+
+  # ===================================================================
+  # 辅助技能（support_ 开头的 stat）
+  # ===================================================================
+  
+  # 注意：大部分 support_*_damage_+%_final 类型的 stat
+  # POB 已通过 ModCache.lua 正确处理，无需手动注入
+  # 仅当确认某辅助效果缺失时才添加
+
+  # ===================================================================
+  # 预留：其他重要未实现效果
+  # ===================================================================
+  
+  # 以下 stat 在扫描中发现，但需要进一步确认是否影响玩家：
+  # - archmage_all_damage_%_to_gain_as_lightning
+  # - return_%_of_maximum_mana_as_lightning_damage
+  # - chance_to_trigger_living_lightning_on_lightning_damage
+  # - plague_bearer_gains_%_of_damage_from_inflicted_poison
+  # - feeding_frenzy_minion_damage_taken_+%_final
+  # - demon_form_spell_damage_+%_final_per_stack
+  # - charged_blast_spell_damage_+%_final_per_stack
+  # - skill_attrition_hit_damage_+%_final_vs_rare_or_unique
+  # - trigger_meta_gem_damage_+%_final
+  
+  # 如需添加新效果，请按以下格式：
+  # "技能名称":
+  #   detect:
+  #     type: "gem_name" | "stat_pattern"
+  #     name: "技能名称" | pattern: "stat_pattern"
+  #   skill_type: "active" | "aura" | "support"
+  #   effects:
+  #     - type: "mod"
+  #       mod_name: "Modifier名称"
+  #       mod_type: "BASE" | "INC" | "MORE" | "FLAG"
+  #       value: 数值（或 null 表示动态读取）
+  #       source: "来源标识"
+  #       description: "效果描述"

@@ -3721,6 +3721,49 @@ _AURA_INJECT_MODS = {
     },
 }
 
+
+def _merge_unimplemented_effects(lua) -> dict:
+    """检测构筑中的 POB 未实现技能，合并到注入配置。
+    
+    Args:
+        lua: LuaRuntime 实例
+    
+    Returns:
+        合并后的 _AURA_INJECT_MODS
+    """
+    try:
+        from .pob_unimplemented import detect_unimplemented_skills
+        
+        # 检测构筑中的未实现技能
+        detected = detect_unimplemented_skills(lua)
+        
+        # 转换为 _AURA_INJECT_MODS 格式
+        merged = dict(_AURA_INJECT_MODS)  # 复制
+        
+        for item in detected:
+            skill_name = item["skill_name"]
+            effects = item.get("effects", [])
+            
+            if effects and skill_name not in merged:
+                # 取第一个 mod 效果
+                for eff in effects:
+                    if eff.get("type") == "mod":
+                        merged[skill_name] = {
+                            "mod": {
+                                "name": eff.get("mod_name"),
+                                "type": eff.get("mod_type"),
+                                "value": eff.get("value"),
+                            },
+                            "description": eff.get("description", skill_name),
+                        }
+                        logger.info("从配置加载未实现效果: %s -> %s", 
+                                   skill_name, eff.get("mod_name"))
+                        break
+        return merged
+    except Exception as e:
+        logger.debug("加载未实现效果配置失败: %s", e)
+        return _AURA_INJECT_MODS
+
 # 光环/精魄候选数据
 _AURA_CANDIDATES = [
     {
@@ -5477,6 +5520,9 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
 
     logger.info("技能信息查询完成: %d 个技能组", len(skills_info))
 
+    # 合并 POB 未实现效果配置
+    inject_mods_config = _merge_unimplemented_effects(lua)
+
     # 查询精魄
     total_spirit, reserved_spirit = _query_total_spirit(lua, calcs)
     logger.info("精魄: 总计 %.0f, 已用 %.0f", total_spirit, reserved_spirit)
@@ -5501,8 +5547,8 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         pre_configs = pre_resolve[0] if pre_resolve else None
         charge_counts = pre_resolve[1] if pre_resolve else None
 
-        # 检查是否需要注入 mod 模拟（如 Elemental Conflux）
-        inject_mods = _AURA_INJECT_MODS.get(si["main_skill_name"])
+        # 检查是否需要注入 mod 模拟（如 Elemental Conflux、Unbound Avatar）
+        inject_mods = inject_mods_config.get(si["main_skill_name"])
 
         if inject_mods:
             # 动态解析注入 mod 的值（如 EC MORE 从实际宝石等级读取）
@@ -5634,6 +5680,32 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     }
     warnings = _validate_aura_consistency(aura_data)
 
+    # 检测 POB 未实现的主动技能效果（非光环）
+    from .pob_unimplemented import detect_unimplemented_skills, estimate_dps_impact, load_config
+    unimpl_detected = detect_unimplemented_skills(lua)
+    unimpl_estimates = []
+    config = load_config()
+    
+    for item in unimpl_detected:
+        skill_name = item.get("skill_name", "")
+        skill_config = config.get("skills", {}).get(skill_name, {})
+        skill_type = skill_config.get("skill_type", "active")
+        
+        # 只处理主动技能（光环已在上面处理）
+        if skill_type != "active":
+            continue
+        
+        # 估算 DPS 影响
+        estimate = estimate_dps_impact(lua, calcs, item["effects"], baseline_dps=base_dps)
+        if estimate["delta_pct"] > 0:
+            unimpl_estimates.append({
+                "skill_name": item["skill_name"],
+                "description": item["description"],
+                "delta_pct": estimate["delta_pct"],
+                "baseline_dps": estimate["baseline_dps"],
+                "estimated_dps": estimate["estimated_dps"],
+            })
+
     return {
         "existing_auras": existing_auras,
         "candidate_auras": candidate_auras,
@@ -5641,6 +5713,7 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
         "spirit_budget": spirit_budget,
         "build_modifiers": build_modifiers,
         "warnings": warnings,
+        "unimplemented_effects": unimpl_estimates,
     }
 
 
@@ -6049,6 +6122,22 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
         lines.append("")
         for w in warnings:
             lines.append(f"- {w}")
+        lines.append("")
+
+    # 9F: POB 未实现效果预估
+    unimpl_effects = aura_data.get("unimplemented_effects", [])
+    if unimpl_effects:
+        lines.append("### 9F. POB 未实现效果预估")
+        lines.append("")
+        lines.append("**⚠️ 以下技能效果在 POB 中未实现，已通过配置模拟：**")
+        lines.append("")
+        lines.append("| 技能 | 效果描述 | DPS 预估 |")
+        lines.append("|------|----------|----------|")
+        for ue in unimpl_effects:
+            lines.append(f"| **{ue['skill_name']}** | {ue['description']} | **+{ue['delta_pct']:.1f}%** |")
+        lines.append("")
+        lines.append("**注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，")
+        lines.append("实际游戏效果可能因条件触发方式不同而有差异。")
         lines.append("")
 
 
