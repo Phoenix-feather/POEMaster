@@ -83,7 +83,7 @@ description: POB构筑分析器 - 解码POB分享码，通过Python驱动POB的L
 | **依赖 lupa** | 仅 StatDescriber | 核心依赖 |
 | **输出** | entities.db, formulas.db 等 | 计算结果 dict、diff 对比 |
 
-两个技能**互不依赖**，可独立使用。未来可通过 poe-data-miner 的实体/公式数据辅助解读 what-if 结果。
+两个技能现已**联动**：`pob-build-analyzer` 通过 `data_bridge.py` 直接读取 `poe-data-miner` 的 `entities.db` 获取结构化游戏数据（技能等级数值、辅助宝石效果等）。
 
 ### Python 依赖
 
@@ -159,6 +159,7 @@ pob-build-analyzer/
 │   ├── build_parser.py   # XML → BuildInfo 解析
 │   ├── build_loader.py   # BuildInfo → Lua build 对象灌入
 │   ├── calculator.py     # initEnv + perform + output 读取
+│   ├── data_bridge.py    # 数据桥接器 (从 poe-data-miner 读取结构化数据)
 │   └── what_if.py        # override 封装 (节点/装备/技能/mod)
 └── tests/                # 测试
     └── test_compare.py   # 精度对比测试
@@ -174,7 +175,8 @@ __init__.py (POBCalculator)
     ├── build_parser.py   (无依赖)
     ├── build_loader.py   (依赖 compat.py, decoder.py)
     ├── calculator.py     (无依赖)
-    └── what_if.py        (依赖 calculator.py)
+    ├── data_bridge.py    (依赖 sqlite3, 读取 poe-data-miner/entities.db)
+    └── what_if.py        (依赖 calculator.py, data_bridge.py)
 ```
 
 严格单向依赖，无循环引用。

@@ -279,14 +279,14 @@
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 格挡概率 | BASE | 24.5% | +0.79%/单位 | BASE 0→24, 需要 +24 → EHP +19.4% |
 | 法术格挡概率 | BASE | 24.5% | +0.79%/单位 | BASE 0→24, 需要 +24 → EHP +19.4% |
+| 格挡概率 | BASE | 24.5% | +0.79%/单位 | BASE 0→24, 需要 +24 → EHP +19.4% |
 | 生命上限 | INC | 36.5% | +0.55%/单位 | INC 10%→46%, 需要 +36 → EHP +20.2% |
 | 混沌抗性 | BASE | 55.0% | +0.37%/单位 | BASE 0→55, 需要 +55 → EHP +20.2% |
 | 闪避值 | BASE | 1537.5 | +0.01%/单位 | BASE 7→1544, 需要 +1538 → EHP +20.7% |
 | 护甲固定值 | BASE | 4096.5 | +0.00%/单位 | BASE 0→4096, 需要 +4096 → EHP +19.6% |
 
-**无法达到目标**: 生命固定值, 火焰抗性, 闪避增加, 物理减伤, 冰霜抗性, 闪电抗性, 全元素抗性, 护甲增加
+**无法达到目标**: 物理减伤, 火焰抗性, 冰霜抗性, 闪电抗性, 护甲增加, 生命固定值, 全元素抗性, 闪避增加
 
 ### 3C. 恢复增强灵敏度
 
@@ -504,12 +504,76 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 ### 9A. 现有光环 DPS 贡献
 
-| # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 | 条件参数范围 |
-|---|------|------------|----------|-----|------|-------------|
-| 1 | Trinity | +30.0% | +35.0% (辅助+3.9%: Dialla's Desire, Uhtred's Omen) (条件: Total Resonance Count=150) | +0.0% | 100 | Total Resonance Count=300: 裸+73.7% / 实+91.3% (SpeedINC: 裸+15%/实+22%, 边际: 裸8.6%/实12.6%); 辅助+3.9%: Dialla's Desire, Uhtred's Omen; [Lv20→24, 7% MORE/30, Speed 15.0%INC(q20)] |
-| 2 | Charge Infusion | +29.5% | +30.8% ⚠️模拟 (辅助+1.0%: Uhtred's Exodus) | +7.3% | 30 | - |
-| 3 | Elemental Conflux | +20.0% | +20.0% ⚠️模拟 | +0.0% | 60 | - |
-| 4 | Purity of Fire | +0.0% | +0.0% | +0.0% | 130 | - |
+| # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 |
+|---|------|------------|----------|-----|------|
+| 1 | Trinity | +30.0% | +35.0% (辅助+5.0%) (条件: Total Resonance Count=150) | +0.0% | 100 |
+
+<details>
+<summary><b>Trinity 详细数据</b></summary>
+
+### 条件参数范围
+
+| 端点 | 裸光环 | 真实 | 辅助增益 | Speed INC |
+|------|--------|------|----------|-----------|
+| Total Resonance Count=0 | +0.0% | +0.0% | — | 75% |
+| Total Resonance Count=300 | +73.7% | +91.3% | +17.6% | 75%→97% |
+
+### 辅助贡献
+
+- **Dialla's Desire**: +1 level, +10% quality
+- **Uhtred's Omen**: +3 level (条件: 1个其他辅助)
+- 总辅助贡献: **+5.0%** DPS（Total Resonance Count=150时）
+- 端点差异: Total Resonance Count=0时+0.0%，Total Resonance Count=300时+17.6%
+
+### 基础数值
+
+- 有效等级: **Lv24** (基础 Lv20 + 辅助 +4)
+- MORE per 30 Resonance: **7%**
+- Speed INC per quality: **0.75%** (q20 = 15.0% INC)
+
+</details>
+
+| 2 | Charge Infusion | +29.5% | +30.8% ⚠️模拟 (辅助+1.2%) | +7.3% | 30 |
+
+<details>
+<summary><b>Charge Infusion 详细数据</b></summary>
+
+### 辅助贡献
+
+- **Uhtred's Exodus**: +3 level (条件: 无其他辅助)
+- 总辅助贡献: **+1.2%** DPS（Total Resonance Count=150时）
+
+### 基础数值
+
+- 有效等级: **Lv24** (基础 Lv21 + 辅助 +3)
+- MORE per 30 Resonance: **26%**
+
+</details>
+
+| 3 | Elemental Conflux | +20.0% | +20.0% ⚠️模拟 | +0.0% | 60 |
+
+<details>
+<summary><b>Elemental Conflux 详细数据</b></summary>
+
+### 基础数值
+
+- 有效等级: **Lv21**
+- MORE per 30 Resonance: **60%**
+
+</details>
+
+| 4 | Purity of Fire | +0.0% | +0.0% | +0.0% | 130 |
+
+<details>
+<summary><b>Purity of Fire 详细数据</b></summary>
+
+### 基础数值
+
+- 有效等级: **Lv20**
+- MORE per 30 Resonance: **41%**
+
+</details>
+
 
 **⚠️模拟值说明：**
 
@@ -607,7 +671,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 **最短板**: Chaos（承伤仅为最强的 24%）
 
-**防御性价比最高**: 格挡概率，需要 +24% 即可提升 EHP +20%
+**防御性价比最高**: 法术格挡概率，需要 +24% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 

@@ -40,6 +40,7 @@ POE1/POE2 数据分离（v1.0.5 审计结论）：
 """
 import logging
 from .calculator import calculate
+from .data_bridge import POEDataBridge
 
 logger = logging.getLogger(__name__)
 
@@ -4600,94 +4601,6 @@ def _test_aura_config_range(lua, calcs, aura_name: str,
     return results
 
 
-def _get_support_level_bonus(lua, support_skill_id: str) -> int:
-    """获取辅助宝石给被辅助技能的等级加成。
-
-    如 Dialla's Desire (SupportDiallasDesirePlayer) 给 +1 level。
-    """
-    if not support_skill_id:
-        return 0
-    r = lua.execute(f'''
-        local skill = data.skills["{support_skill_id}"]
-        if not skill or not skill.statSets then return 0 end
-        for _, ss in pairs(skill.statSets) do
-            if ss.constantStats then
-                for _, cs in ipairs(ss.constantStats) do
-                    if cs[1] and cs[1]:find("supported_active_skill_gem_level") then
-                        return cs[2] or 0
-                    end
-                end
-            end
-            -- 也检查 baseStats
-            if ss.baseStats then
-                for _, bs in ipairs(ss.baseStats) do
-                    if type(bs) == "table" and bs[1] and bs[1]:find("supported_active_skill_gem_level") then
-                        return bs[2] or 0
-                    end
-                end
-            end
-        end
-        return 0
-    ''')
-    try:
-        return int(float(r))
-    except (ValueError, TypeError):
-        return 0
-
-
-def _get_quality_speed_per_q(lua, skill_id: str) -> float:
-    """获取技能品质对应的 Speed INC 每品质点数。
-
-    如 Trinity 的 qualityStats 给 0.75% Speed INC per quality。
-    """
-    if not skill_id:
-        return 0
-    r = lua.execute(f'''
-        local skill = data.skills["{skill_id}"]
-        if not skill or not skill.qualityStats then return 0 end
-        for _, qs in ipairs(skill.qualityStats) do
-            if qs[1] and qs[1]:find("trinity_skill_speed") then
-                return qs[2] or 0
-            end
-        end
-        return 0
-    ''')
-    try:
-        return float(r)
-    except (ValueError, TypeError):
-        return 0
-
-
-def _get_skill_stat_at_level(lua, skill_id: str, stat_index: int = 1, level: int = 1) -> int:
-    """从 POB skill data 获取指定等级的 stat 值。
-
-    Args:
-        lua: LuaRuntime
-        skill_id: 技能 ID（如 'TrinityPlayer'）
-        stat_index: statSets 中的 stat 索引（1-based，对应 stats 列表顺序）
-        level: 宝石等级
-
-    Returns:
-        stat 值（如 MORE per 30 resonance），0 表示未找到
-    """
-    lua_code = (
-        'local skill = data.skills["' + skill_id + '"]\n'
-        'if not skill or not skill.statSets or not skill.statSets[' + str(stat_index) + '] then return "0" end\n'
-        'local ss = skill.statSets[' + str(stat_index) + ']\n'
-        'local lvls = ss.levels\n'
-        'if not lvls then return "0" end\n'
-        'local lvData = lvls[' + str(level) + ']\n'
-        'if lvData then return tostring(lvData[' + str(stat_index) + '] or "0") end\n'
-        'for lv = ' + str(level) + ', 1, -1 do\n'
-        '  if lvls[lv] then return tostring(lvls[lv][' + str(stat_index) + '] or "0") end\n'
-        'end\n'
-        'return "0"\n'
-    )
-    r = lua.execute(lua_code)
-    try:
-        return int(float(r))
-    except (ValueError, TypeError):
-        return 0
 
 
 def _query_active_skills_info(lua, calcs) -> list[dict]:
@@ -5180,8 +5093,8 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
         bare_dps_pct = ((bare_dps - no_aura_dps) / no_aura_dps * 100) if no_aura_dps > 0 else 0
         # 真实光环贡献: baseDPS vs noAuraDPS（含辅助效果）
         real_dps_pct = ((base_dps_v - no_aura_dps) / no_aura_dps * 100) if no_aura_dps > 0 else 0
-        # 辅助额外贡献: baseDPS vs bareDPS（辅助在裸光环基础上额外增加的）
-        supports_extra_pct = ((base_dps_v - bare_dps) / bare_dps * 100) if bare_dps > 0 else 0
+        # 辅助额外贡献: 真实贡献 - 裸光环贡献（同基准直接相减）
+        supports_extra_pct = real_dps_pct - bare_dps_pct
         ehp_pct = ((base_ehp_v - no_aura_ehp) / no_aura_ehp * 100) if no_aura_ehp > 0 else 0
         _restore_pre_configs()
         return {
@@ -6397,6 +6310,13 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     """
     from .calculator import calculate as calc_fn
 
+    # 创建数据桥接器（从 poe-data-miner 读取结构化数据）
+    try:
+        bridge = POEDataBridge()
+    except FileNotFoundError:
+        logging.warning("POEDataBridge failed to initialize, using Lua fallback")
+        bridge = None
+
     # 应用品质上限（游戏实际上限 20%），确保分析基于标准品质
     _cap_all_gem_qualities(lua)
 
@@ -6520,13 +6440,16 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
                 # 从 POB data 读取 constantStats
                 if sid and not g.get("is_support", False):
                     continue
-                bonus = _get_support_level_bonus(lua, sid)
+                bonus = bridge.get_support_level_bonus(sid) if bridge else _get_support_level_bonus(lua, sid)
                 level_bonus += bonus
             effective_level = base_level + level_bonus
-            # 获取 MORE per 30 resonance（Trinity 的 stat index 1）
-            more_val = _get_skill_stat_at_level(lua, main_gem.get("skill_id", ""), 1, effective_level)
+            # 获取 MORE per 30 resonance（Trinity 的 stat index 0，注意 bridge 用 0-based）
+            if bridge:
+                more_val = bridge.get_skill_stat_at_level(main_gem.get("skill_id", ""), effective_level, 0)
+            else:
+                more_val = _get_skill_stat_at_level(lua, main_gem.get("skill_id", ""), 1, effective_level)
             # 获取 Speed INC per quality（从 qualityStats）
-            speed_per_q = _get_quality_speed_per_q(lua, main_gem.get("skill_id", ""))
+            speed_per_q = bridge.get_quality_speed_per_q(main_gem.get("skill_id", "")) if bridge else _get_quality_speed_per_q(lua, main_gem.get("skill_id", ""))
             aura_entry["gem_level"] = base_level
             aura_entry["gem_quality"] = main_gem.get("quality", 0)
             aura_entry["effective_level"] = effective_level
@@ -6888,8 +6811,10 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("")
 
     if existing_auras:
-        lines.append("| # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 | 条件参数范围 |")
-        lines.append("|---|------|------------|----------|-----|------|-------------|")
+        # 主表只显示关键指标
+        lines.append("| # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 |")
+        lines.append("|---|------|------------|----------|-----|------|")
+        
         for i, a in enumerate(existing_auras, 1):
             name = a.get("name", "?")
             bare_dp = a.get("bare_dps_pct", 0)
@@ -6907,76 +6832,148 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             # 辅助额外贡献（真实 - 裸光环的额外增益）
             supports_extra = a.get("supports_extra_pct", 0)
             if abs(supports_extra) >= 0.1:
-                # 使用 aura_only 返回的辅助名称列表（仅含同名光环组内的物品辅助）
                 sup_names = a.get("support_names", [])
                 if sup_names:
-                    real_str += f" (辅助+{supports_extra:.1f}%: {', '.join(sup_names)})"
+                    real_str += f" (辅助+{supports_extra:.1f}%)"
                 else:
                     real_str += f" (辅助+{supports_extra:.1f}%)"
 
-            # 条件参数范围列：展示参数对 DPS 的影响
-            # 百分比 vs「无光环」状态（no_aura_dps），展示参数变化带来的 DPS 贡献
+            # 条件标注（仅用于主表显示）
             ranges = a.get("config_ranges", [])
             if ranges:
-                parts = []
                 for cr in ranges:
                     label = cr.get("label", cr["config_var"])
                     label = label.rstrip(":")
-                    actual_max = int(cr["actual_max"])
-                    pct_min = cr.get("dps_pct_min", 0)
-                    pct_max = cr.get("dps_pct_max", 0)
                     mid = cr.get("mid", 0)
                     real_str += f" (条件: {label}={mid})"
 
-
-
-                    # 动态检测 Speed 门槛效果：分别计算裸光环和实光环的 Speed INC
-                    marginal_note = ""
-                    speed_inc_min = cr.get("speed_inc_min", 0)
-                    speed_inc_bare = cr.get("speed_inc_min_bare", 0)
-                    speed_inc_real = cr.get("speed_inc_max", 0)
-                    bare_speed_delta = speed_inc_bare - speed_inc_min
-                    real_speed_delta = speed_inc_real - speed_inc_min
-                    if bare_speed_delta > 0.5:
-                        bare_marginal = bare_speed_delta / (1 + speed_inc_min / 100) if speed_inc_min > 0 else bare_speed_delta
-                        real_marginal = real_speed_delta / (1 + speed_inc_min / 100) if speed_inc_min > 0 else real_speed_delta
-                        marginal_note = f" (SpeedINC: 裸+{bare_speed_delta:.0f}%/实+{real_speed_delta:.0f}%, 边际: 裸{bare_marginal:.1f}%/实{real_marginal:.1f}%)"
-
-                    # 双列格式：裸光环 / 真实光环
-                    bare_pct_max = cr.get("bare_pct_max", pct_max)
-                    if abs(bare_pct_max - pct_max) >= 0.1:
-                        # 有辅助贡献，显示 max 端点双列
-                        parts.append(f"{label}={actual_max}: 裸{bare_pct_max:+.1f}% / 实{pct_max:+.1f}%{marginal_note}")
-                    else:
-                        # 无辅助贡献，单列显示完整范围
-                        parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%{marginal_note}")
-                # 追加辅助宝石标注（当有辅助贡献时）
+            lines.append(f"| {i} | {name} | {bare_str} | {real_str} | {ep:+.1f}% | {sp:.0f} |")
+            
+            # 可折叠详情区块
+            has_details = (
+                ranges or 
+                abs(supports_extra) >= 0.1 or 
+                a.get("gem_level", 0) > 0
+            )
+            
+            if has_details:
+                lines.append("")
+                lines.append(f"<details>")
+                lines.append(f"<summary><b>{name} 详细数据</b></summary>")
+                lines.append("")
+                
+                # 条件参数范围
+                if ranges:
+                    lines.append("### 条件参数范围")
+                    lines.append("")
+                    lines.append("| 端点 | 裸光环 | 真实 | 辅助增益 | Speed INC |")
+                    lines.append("|------|--------|------|----------|-----------|")
+                    
+                    for cr in ranges:
+                        label = cr.get("label", cr["config_var"])
+                        label = label.rstrip(":")
+                        actual_max = int(cr["actual_max"])
+                        pct_min = cr.get("dps_pct_min", 0)
+                        pct_max = cr.get("dps_pct_max", 0)
+                        bare_pct_min = cr.get("bare_pct_min", pct_min)
+                        bare_pct_max = cr.get("bare_pct_max", pct_max)
+                        
+                        # Speed INC 变化
+                        speed_inc_min = cr.get("speed_inc_min", 0)
+                        speed_inc_bare = cr.get("speed_inc_min_bare", 0)
+                        speed_inc_real = cr.get("speed_inc_max", 0)
+                        
+                        # min 端点
+                        speed_min_str = f"{speed_inc_min:.0f}%" if speed_inc_min else "—"
+                        sup_min = pct_min - bare_pct_min
+                        sup_min_str = f"{sup_min:+.1f}%" if abs(sup_min) >= 0.1 else "—"
+                        lines.append(f"| {label}=0 | {bare_pct_min:+.1f}% | {pct_min:+.1f}% | {sup_min_str} | {speed_min_str} |")
+                        
+                        # max 端点
+                        speed_max_str = f"{speed_inc_min:.0f}%→{speed_inc_real:.0f}%" if speed_inc_real > speed_inc_min else f"{speed_inc_real:.0f}%"
+                        sup_max = pct_max - bare_pct_max
+                        sup_max_str = f"{sup_max:+.1f}%" if abs(sup_max) >= 0.1 else "—"
+                        lines.append(f"| {label}={actual_max} | {bare_pct_max:+.1f}% | {pct_max:+.1f}% | {sup_max_str} | {speed_max_str} |")
+                    lines.append("")
+                
+                # 辅助贡献
                 if abs(supports_extra) >= 0.1:
+                    lines.append("### 辅助贡献")
+                    lines.append("")
                     sup_names = a.get("support_names", [])
-                    if sup_names:
-                        parts.append(f"辅助+{supports_extra:.1f}%: {', '.join(sup_names)}")
-                # 追加等级和基础数值标注
+                    
+                    # 使用 POEDataBridge 查询辅助效果
+                    try:
+                        bridge = POEDataBridge()
+                        for sup_name in sup_names:
+                            # 查找辅助宝石 ID
+                            sup_id = bridge.get_support_by_name(sup_name)
+                            if sup_id:
+                                # 查询效果和条件
+                                effects = bridge.get_support_effects(sup_id)
+                                if effects:
+                                    # 格式化显示
+                                    effect_strs = []
+                                    for e in effects:
+                                        if e['condition']:
+                                            effect_strs.append(f"{e['effect']} (条件: {e['condition']})")
+                                        else:
+                                            effect_strs.append(e['effect'])
+                                    lines.append(f"- **{sup_name}**: {', '.join(effect_strs)}")
+                                else:
+                                    lines.append(f"- **{sup_name}**")
+                            else:
+                                # 查询失败，只显示名称
+                                lines.append(f"- **{sup_name}**")
+                        bridge.close()
+                    except Exception as e:
+                        # 降级方案：只显示名称
+                        logger.warning(f"Failed to query support effects: {e}")
+                        for sup_name in sup_names:
+                            lines.append(f"- **{sup_name}**")
+                    
+                    lines.append(f"- 总辅助贡献: **+{supports_extra:.1f}%** DPS（{label}={mid}时）")
+                    # 显示各端点的辅助贡献
+                    if ranges:
+                        endpoint_parts = []
+                        for cr in ranges:
+                            cr_label = cr.get("label", cr["config_var"]).rstrip(":")
+                            cr_max = int(cr["actual_max"])
+                            cr_pct_min = cr.get("dps_pct_min", 0)
+                            cr_bare_pct_min = cr.get("bare_pct_min", cr_pct_min)
+                            cr_pct_max = cr.get("dps_pct_max", 0)
+                            cr_bare_pct_max = cr.get("bare_pct_max", cr_pct_max)
+                            sup_min = cr_pct_min - cr_bare_pct_min
+                            sup_max = cr_pct_max - cr_bare_pct_max
+                            endpoint_parts.append(f"{cr_label}=0时{sup_min:+.1f}%，{cr_label}={cr_max}时{sup_max:+.1f}%")
+                        lines.append(f"- 端点差异: {', '.join(endpoint_parts)}")
+                    lines.append("")
+                
+                # 基础数值
                 gem_lv = a.get("gem_level", 0)
                 eff_lv = a.get("effective_level", gem_lv)
                 more_val = a.get("more_per_30", 0)
                 spd_per_q = a.get("quality_speed_inc", 0)
+                level_bonus = a.get("level_bonus", 0)
+                
                 if gem_lv > 0:
-                    lv_str = f"Lv{eff_lv}"
+                    lines.append("### 基础数值")
+                    lines.append("")
                     if eff_lv != gem_lv:
-                        lv_str = f"Lv{gem_lv}→{eff_lv}"
-                    info_parts = [lv_str]
+                        lines.append(f"- 有效等级: **Lv{eff_lv}** (基础 Lv{gem_lv} + 辅助 +{level_bonus})")
+                    else:
+                        lines.append(f"- 有效等级: **Lv{eff_lv}**")
                     if more_val > 0:
-                        info_parts.append(f"{more_val}% MORE/30")
+                        lines.append(f"- MORE per 30 Resonance: **{more_val:.0f}%**")
                     if spd_per_q > 0:
                         gem_q = a.get("gem_quality", 0)
                         if gem_q > 0:
-                            info_parts.append(f"Speed {gem_q * spd_per_q:.1f}%INC(q{gem_q})")
-                    parts.append("[" + ", ".join(info_parts) + "]")
-                range_str = "; ".join(parts)
-            else:
-                range_str = "-"
-
-            lines.append(f"| {i} | {name} | {bare_str} | {real_str} | {ep:+.1f}% | {sp:.0f} | {range_str} |")
+                            lines.append(f"- Speed INC per quality: **{spd_per_q:.2f}%** (q{gem_q} = {gem_q * spd_per_q:.1f}% INC)")
+                    lines.append("")
+                
+                lines.append("</details>")
+                lines.append("")
+        
         lines.append("")
 
         # 模拟值说明
