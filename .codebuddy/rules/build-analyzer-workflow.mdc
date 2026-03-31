@@ -1,0 +1,78 @@
+---
+description: pob-build-analyzer 技能的操作流程约束，防止 AI 模型创建临时脚本和跳过报告预览。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-30T13:05:00.000Z
+provider: 
+---
+
+# POB Build Analyzer 操作流程规则
+
+## 核心原则
+
+**AI 模型操作 pob-build-analyzer 时，必须遵循标准流程，禁止走捷径。**
+
+## 标准分析流程（唯一正确路径）
+
+```
+1. POBCalculator.from_current() 或 from_build_id(id)
+2. calc.full_analysis(skill_name="技能名")
+3. POBCalculator.format_report(result)
+4. 保存报告到缓存目录（BuildCache 自动处理，或手动写入）
+5. preview_url() 在 CodeBuddy 内置浏览器中打开报告
+```
+
+## 禁止事项
+
+### 1. 禁止创建临时脚本
+
+- **禁止**创建 `_*.py` 临时脚本文件（如 `_debug_xxx.py`、`_regenerate_report.py`、`run_analysis.py`）
+- **禁止**创建 `_*.json` 临时数据文件
+- **替代方案**：使用 `python -c "..."` 内联执行，或直接用 `POBCalculator` API
+
+### 2. 禁止只读文件贴文字
+
+- **禁止**分析完成后只在对话中读取报告文件内容展示给用户
+- **必须**使用 `preview_url()` 在 CodeBuddy 内置浏览器中打开报告
+- **文件路径格式**：`file:///g:/POEMaster/.codebuddy/skills/pob-build-analyzer/cache/builds/{build_id}/report_{skill}.md`
+
+### 3. 禁止创建新功能脚本替代旧文件
+
+- 功能迭代必须在原文件上更新（与 `script-iteration-mandatory` 规则一致）
+- 不创建 `_new.py`、`_v2.py` 等替代文件
+
+## 正确示例
+
+### 分析构筑
+
+```python
+# 内联执行（推荐）
+python -c "
+import sys; sys.path.insert(0, '.')
+from pob_calc import POBCalculator
+calc = POBCalculator.from_current()
+result = calc.full_analysis(skill_name='spark')
+report = POBCalculator.format_report(result)
+path = calc.get_report_path('spark')
+print(path)
+"
+# 然后用 preview_url 打开 path
+```
+
+### 调试问题
+
+```python
+# 直接修改源文件，不创建临时调试脚本
+# 1. 读 lints → 识别错误
+# 2. 读取源文件 → 修改源文件
+# 3. 重新运行分析 → preview_url 打开报告
+```
+
+## 验证清单
+
+每次操作后验证：
+
+- [ ] 是否创建了 `_*.py` 临时脚本？ → 不应该创建
+- [ ] 是否创建了 `_*.json` 临时数据文件？ → 不应该创建
+- [ ] 分析完成后是否调用了 `preview_url()`？ → 必须调用
+- [ ] 是否在对话中贴了一堆报告文字而不是打开预览？ → 应该用 preview_url

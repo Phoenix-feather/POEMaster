@@ -93,6 +93,58 @@ lupa>=2.0        # Python-Lua 互操作（Lua 5.4 运行时）
 
 ---
 
+## AI 模型操作指南
+
+> **本文档面向 AI 模型**，定义了操作本技能时的唯一正确流程。
+> 违反此处规则的任何操作都是错误的，不依赖 AI 模型的"判断"。
+
+### 标准分析流程
+
+```
+from pob_calc import POBCalculator
+
+# 1. 创建计算器（from_current / from_build_id / 构造函数）
+calc = POBCalculator.from_current()
+
+# 2. 运行完整分析
+result = calc.full_analysis(skill_name="spark")
+
+# 3. 生成报告并保存
+report = POBCalculator.format_report(result)
+report_path = calc.get_report_path("spark")
+with open(report_path, 'w', encoding='utf-8') as f:
+    f.write(report)
+
+# 4. 在 CodeBuddy 内置浏览器中打开预览 ← 必须！
+preview_url(f"file:///{report_path}")
+```
+
+### 禁止事项
+
+| 禁止 | 正确做法 |
+|------|---------|
+| 创建 `_*.py` 临时脚本 | 用 `python -c "..."` 内联执行 |
+| 创建 `_*.json` 临时数据文件 | 使用 BuildCache 或 API |
+| 只在对话中读取报告内容展示 | `preview_url()` 打开预览 |
+| 创建 `_new.py` / `_v2.py` 替代旧文件 | 在原文件上迭代更新 |
+
+### 调试流程
+
+```
+1. 读 lints → 识别错误
+2. 读取源文件 → 直接修改源文件
+3. 重新运行分析（python -c 内联）
+4. preview_url 打开报告验证修复
+```
+
+### 报告预览路径格式
+
+```
+file:///g:/POEMaster/.codebuddy/skills/pob-build-analyzer/cache/builds/{build_id}/report_{skill}.md
+```
+
+---
+
 ## 模块结构
 
 ```

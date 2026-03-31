@@ -43,7 +43,45 @@ from .calculator import calculate
 
 logger = logging.getLogger(__name__)
 
+# 分析品质上限：所有宝石品质按此上限计算（游戏实际上限 20%）
+GEM_QUALITY_CAP = 20
+
 # =============================================================================
+# 品质上限工具
+# =============================================================================
+
+def _cap_all_gem_qualities(lua):
+    """临时将所有宝石品质限制到 GEM_QUALITY_CAP，返回被修改的 gem 列表。
+
+    用于分析场景：确保所有数值基于标准品质上限计算，而非玩家超品质。
+    调用 _restore_gem_qualities 恢复原始品质。
+    """
+    result = lua.execute(r'''
+        local sgList = _spike_build.skillsTab.socketGroupList
+        local modified = {}
+        for _, sg in ipairs(sgList) do
+            for _, gem in ipairs(sg.gemList or {}) do
+                if gem.quality and gem.quality > ''' + str(GEM_QUALITY_CAP) + r''' then
+                    modified[#modified+1] = { orig = gem.quality }
+                    gem.quality = ''' + str(GEM_QUALITY_CAP) + r'''
+                end
+            end
+        end
+        return #modified
+    ''')
+    count = int(result) if result else 0
+    if count > 0:
+        logger.info("品质上限: %d 个宝石品质被限制到 %d%%", count, GEM_QUALITY_CAP)
+    return count
+
+
+def _restore_gem_qualities(lua):
+    """恢复被 _cap_all_gem_qualities 修改的宝石品质（重新从 XML 加载）。
+
+    注意：此函数需要 build_loader 的 skillGroups 数据，简化实现为直接
+    重新加载技能组（build_loader.load_skill_groups）。
+    """
+    pass  # 品质修改在单次分析流程中不需要恢复（每次 full_analysis 重新加载）
 # DPS 灵敏度测试集
 # =============================================================================
 #
@@ -3968,42 +4006,41 @@ def discover_spirit_supports(lua) -> list[dict]:
         local discovered = {}
         local idx = 1
         local count = 0
-        for gem_id, gem in pairs(data.gems) do
-            -- 检查是否消耗精魄
-            local spiritCost = 0
-            if gem.grantedEffect and gem.grantedEffect.levels then
+        
+        -- 扫描 data.skills 而不是 data.gems
+        -- 精魄辅助定义在 data.skills 中
+        for skill_id, skill in pairs(data.skills) do
+            -- 只处理 Support 技能
+            if skill.support and skill.levels then
                 -- 从最高等级读取精魄消耗
                 local maxLevel = 0
-                for lvl, _ in pairs(gem.grantedEffect.levels) do
+                for lvl, _ in pairs(skill.levels) do
                     if lvl > maxLevel then maxLevel = lvl end
                 end
+                
                 if maxLevel > 0 then
-                    local levelData = gem.grantedEffect.levels[maxLevel]
+                    local levelData = skill.levels[maxLevel]
                     if levelData and levelData.spiritReservationFlat then
-                        spiritCost = levelData.spiritReservationFlat
+                        local spiritCost = levelData.spiritReservationFlat
+                        
+                        -- 只保留精魄消耗 > 0 的技能
+                        if spiritCost > 0 then
+                            count = count + 1
+                            local desc = skill.description or ""
+                            
+                            discovered[idx] = {
+                                name = skill.name or skill_id,
+                                skill_id = skill_id,
+                                spirit = spiritCost,
+                                description = desc,
+                            }
+                            idx = idx + 1
+                        end
                     end
                 end
             end
-            
-            -- 过滤：只保留精魄消耗 > 0 且是 Support 的宝石
-            if spiritCost > 0 and gem.grantedEffectId and string.find(gem.grantedEffectId, "Support") then
-                count = count + 1
-                local desc = ""
-                if gem.grantedEffect and gem.grantedEffect.description then
-                    desc = gem.grantedEffect.description
-                elseif gem.grantedEffect and gem.grantedEffect.statDescription then
-                    desc = type(gem.grantedEffect.statDescription) == "string" and gem.grantedEffect.statDescription or ""
-                end
-                
-                discovered[idx] = {
-                    name = gem.name or gem.grantedEffectId,
-                    skill_id = gem.grantedEffectId,
-                    spirit = spiritCost,
-                    description = desc,
-                }
-                idx = idx + 1
-            end
         end
+        
         -- 返回计数和列表
         return count, discovered
     ''')
@@ -4011,16 +4048,33 @@ def discover_spirit_supports(lua) -> list[dict]:
     elapsed_ms = (time.time() - start_time) * 1000
     
     # 处理双重返回值 (count, table)
-    logger.debug("Lua 返回值类型: %s, 长度: %s", type(result), len(result) if hasattr(result, '__len__') else 'N/A')
+    logger.info("Lua 返回值类型: %s", type(result))
+    logger.info("Lua 返回值: %s", result)
     
-    if not result or len(result) < 2:
-        logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - result 无效", elapsed_ms)
+    if not result:
+        logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - result 为空", elapsed_ms)
         return []
     
-    count = result[0]  # Lua 返回的第一个值：计数
-    table = result[1]  # Lua 返回的第二个值：列表
+    # 检查是否是 tuple (多个返回值)
+    if isinstance(result, tuple):
+        logger.info("Lua 返回了 %d 个值", len(result))
+        if len(result) < 2:
+            logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - 返回值不足", elapsed_ms)
+            return []
+        count = result[0]
+        table = result[1]
+    else:
+        # 可能是单返回值（table），检查结构
+        logger.info("Lua 返回单个值，检查结构...")
+        # 假设返回的是 {count, discovered}
+        if hasattr(result, '__len__') and len(result) >= 2:
+            count = result[0]
+            table = result[1]
+        else:
+            logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - 无法解析返回值", elapsed_ms)
+            return []
     
-    logger.debug("count = %s, table type = %s", count, type(table))
+    logger.info("count = %s, table type = %s", count, type(table))
     
     if not table or count == 0:
         logger.info("动态扫描发现 0 个精魄辅助 (%.0fms) - count=0 或 table 为空", elapsed_ms)
@@ -4200,11 +4254,21 @@ def _rebuild_config_tab_modlist(lua):
     """重建 build.configTab.modList / enemyModList。
 
     重新遍历 ConfigOptions 的所有条目，根据当前 configTab.input 值重建 modList。
+    首次调用时保存 POB 原始的 modList，之后每次 rebuild 将 ConfigOptions 的 mods
+    叠加到原始 modList 上，避免丢失 POB 加载时通过技能/装备等途径添加的非 ConfigOptions mods。
     """
     lua.execute('''
         local build = _spike_build
         local configSettings = LoadModule("Modules/ConfigOptions")
         if not configSettings then return end
+
+        -- 首次调用时保存 POB 原始的 modList
+        if not _saved_original_config_modList then
+            _saved_original_config_modList = build.configTab.modList
+            _saved_original_config_enemyModList = build.configTab.enemyModList
+        end
+
+        -- 创建 ConfigOptions mods
         local modList = new("ModList")
         local enemyModList = new("ModList")
         local input = build.configTab.input
@@ -4230,8 +4294,18 @@ def _rebuild_config_tab_modlist(lua):
                 end
             end
         end
+
+        -- 先放入 ConfigOptions mods，再合并 POB 原始 mods
+        -- AddList 会合并/替换同名 mods，确保原始 mods 不被 ConfigOptions 覆盖
         build.configTab.modList = modList
         build.configTab.enemyModList = enemyModList
+
+        if _saved_original_config_modList then
+            build.configTab.modList:AddList(_saved_original_config_modList)
+        end
+        if _saved_original_config_enemyModList then
+            build.configTab.enemyModList:AddList(_saved_original_config_enemyModList)
+        end
     ''')
 
 
@@ -4396,22 +4470,25 @@ def _inject_ifskill_defaults(lua, calcs,
 def _test_aura_config_range(lua, calcs, aura_name: str,
                             baseline: dict,
                             aura_configs: list[dict] | None = None,
-                            no_aura_dps: float = None) -> list[dict]:
+                            no_aura_dps: float = None,
+                            group_idx: int = None) -> list[dict]:
     """测试条件光环所有可配置参数在最小/最大值时的 DPS 范围。
 
-    动态查找该光环的所有 count 类型 ifSkill 配置，逐一测试端点值。
-    百分比计算基准为"无光环"DPS，展示参数变化带来的 DPS 贡献。
+    同时测试带辅助和不带辅助的 DPS，返回双列数据。
+    使用单个 Lua 代码块完成所有测试，避免 gem.enabled 跨调用恢复问题。
 
     Args:
         aura_name: 光环名称
         baseline: 当前 baseline（用于恢复状态）
         aura_configs: 已发现的配置列表（避免重复扫描）
         no_aura_dps: 无该光环时的 DPS（作为百分比计算基准）
+        group_idx: 光环组索引（用于裸光环测试时禁用辅助）
 
     Returns:
         [{"config_var", "label", "aura_name", "actual_max",
-          "dps_pct_min", "dps_pct_max", "dps_min", "dps_max", "mid"}, ...]
-        空列表表示该光环无条件配置。
+          "dps_pct_min", "dps_pct_max",  // 带辅助
+          "bare_pct_min", "bare_pct_max", // 裸光环（无辅助）
+          "dps_min", "dps_max", "mid"}, ...]
     """
     if aura_configs is None:
         aura_configs = _discover_ifskill_configs(lua, {aura_name})
@@ -4420,10 +4497,12 @@ def _test_aura_config_range(lua, calcs, aura_name: str,
     if not matched:
         return []
 
-    from .calculator import calculate as calc_fn
-    # 如果没有提供 no_aura_dps，用当前 baseline（兼容旧行为）
     base_dps = no_aura_dps if no_aura_dps else baseline.get("TotalDPS", 0)
+    bare_base_dps = base_dps  # 裸光环和带辅助用同一个 no_aura_dps 作基准
 
+    from .calculator import calculate as calc_fn
+
+    # Python 循环，每组先测裸光环再测带辅助
     results = []
     for cfg in matched:
         config_var = cfg["config_var"]
@@ -4431,25 +4510,184 @@ def _test_aura_config_range(lua, calcs, aura_name: str,
         actual_max = cfg["actual_max"]
         mid = int(actual_max / 2)
 
-        for endpoint_name, endpoint_val in [("min", 0), ("max", actual_max)]:
-            _set_config_and_rebuild(lua, config_var, config_type, endpoint_val)
-            output = calc_fn(lua, calcs)
-            eps_dps = output.get("TotalDPS", 0)
-            dps_pct = ((eps_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
-            cfg[f"dps_{endpoint_name}"] = eps_dps
-            cfg[f"dps_pct_{endpoint_name}"] = dps_pct
-            # 同时读取 Speed，用于检测门槛效果和计算边际收益
-            eps_speed = output.get("Speed", 0)
-            if eps_speed and eps_speed > 0:
-                cfg[f"speed_{endpoint_name}"] = eps_speed
+        # Phase 1: 禁用辅助 → 测裸光环
+        lua.execute(f'''
+            local build = _spike_build
+            local targetName = "{aura_name}"
+            local function isAuraGem(gem)
+                local ge = gem.grantedEffect or (gem.gemData and gem.gemData.grantedEffect)
+                if (ge and ge.name == targetName) or gem.nameSpec == targetName or gem.skillId == targetName then return true end
+                if gem.skillId and data.skills[gem.skillId] and data.skills[gem.skillId].name == targetName then return true end
+                return false
+            end
+            for i = 1, #build.skillsTab.socketGroupList do
+                local group = build.skillsTab.socketGroupList[i]
+                if not group.enabled then goto nextDS end
+                local hasAura = false
+                for gi, gem in ipairs(group.gemList or {{}}) do
+                    if isAuraGem(gem) then hasAura = true; break end
+                end
+                if not hasAura then goto nextDS end
+                for gi, gem in ipairs(group.gemList or {{}}) do
+                    if not isAuraGem(gem) then gem.enabled = false end
+                end
+                ::nextDS::
+            end
+        ''')
+
+        # 裸光环 min
+        _set_config_and_rebuild(lua, config_var, config_type, 0)
+        bare_min_out = calc_fn(lua, calcs)
+        bare_min_dps = bare_min_out.get("TotalDPS", 0)
+        bare_min_speed_inc = bare_min_out.get("Speed_INC", 0)
+
+        # 裸光环 max
+        _set_config_and_rebuild(lua, config_var, config_type, actual_max)
+        bare_max_out = calc_fn(lua, calcs)
+        bare_max_dps = bare_max_out.get("TotalDPS", 0)
+        bare_max_speed_inc = bare_max_out.get("Speed_INC", 0)
+
+        # 恢复辅助
+        lua.execute(f'''
+            local build = _spike_build
+            for i = 1, #build.skillsTab.socketGroupList do
+                local g = build.skillsTab.socketGroupList[i]
+                for _, gem in ipairs(g.gemList or {{}}) do gem.enabled = true end
+            end
+        ''')
+
+        # Phase 2: 带辅助测试（辅助已恢复）
+        # real min
+        _set_config_and_rebuild(lua, config_var, config_type, 0)
+        real_min_out = calc_fn(lua, calcs)
+        real_min_dps = real_min_out.get("TotalDPS", 0)
+
+        # real max
+        _set_config_and_rebuild(lua, config_var, config_type, actual_max)
+        real_max_out = calc_fn(lua, calcs)
+        real_max_dps = real_max_out.get("TotalDPS", 0)
+        real_max_speed_inc = real_max_out.get("Speed_INC", 0)
 
         # 恢复中间值
         _set_config_and_rebuild(lua, config_var, config_type, mid)
+
+        cfg["dps_min"] = real_min_dps
+        cfg["dps_max"] = real_max_dps
+        cfg["dps_pct_min"] = ((real_min_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+        cfg["dps_pct_max"] = ((real_max_dps - base_dps) / base_dps * 100) if base_dps > 0 else 0
+
+        # 裸光环百分比
+        cfg["bare_pct_min"] = ((bare_min_dps - bare_base_dps) / bare_base_dps * 100) if bare_base_dps > 0 else 0
+        cfg["bare_pct_max"] = ((bare_max_dps - bare_base_dps) / bare_base_dps * 100) if bare_base_dps > 0 else 0
+
+        # Speed INC（用带辅助的 max 端点）
+        if real_max_speed_inc is not None:
+            cfg["speed_inc_max"] = real_max_speed_inc
+        if bare_max_speed_inc is not None:
+            cfg["speed_inc_min_bare"] = bare_max_speed_inc  # 裸光环 max 端点
+        if bare_min_speed_inc is not None:
+            cfg["speed_inc_min"] = bare_min_speed_inc
+
         cfg["mid"] = mid
+        cfg["actual_max"] = actual_max
+        cfg["aura_name"] = aura_name
+        cfg["config_var"] = config_var
+        cfg["config_type"] = config_type
+        cfg["label"] = cfg.get("label", config_var)
 
         results.append(cfg)
 
     return results
+
+
+def _get_support_level_bonus(lua, support_skill_id: str) -> int:
+    """获取辅助宝石给被辅助技能的等级加成。
+
+    如 Dialla's Desire (SupportDiallasDesirePlayer) 给 +1 level。
+    """
+    if not support_skill_id:
+        return 0
+    r = lua.execute(f'''
+        local skill = data.skills["{support_skill_id}"]
+        if not skill or not skill.statSets then return 0 end
+        for _, ss in pairs(skill.statSets) do
+            if ss.constantStats then
+                for _, cs in ipairs(ss.constantStats) do
+                    if cs[1] and cs[1]:find("supported_active_skill_gem_level") then
+                        return cs[2] or 0
+                    end
+                end
+            end
+            -- 也检查 baseStats
+            if ss.baseStats then
+                for _, bs in ipairs(ss.baseStats) do
+                    if type(bs) == "table" and bs[1] and bs[1]:find("supported_active_skill_gem_level") then
+                        return bs[2] or 0
+                    end
+                end
+            end
+        end
+        return 0
+    ''')
+    try:
+        return int(float(r))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _get_quality_speed_per_q(lua, skill_id: str) -> float:
+    """获取技能品质对应的 Speed INC 每品质点数。
+
+    如 Trinity 的 qualityStats 给 0.75% Speed INC per quality。
+    """
+    if not skill_id:
+        return 0
+    r = lua.execute(f'''
+        local skill = data.skills["{skill_id}"]
+        if not skill or not skill.qualityStats then return 0 end
+        for _, qs in ipairs(skill.qualityStats) do
+            if qs[1] and qs[1]:find("trinity_skill_speed") then
+                return qs[2] or 0
+            end
+        end
+        return 0
+    ''')
+    try:
+        return float(r)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _get_skill_stat_at_level(lua, skill_id: str, stat_index: int = 1, level: int = 1) -> int:
+    """从 POB skill data 获取指定等级的 stat 值。
+
+    Args:
+        lua: LuaRuntime
+        skill_id: 技能 ID（如 'TrinityPlayer'）
+        stat_index: statSets 中的 stat 索引（1-based，对应 stats 列表顺序）
+        level: 宝石等级
+
+    Returns:
+        stat 值（如 MORE per 30 resonance），0 表示未找到
+    """
+    lua_code = (
+        'local skill = data.skills["' + skill_id + '"]\n'
+        'if not skill or not skill.statSets or not skill.statSets[' + str(stat_index) + '] then return "0" end\n'
+        'local ss = skill.statSets[' + str(stat_index) + ']\n'
+        'local lvls = ss.levels\n'
+        'if not lvls then return "0" end\n'
+        'local lvData = lvls[' + str(level) + ']\n'
+        'if lvData then return tostring(lvData[' + str(stat_index) + '] or "0") end\n'
+        'for lv = ' + str(level) + ', 1, -1 do\n'
+        '  if lvls[lv] then return tostring(lvls[lv][' + str(stat_index) + '] or "0") end\n'
+        'end\n'
+        'return "0"\n'
+    )
+    r = lua.execute(lua_code)
+    try:
+        return int(float(r))
+    except (ValueError, TypeError):
+        return 0
 
 
 def _query_active_skills_info(lua, calcs) -> list[dict]:
@@ -4585,7 +4823,7 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                     end
                 end
 
-                gemInfos[#gemInfos+1] = gName .. "|" .. (gem.skillId or "?") .. "|" .. tostring(gSupport) .. "|true|" .. tostring(gSpirit)
+                gemInfos[#gemInfos+1] = gName .. "|" .. (gem.skillId or "?") .. "|" .. tostring(gSupport) .. "|true|" .. tostring(gSpirit) .. "|" .. tostring(gem.level or 0) .. "|" .. tostring(gem.quality or 0)
                 ::next_gem::
             end
 
@@ -4634,6 +4872,8 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                         "is_support": gp[2] == "true",
                         "enabled": gp[3] == "true",
                         "spirit": float(gp[4]) if len(gp) > 4 and gp[4] else 0,
+                        "level": int(gp[5]) if len(gp) > 5 and gp[5] else 0,
+                        "quality": int(gp[6]) if len(gp) > 6 and gp[6] else 0,
                     })
 
         spirit_supports = []
@@ -4686,7 +4926,8 @@ def _query_total_spirit(lua, calcs) -> float:
 def _test_remove_skill_group(lua, calcs, group_idx: int,
                              baseline: dict, skill_name: str = None,
                              pre_configs: list = None,
-                             inject_mods: list = None) -> dict:
+                             inject_mods: list = None,
+                             aura_only: bool = False) -> dict:
     """测试禁用指定技能组后的 DPS 变化。
 
     按主技能名称匹配，禁用所有同名副本组（包括 item-granted 副本）。
@@ -4698,9 +4939,12 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
     Args:
         group_idx: 技能组索引 (1-based)
         skill_name: 主技能名称（用于匹配所有副本）。若为 None，只禁用指定组。
+        aura_only: True 时只禁用主技能（光环）宝石，保留辅助宝石。
+                    返回 dict 中额外包含 supports_dps_pct 字段。
 
     Returns:
-        {"dps_before", "dps_after", "dps_pct", "ehp_pct", "simulated": bool}
+        {"dps_before", "dps_after", "dps_pct", "ehp_pct", "simulated": bool,
+         "supports_dps_pct": float}  # 仅 aura_only=True 时
     """
     base_dps = baseline.get("TotalDPS", 0)
     base_ehp = baseline.get("TotalEHP", 0)
@@ -4723,7 +4967,110 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
     # 构建 Lua 代码：按名称禁用所有同名组
     if skill_name:
         lua_name = skill_name.replace("\\", "\\\\").replace('"', '\\"')
-        lua_code = f'''
+        if aura_only:
+            # 裸光环模式：分两步
+            # 三步测试：全开 → 仅禁辅助(裸光环) → 禁全组(无光环)
+            lua_code = f'''
+                local build = _spike_build
+                local targetName = "{lua_name}"
+                local function calcDPS()
+                    local env = calcs.initEnv(build, "MAIN")
+                    pcall(calcs.perform, env)
+                    return env.player.output
+                end
+
+                -- 辅助函数：按名字判断是否为主技能(光环)宝石
+                local function isAuraGem(gem)
+                    local ge = gem.grantedEffect or (gem.gemData and gem.gemData.grantedEffect)
+                    if (ge and ge.name == targetName) or gem.nameSpec == targetName or gem.skillId == targetName then return true end
+                    if gem.skillId and data.skills[gem.skillId] and data.skills[gem.skillId].name == targetName then return true end
+                    return false
+                end
+
+                -- === Step 1: baseline（所有组全开） ===
+                local baseOutput = calcDPS()
+                local baseDPS = baseOutput.TotalDPS or 0
+
+                -- === Step 2: 仅禁同名组内的辅助宝石（保留光环）→ 裸光环 DPS ===
+                local supportDisabled = {{}}
+                for i = 1, #build.skillsTab.socketGroupList do
+                    local group = build.skillsTab.socketGroupList[i]
+                    if not group.enabled then goto nextSup end
+                    -- 先确认该组包含目标光环
+                    local hasAura = false
+                    for gi, gem in ipairs(group.gemList or {{}}) do
+                        if isAuraGem(gem) then hasAura = true; break end
+                    end
+                    if not hasAura then goto nextSup end
+                    -- 禁用该组中非光环的辅助宝石
+                    for gi, gem in ipairs(group.gemList or {{}}) do
+                        if not isAuraGem(gem) and gem.enabled then
+                            gem.enabled = false
+                            supportDisabled[#supportDisabled+1] = {{groupIdx=i, gemIdx=gi}}
+                        end
+                    end
+                    ::nextSup::
+                end
+                local bareOutput = calcDPS()
+                local bareDPS = bareOutput.TotalDPS or 0
+
+                -- 收集辅助宝石名称列表（用于报告展示）
+                -- 注意：POB 的 gem.enabled 修改在连续 initEnv 间不可靠，
+                -- 无法准确测量单辅助贡献，只收集名称。
+                local supportNames = {{}}
+                for i = 1, #build.skillsTab.socketGroupList do
+                    local group = build.skillsTab.socketGroupList[i]
+                    if not group.enabled then goto nextSN end
+                    local hasAura = false
+                    for gi, gem in ipairs(group.gemList or {{}}) do
+                        if isAuraGem(gem) then hasAura = true; break end
+                    end
+                    if not hasAura then goto nextSN end
+                    for gi, gem in ipairs(group.gemList or {{}}) do
+                        if not isAuraGem(gem) then
+                            local sn = gem.nameSpec or ''
+                            if gem.grantedEffect and gem.grantedEffect.name then sn = gem.grantedEffect.name end
+                            if sn == '' and gem.skillId and data.skills[gem.skillId] then sn = data.skills[gem.skillId].name end
+                            supportNames[#supportNames+1] = sn
+                        end
+                    end
+                    ::nextSN::
+                end
+
+                -- === Step 3: 禁整个同名组（光环+辅助全部禁用） ===
+                local groupDisabled = {{}}
+                for i = 1, #build.skillsTab.socketGroupList do
+                    local group = build.skillsTab.socketGroupList[i]
+                    if not group.enabled then goto nextGrp end
+                    local mainIdx = group.mainActiveSkill or 1
+                    local gem = group.gemList[mainIdx]
+                    if not gem then goto nextGrp end
+                    if isAuraGem(gem) then
+                        group.enabled = false
+                        groupDisabled[#groupDisabled+1] = i
+                    end
+                    ::nextGrp::
+                end
+                local noAuraOutput = calcDPS()
+
+                -- === 恢复 ===
+                for _, idx in ipairs(groupDisabled) do
+                    build.skillsTab.socketGroupList[idx].enabled = true
+                end
+
+                -- base=全开, bare=裸光环(无辅助), noAura=无光环
+                baseDPS = baseOutput.TotalDPS or 0
+                bareDPS = bareOutput.TotalDPS or 0
+                local noAuraDPS = noAuraOutput.TotalDPS or 0
+                local baseEHP = baseOutput.TotalEHP or 0
+                local noAuraEHP = noAuraOutput.TotalEHP or 0
+                -- 编码辅助名称列表
+                local supStr = table.concat(supportNames, ',')
+                return string.format("%.2f|%.2f|%.2f|%.2f|%.2f|%s", baseDPS, bareDPS, noAuraDPS, baseEHP, noAuraEHP, supStr)
+            '''
+        else:
+            # 原始模式：禁用整个组
+            lua_code = f'''
             local build = _spike_build
             local targetName = "{lua_name}"
             local disabled = {{}}
@@ -4812,6 +5159,42 @@ def _test_remove_skill_group(lua, calcs, group_idx: int,
         return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": bool(pre_configs)}
 
     parts = str(result).split('|')
+
+    if aura_only and len(parts) >= 6:
+        # aura_only 模式返回: baseDPS|bareDPS|noAuraDPS|baseEHP|noAuraEHP|perSupport
+        # perSupport 格式: name1:pct1,name2:pct2
+        try:
+            base_dps_v = float(parts[0])
+            bare_dps = float(parts[1])       # 裸光环（无辅助）
+            no_aura_dps = float(parts[2])    # 无光环
+            base_ehp_v = float(parts[3])
+            no_aura_ehp = float(parts[4])
+        except (ValueError, IndexError):
+            _restore_pre_configs()
+            return {"dps_before": base_dps, "dps_after": base_dps, "dps_pct": 0, "ehp_pct": 0, "simulated": False}
+        # 解析辅助宝石名称列表
+        support_names = []
+        if len(parts) >= 6 and parts[5]:
+            support_names = [n.strip() for n in parts[5].split(',') if n.strip()]
+        # 裸光环贡献: bareDPS vs noAuraDPS（用于和推荐光环对比）
+        bare_dps_pct = ((bare_dps - no_aura_dps) / no_aura_dps * 100) if no_aura_dps > 0 else 0
+        # 真实光环贡献: baseDPS vs noAuraDPS（含辅助效果）
+        real_dps_pct = ((base_dps_v - no_aura_dps) / no_aura_dps * 100) if no_aura_dps > 0 else 0
+        # 辅助额外贡献: baseDPS vs bareDPS（辅助在裸光环基础上额外增加的）
+        supports_extra_pct = ((base_dps_v - bare_dps) / bare_dps * 100) if bare_dps > 0 else 0
+        ehp_pct = ((base_ehp_v - no_aura_ehp) / no_aura_ehp * 100) if no_aura_ehp > 0 else 0
+        _restore_pre_configs()
+        return {
+            "dps_before": base_dps_v,
+            "dps_after": no_aura_dps,
+            "bare_dps_pct": bare_dps_pct,       # 裸光环（无辅助）贡献
+            "dps_pct": real_dps_pct,            # 真实光环（含辅助）贡献
+            "supports_extra_pct": supports_extra_pct,  # 辅助额外贡献
+            "support_names": support_names,      # 辅助宝石名称列表
+            "ehp_pct": ehp_pct,
+            "simulated": bool(pre_configs),
+        }
+
     try:
         new_dps = float(parts[0])
         new_ehp = float(parts[1])
@@ -5266,14 +5649,195 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
     }
 
 
+def _check_build_has_skill_type(lua, skill_id: str) -> bool:
+    """检查构筑的光环组中是否有技能满足精魄辅助的 requireSkillTypes。
+
+    直接从 data.skills[skill_id].requireSkillTypes 读取要求，
+    然后检查构筑中是否有技能（通过 data.skills 查找）匹配所有要求的类型。
+
+    Args:
+        lua: LuaRuntime
+        skill_id: 精魄辅助的 skill_id（如 SupportDeadlyHeraldsPlayer）
+
+    Returns:
+        是否有匹配的技能
+    """
+    result = lua.execute(f'''
+        local sid = "{skill_id}"
+        local skill_def = data.skills[sid]
+        if not skill_def or not skill_def.requireSkillTypes then
+            return "YES"
+        end
+
+        -- 解析 requireSkillTypes：提取枚举值列表，处理 AND 逻辑
+        local required = {{}}
+        local has_and = false
+        for _, t in ipairs(skill_def.requireSkillTypes) do
+            if t == SkillType.AND then
+                has_and = true
+            else
+                required[t] = true
+            end
+        end
+
+        -- 收集构筑中所有 gem 的 skillTypes（从 data.skills 读取）
+        local function collect_types(sk)
+            local types = {{}}
+            if sk.skillTypes then
+                if #sk.skillTypes > 0 then
+                    for _, st in ipairs(sk.skillTypes) do
+                        types[st] = true
+                    end
+                else
+                    for st, _ in pairs(sk.skillTypes) do
+                        types[st] = true
+                    end
+                end
+            end
+            if sk.addSkillTypes then
+                for _, st in ipairs(sk.addSkillTypes) do
+                    types[st] = true
+                end
+            end
+            return types
+        end
+
+        -- 检查构筑中每个 gem 是否匹配所有 required 类型
+        for i = 1, #_spike_build.skillsTab.socketGroupList do
+            local g = _spike_build.skillsTab.socketGroupList[i]
+            if g.gemList then
+                for j, gem in ipairs(g.gemList) do
+                    local sid2 = gem.skillId
+                    if sid2 and data.skills[sid2] then
+                        local gem_types = collect_types(data.skills[sid2])
+                        local match = true
+                        for rt, _ in pairs(required) do
+                            if not gem_types[rt] then
+                                match = false
+                                break
+                            end
+                        end
+                        if match then
+                            return "YES"
+                        end
+                    end
+                end
+            end
+        end
+        return "NO"
+    ''')
+    return str(result).strip() == "YES"
+
+
+
+
+def _check_build_condition(lua, condition: str) -> bool:
+    """检查构筑是否满足特定条件。
+
+    Args:
+        lua: LuaRuntime
+        condition: 条件名（如 "FullEnergyShield"、"LowLife"）
+
+    Returns:
+        是否满足条件
+    """
+    result = lua.execute('''
+        local build = _spike_build
+        local env = calcs.initEnv(build, "MAIN")
+        calcs.perform(env)
+        local out = env.player.output
+        local modDB = env.player.modDB
+
+        local checks = {}
+        -- FullEnergyShield: ES == MaxES
+        if out.EnergyShield and out.MaximumEnergyShield then
+            checks["FullEnergyShield"] = tostring(out.EnergyShield >= out.MaximumEnergyShield - 1)
+        end
+        -- LowLife
+        checks["LowLife"] = tostring(modDB:Flag(nil, "LowLife"))
+
+        local cond = "''' + condition + '''"
+        return checks[cond] or "NO"
+    ''')
+    return str(result).strip() == "true"
+
+
+def _get_spirit_support_sim_effects(skill_id: str,
+                                     is_spell: bool = True,
+                                     is_attack: bool = False,
+                                     lua=None) -> list[dict]:
+    """获取精魄辅助的模拟效果。
+
+    数据来源：
+    1. mod 效果 — 从 YAML 配置读取（pob_unimplemented_effects.yaml）
+    2. requireSkillTypes — 从 POB data.skills 自动检查
+    3. require_build_condition — 从 YAML 配置读取（如 FullEnergyShield、LowLife）
+    """
+    # 0. 检查 requireSkillTypes（从 POB 数据自动读取，非硬编码）
+    if lua:
+        can_attach = _check_build_has_skill_type(lua, skill_id)
+        if not can_attach:
+            logger.debug("精魄辅助 %s 跳过: 构筑中无匹配技能类型", skill_id)
+            return []
+
+    # 1. 从 YAML 配置读取 mod 效果和附加条件
+    from .pob_unimplemented import load_config
+    config = load_config()
+
+    for name, skill_config in config.get("skills", {}).items():
+        if skill_config.get("skill_type") != "spirit_support":
+            continue
+        if skill_config.get("detect", {}).get("skill_id") != skill_id:
+            continue
+
+        # 检查 require_flag（Spell/Attack）
+        require_flag = skill_config.get("require_flag", "")
+        if require_flag == "Spell" and not is_spell:
+            return []
+        if require_flag == "Attack" and not is_attack:
+            return []
+
+        # 检查 require_build_condition（如 FullEnergyShield、LowLife）
+        required_condition = skill_config.get("require_build_condition", "")
+        if required_condition and lua:
+            meets = _check_build_condition(lua, required_condition)
+            if not meets:
+                logger.debug("精魄辅助 %s 跳过: 不满足条件 %s", skill_id, required_condition)
+                return []
+
+        # 读取 effects
+        matched = []
+        for eff in skill_config.get("effects", []):
+            if eff.get("type") == "mod":
+                matched.append({
+                    "type": "mod",
+                    "mod_name": eff.get("mod_name", ""),
+                    "mod_type": eff.get("mod_type", "INC"),
+                    "value": eff.get("value", 0),
+                    "source": eff.get("source", "spirit_sim"),
+                    "description": eff.get("description", ""),
+                })
+        if matched:
+            logger.debug("精魄辅助 %s: 从 YAML 读取 %d 个 mod", skill_id, len(matched))
+        return matched
+
+    return []
+
+
 def _test_add_spirit_support(lua, calcs, support: dict,
                              aura_group_idx: int,
-                             baseline: dict) -> dict:
+                             baseline: dict,
+                             skill_flags: dict = None) -> dict:
     """测试向指定光环技能组添加精魄辅助后的 DPS 变化。
+
+    由于 POB 未完整实现精魄辅助的条件 buff 效果，
+    本函数会从 pob_unimplemented_effects.yaml 读取模拟效果并注入。
 
     Args:
         support: 精魄辅助候选数据
         aura_group_idx: 目标光环技能组索引
+        baseline: 基线 output
+        skill_flags: 技能 flags（用于过滤攻击/法术专属）
 
     Returns:
         {"name", "dps_before", "dps_after", "dps_pct", "spirit",
@@ -5282,6 +5846,15 @@ def _test_add_spirit_support(lua, calcs, support: dict,
     base_dps = baseline.get("TotalDPS", 0)
     base_ehp = baseline.get("TotalEHP", 0)
     skill_id = support["skill_id"]
+    is_spell = skill_flags.get("is_spell", True) if skill_flags else True
+    is_attack = skill_flags.get("is_attack", False) if skill_flags else False
+
+    # 查找该精魄辅助的模拟效果
+    sim_effects = _get_spirit_support_sim_effects(skill_id, is_spell, is_attack, lua)
+    inject_lua = ""
+    if sim_effects:
+        from .pob_unimplemented import inject_effects_to_lua
+        inject_lua = inject_effects_to_lua(lua, sim_effects)
 
     result = lua.execute(f'''
         local build = _spike_build
@@ -5348,7 +5921,14 @@ def _test_add_spirit_support(lua, calcs, support: dict,
             return "ERROR|" .. tostring(env)
         end
 
+        -- 注入 POB 未实现的精魄辅助模拟效果（在 perform 之前）
+        local HAS_SIM = {1 if inject_lua else 0}
+        if HAS_SIM == 1 then
+            {inject_lua}
+        end
+
         pcall(calcs.perform, env)
+        
         local newDps = env.player.output.TotalDPS or 0
         local newEhp = env.player.output.TotalEHP or 0
 
@@ -5363,6 +5943,9 @@ def _test_add_spirit_support(lua, calcs, support: dict,
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
             "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "description": support.get("description", ""),
+            "skill_id": support.get("skill_id", ""),
+            "source": support.get("source", ""),
             "estimated": support.get("estimated", False), "error": "Lua returned None",
         }
 
@@ -5372,6 +5955,9 @@ def _test_add_spirit_support(lua, calcs, support: dict,
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
             "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "description": support.get("description", ""),
+            "skill_id": support.get("skill_id", ""),
+            "source": support.get("source", ""),
             "estimated": support.get("estimated", False), "error": str(result),
         }
 
@@ -5384,6 +5970,9 @@ def _test_add_spirit_support(lua, calcs, support: dict,
             "name": support["name"], "dps_before": base_dps, "dps_after": base_dps,
             "dps_pct": 0, "spirit": 0, "target_aura": "",
             "condition": support.get("condition", ""), "note": support.get("note", ""),
+            "description": support.get("description", ""),
+            "skill_id": support.get("skill_id", ""),
+            "source": support.get("source", ""),
             "estimated": support.get("estimated", False), "error": "Parse error",
         }
 
@@ -5402,6 +5991,8 @@ def _test_add_spirit_support(lua, calcs, support: dict,
         "name": support["name"],
         "name_cn": support.get("name_cn", ""),
         "description": support.get("description", ""),
+        "skill_id": support.get("skill_id", ""),
+        "source": support.get("source", ""),
         "dps_before": base_dps,
         "dps_after": new_dps,
         "dps_pct": dps_pct,
@@ -5411,7 +6002,7 @@ def _test_add_spirit_support(lua, calcs, support: dict,
         "target_group_idx": aura_group_idx,
         "condition": support.get("condition", ""),
         "note": support.get("note", ""),
-        "estimated": support.get("estimated", False),
+        "estimated": support.get("estimated", False) or bool(sim_effects),
         "error": None,
     }
 
@@ -5806,6 +6397,9 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     """
     from .calculator import calculate as calc_fn
 
+    # 应用品质上限（游戏实际上限 20%），确保分析基于标准品质
+    _cap_all_gem_qualities(lua)
+
     if baseline is None:
         baseline = calc_fn(lua, calcs)
 
@@ -5870,12 +6464,34 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
             result = _test_mod_effect(
                 lua, calcs, baseline, resolved_mods,
                 skill_name=si["main_skill_name"])
+            # 模拟光环无辅助宝石可分离，裸光环 = 真实光环
+            if "bare_dps_pct" not in result:
+                result["bare_dps_pct"] = result.get("dps_pct", 0)
         else:
-            # 标准测试：禁用技能组
+            # Step 1: 标准禁组模式（不修改 gem.enabled）获取 no_aura_dps
+            # 必须先测 config range（需要干净的 gem 状态）
+            # 因为 aura_only 的 gem.enabled 修改在 POB 中恢复不可靠
+            simple_result = _test_remove_skill_group(
+                lua, calcs, si["group_idx"], baseline,
+                skill_name=si["main_skill_name"],
+                pre_configs=pre_configs,
+                aura_only=False)
+
+            # Step 2: config range 测试（在 gem 状态干净时运行）
+            no_aura_dps = simple_result.get("dps_after", baseline.get("TotalDPS", 0))
+            config_range = _test_aura_config_range(
+                lua, calcs, si["main_skill_name"], baseline,
+                aura_configs=aura_configs,
+                no_aura_dps=no_aura_dps)
+
+            # Step 3: 裸光环测试（会修改 gem.enabled，放在最后）
             result = _test_remove_skill_group(
                 lua, calcs, si["group_idx"], baseline,
                 skill_name=si["main_skill_name"],
-                pre_configs=pre_configs)
+                pre_configs=pre_configs,
+                aura_only=True)
+            # 合并 config range 和 support names
+            result["config_ranges"] = config_range
 
         aura_entry = {
             "name": si["main_skill_name"],
@@ -5884,21 +6500,44 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
             "spirit_cost": si["spirit_cost"],
             "spirit_supports": si["spirit_supports"],
             "gems": [g["name"] for g in si["gems"] if g["enabled"]],
+            "gem_level": 0,
+            "gem_quality": 0,
+            "effective_level": 0,
+            "more_per_30": 0,
+            "quality_speed_inc": 0,
             **result,
         }
+
+        # 计算有效等级（基础等级 + 辅助等级加成）
+        main_gem = si["gems"][0] if si["gems"] else {}
+        if main_gem:
+            base_level = main_gem.get("level", 0)
+            level_bonus = 0
+            # 检查辅助宝石的 +level 效果（如 Dialla's +1）
+            for g in si["gems"][1:]:
+                sid = g.get("skill_id", "")
+                # Dialla's Desire: supported_active_skill_gem_level_+ = 1
+                # 从 POB data 读取 constantStats
+                if sid and not g.get("is_support", False):
+                    continue
+                bonus = _get_support_level_bonus(lua, sid)
+                level_bonus += bonus
+            effective_level = base_level + level_bonus
+            # 获取 MORE per 30 resonance（Trinity 的 stat index 1）
+            more_val = _get_skill_stat_at_level(lua, main_gem.get("skill_id", ""), 1, effective_level)
+            # 获取 Speed INC per quality（从 qualityStats）
+            speed_per_q = _get_quality_speed_per_q(lua, main_gem.get("skill_id", ""))
+            aura_entry["gem_level"] = base_level
+            aura_entry["gem_quality"] = main_gem.get("quality", 0)
+            aura_entry["effective_level"] = effective_level
+            aura_entry["level_bonus"] = level_bonus
+            aura_entry["more_per_30"] = more_val
+            aura_entry["quality_speed_inc"] = speed_per_q
+
 
         # 保存 Charge 数量供报告使用
         if charge_counts:
             aura_entry["charge_counts"] = charge_counts
-
-        # 对有条件配置的光环，测试参数范围（min/max 端点）
-        # 使用"无光环"时的 DPS 作为百分比计算基准
-        config_range = _test_aura_config_range(
-            lua, calcs, si["main_skill_name"], baseline,
-            aura_configs=aura_configs,
-            no_aura_dps=result.get("dps_after"))
-        if config_range:
-            aura_entry["config_ranges"] = config_range
 
         existing_auras.append(aura_entry)
 
@@ -5969,7 +6608,7 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     for ss in filtered_supports:
         for aura_si in aura_groups:
             result = _test_add_spirit_support(
-                lua, calcs, ss, aura_si["group_idx"], baseline)
+                lua, calcs, ss, aura_si["group_idx"], baseline, skill_flags)
             # 标注精魄需求
             actual_spirit = result.get("spirit", 0)
             if actual_spirit > available_spirit:
@@ -5988,8 +6627,8 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
     logger.info("8C 完成: %d 个精魄辅助测试，%d 个有效，Top 5 已选择",
                 len(spirit_support_tests), len(effective_tests))
     
-    # 使用 Top 5 作为最终结果
-    spirit_support_tests = top_5_tests
+    # 保留完整测试结果（不替换，用于报告显示）
+    # spirit_support_tests = top_5_tests  # 不再替换
 
     # === 7D: Spirit Budget ===
     # 计算推荐精魄消耗总和（含精魄不足项）
@@ -6249,20 +6888,31 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("")
 
     if existing_auras:
-        lines.append("| # | 光环 | DPS 贡献 | EHP 贡献 | 精魄消耗 | 条件参数范围 |")
-        lines.append("|---|------|----------|----------|----------|-------------|")
+        lines.append("| # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 | 条件参数范围 |")
+        lines.append("|---|------|------------|----------|-----|------|-------------|")
         for i, a in enumerate(existing_auras, 1):
             name = a.get("name", "?")
-            dp = a.get("dps_pct", 0)
+            bare_dp = a.get("bare_dps_pct", 0)
+            real_dp = a.get("dps_pct", 0)
             ep = a.get("ehp_pct", 0)
             sp = a.get("spirit_cost", 0)
 
-
-
-            # DPS 贡献列：正值=该光环对 DPS 的正向贡献（移除后 DPS 下降的百分比）
-            dp_str = f"{dp:+.1f}%"
+            # 裸光环 DPS（无辅助，用于和推荐光环对比）
+            bare_str = f"{bare_dp:+.1f}%"
+            # 真实 DPS（含辅助）
+            real_str = f"{real_dp:+.1f}%"
             if a.get("simulated"):
-                dp_str += " ⚠️模拟"
+                real_str += " ⚠️模拟"
+
+            # 辅助额外贡献（真实 - 裸光环的额外增益）
+            supports_extra = a.get("supports_extra_pct", 0)
+            if abs(supports_extra) >= 0.1:
+                # 使用 aura_only 返回的辅助名称列表（仅含同名光环组内的物品辅助）
+                sup_names = a.get("support_names", [])
+                if sup_names:
+                    real_str += f" (辅助+{supports_extra:.1f}%: {', '.join(sup_names)})"
+                else:
+                    real_str += f" (辅助+{supports_extra:.1f}%)"
 
             # 条件参数范围列：展示参数对 DPS 的影响
             # 百分比 vs「无光环」状态（no_aura_dps），展示参数变化带来的 DPS 贡献
@@ -6276,25 +6926,57 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                     pct_min = cr.get("dps_pct_min", 0)
                     pct_max = cr.get("dps_pct_max", 0)
                     mid = cr.get("mid", 0)
-                    dp_str += f" (条件: {label}={mid})"
+                    real_str += f" (条件: {label}={mid})"
 
-                    # 动态检测 Speed 门槛效果：比较 min 和 max 端点的 Speed
+
+
+                    # 动态检测 Speed 门槛效果：分别计算裸光环和实光环的 Speed INC
                     marginal_note = ""
-                    speed_min = cr.get("speed_min", 0)
-                    speed_max = cr.get("speed_max", 0)
-                    if speed_min > 0 and speed_max > speed_min:
-                        # Speed 发生跳变（门槛效果触发）
-                        actual_speed_inc = (speed_max - speed_min) / speed_min * 100
-                        # 边际收益 = 新增 INC / (1 + 已有 INC)
-                        marginal = actual_speed_inc / (1 + speed_inc / 100) if speed_inc > 0 else actual_speed_inc
-                        marginal_note = f" (Speed门槛+{actual_speed_inc:.1f}%, 边际≈{marginal:.1f}%)"
+                    speed_inc_min = cr.get("speed_inc_min", 0)
+                    speed_inc_bare = cr.get("speed_inc_min_bare", 0)
+                    speed_inc_real = cr.get("speed_inc_max", 0)
+                    bare_speed_delta = speed_inc_bare - speed_inc_min
+                    real_speed_delta = speed_inc_real - speed_inc_min
+                    if bare_speed_delta > 0.5:
+                        bare_marginal = bare_speed_delta / (1 + speed_inc_min / 100) if speed_inc_min > 0 else bare_speed_delta
+                        real_marginal = real_speed_delta / (1 + speed_inc_min / 100) if speed_inc_min > 0 else real_speed_delta
+                        marginal_note = f" (SpeedINC: 裸+{bare_speed_delta:.0f}%/实+{real_speed_delta:.0f}%, 边际: 裸{bare_marginal:.1f}%/实{real_marginal:.1f}%)"
 
-                    parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%{marginal_note}")
+                    # 双列格式：裸光环 / 真实光环
+                    bare_pct_max = cr.get("bare_pct_max", pct_max)
+                    if abs(bare_pct_max - pct_max) >= 0.1:
+                        # 有辅助贡献，显示 max 端点双列
+                        parts.append(f"{label}={actual_max}: 裸{bare_pct_max:+.1f}% / 实{pct_max:+.1f}%{marginal_note}")
+                    else:
+                        # 无辅助贡献，单列显示完整范围
+                        parts.append(f"{label}=0: {pct_min:+.1f}%, {label}={actual_max}: {pct_max:+.1f}%{marginal_note}")
+                # 追加辅助宝石标注（当有辅助贡献时）
+                if abs(supports_extra) >= 0.1:
+                    sup_names = a.get("support_names", [])
+                    if sup_names:
+                        parts.append(f"辅助+{supports_extra:.1f}%: {', '.join(sup_names)}")
+                # 追加等级和基础数值标注
+                gem_lv = a.get("gem_level", 0)
+                eff_lv = a.get("effective_level", gem_lv)
+                more_val = a.get("more_per_30", 0)
+                spd_per_q = a.get("quality_speed_inc", 0)
+                if gem_lv > 0:
+                    lv_str = f"Lv{eff_lv}"
+                    if eff_lv != gem_lv:
+                        lv_str = f"Lv{gem_lv}→{eff_lv}"
+                    info_parts = [lv_str]
+                    if more_val > 0:
+                        info_parts.append(f"{more_val}% MORE/30")
+                    if spd_per_q > 0:
+                        gem_q = a.get("gem_quality", 0)
+                        if gem_q > 0:
+                            info_parts.append(f"Speed {gem_q * spd_per_q:.1f}%INC(q{gem_q})")
+                    parts.append("[" + ", ".join(info_parts) + "]")
                 range_str = "; ".join(parts)
             else:
                 range_str = "-"
 
-            lines.append(f"| {i} | {name} | {dp_str} | {ep:+.1f}% | {sp:.0f} | {range_str} |")
+            lines.append(f"| {i} | {name} | {bare_str} | {real_str} | {ep:+.1f}% | {sp:.0f} | {range_str} |")
         lines.append("")
 
         # 模拟值说明
@@ -6331,9 +7013,11 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("**模拟方法说明：**")
             lines.append("")
             lines.append("- **等级前提**：光环模拟基于构筑实际宝石等级数据（非固定 Level 20）")
-            lines.append("- **DPS 贡献计算**：移除光环后 DPS 下降百分比（正值=正向贡献）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在 DPS 贡献括号中")
-            lines.append(f"- **构筑已有 modifier**：施法速度 INC {speed_inc:.0f}%，总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
-            lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。自动检测 Speed 门槛效果（端点间 Speed 跳变）并标注实际边际收益")
+            lines.append("- **裸光环 DPS**：仅光环宝石效果（禁用所有辅助宝石），用于和「潜在光环推荐」对比。真实 DPS 含辅助宝石额外增益，标注在括号中")
+            lines.append("- **DPS 贡献计算**：移除光环后 DPS 下降百分比（正值=正向贡献）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在真实 DPS 括号中")
+            lines.append(f"- **构筑已有 modifier**：施法速度 INC {speed_inc:.0f}%（来自 POB skillModList），总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
+            lines.append(f"- **品质上限**：所有宝石品质按 {GEM_QUALITY_CAP}% 上限计算（游戏实际上限）。构筑中超品质宝石已自动降级")
+            lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。Speed 门槛效果从 POB skillModList 读取端点 INC 差值，边际 = 新增INC / (1+已有INC)")
             lines.append("- **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）")
             lines.append("")
 
@@ -6405,14 +7089,27 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
     lines.append("### 9C. 精魄辅助推荐")
     lines.append("")
     
-    # 注意：spirit_tests 已经是 Top 5 了（在 aura_spirit_analysis 中过滤）
-    if spirit_tests:
-        lines.append("| # | 精魄辅助 | 目标光环 | 精魄 | DPS% | 条件 | 来源 |")
-        lines.append("|---|----------|----------|------|------|------|------|")
-        for i, s in enumerate(spirit_tests, 1):
+    # 分离有效和无效结果（类似光环推荐）
+    effective_spirit = [s for s in spirit_tests if s.get("dps_pct", 0) > 0.1]
+    failed_spirit = [s for s in spirit_tests if s.get("dps_pct", 0) <= 0.1]
+    
+    if effective_spirit:
+        # 按辅助名称去重：同一辅助只保留 DPS% 最高的结果
+        best_by_name = {}
+        for s in effective_spirit:
+            name = s.get("name", "")
+            existing = best_by_name.get(name)
+            if not existing or abs(s.get("dps_pct", 0)) > abs(existing.get("dps_pct", 0)):
+                best_by_name[name] = s
+        unique_spirit = list(best_by_name.values())
+        unique_spirit.sort(key=lambda x: -abs(x.get("dps_pct", 0)))
+        top_results = unique_spirit[:5]
+        
+        lines.append("| # | 精魄辅助 | 精魄 | DPS% | 条件 | 来源 |")
+        lines.append("|---|----------|------|------|------|------|")
+        for i, s in enumerate(top_results, 1):
             name = s.get("name", "?")
             name_cn = s.get("name_cn", "")
-            target = s.get("target_aura", "?")
             sp = s.get("spirit", 0)
             dp = s.get("dps_pct", 0)
             cond = s.get("condition", "")
@@ -6426,11 +7123,15 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             source_display = "硬编码" if source == "hardcoded" else "动态扫描" if source == "dynamic" else "未知"
             
             display = f"{name}" + (f"（{name_cn}）" if name_cn else "")
-            lines.append(f"| {i} | {display} | {target} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} | {source_display} |")
+            lines.append(f"| {i} | {display} | {sp:.0f} | {dp:+.1f}% | {cond}{estimated} | {source_display} |")
         lines.append("")
-
-    if failed_ss:
-        lines.append(f"**无 DPS 影响：** {len(failed_ss)} 个组合")
+    
+    if failed_spirit:
+        lines.append(f"其余 {len(set(s.get('skill_id','') for s in failed_spirit))} 个辅助无可模拟的 DPS 效果。")
+        lines.append("")
+    
+    if not effective_spirit and not failed_spirit:
+        lines.append("构筑中无活跃光环，无法添加精魄辅助。")
         lines.append("")
 
     # 7D: Spirit Budget

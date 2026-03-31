@@ -143,6 +143,7 @@ skills:
         source: "ElementalDamage_support"
         description: "MORE 元素伤害（攻击技能）"
 
+
   # ===================================================================
   # 光环/被动效果（skill_type: aura）
   # ===================================================================
@@ -162,6 +163,151 @@ skills:
     # 特殊处理：需要在 what_if.py 中动态解析
     stat_skill_id: "ElementalConfluxPlayer"
     expect_factor: 0.333  # 期望 = MORE * 1/3
+
+  # ===================================================================
+  # 精魄辅助（skill_type: spirit_support）
+  # ===================================================================
+  # POB 未完整实现精魄辅助的条件 buff 效果。
+  # requireSkillTypes 由代码自动从 POB data.skills 读取并检查。
+  # require_build_condition 为 POB modDB 无法直接判断的附加条件。
+
+  "Mysticism I":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportMysticismPlayer"
+    skill_type: "spirit_support"
+    condition: "满能量护盾时"
+    require_flag: "Spell"
+    require_build_condition: "FullEnergyShield"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "INC"
+        value: 30
+        mod_flag: "Spell"
+        source: "Mysticism_I_sim"
+        description: "满ES时 +30% INC 法术伤害"
+
+  "Mysticism II":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportMysticismPlayerTwo"
+    skill_type: "spirit_support"
+    condition: "满能量护盾时"
+    require_flag: "Spell"
+    require_build_condition: "FullEnergyShield"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "INC"
+        value: 50
+        mod_flag: "Spell"
+        source: "Mysticism_II_sim"
+        description: "满ES时 +50% INC 法术伤害"
+
+  "Direstrike I":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportDirestrikePlayer"
+    skill_type: "spirit_support"
+    condition: "低血时"
+    require_flag: "Attack"
+    require_build_condition: "LowLife"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "INC"
+        value: 50
+        mod_flag: "Attack"
+        source: "Direstrike_I_sim"
+        description: "低血时 +50% INC 攻击伤害"
+
+  "Direstrike II":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportDirestrikePlayerTwo"
+    skill_type: "spirit_support"
+    condition: "低血时"
+    require_flag: "Attack"
+    require_build_condition: "LowLife"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "INC"
+        value: 80
+        mod_flag: "Attack"
+        source: "Direstrike_II_sim"
+        description: "低血时 +80% INC 攻击伤害"
+
+  "Deadly Herald":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportDeadlyHeraldsPlayer"
+    skill_type: "spirit_support"
+    condition: "附加在 Herald 技能上"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "MORE"
+        value: 30
+        source: "DeadlyHerald_sim"
+        description: "Herald 触发效果 +30% MORE 伤害"
+
+  "Thornskin I":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportThornskinPlayer"
+    skill_type: "spirit_support"
+    condition: "荆棘伤害（非直接DPS）"
+    effects:
+      - type: "mod"
+        mod_name: "ThornsDamage"
+        mod_type: "INC"
+        value: 50
+        source: "Thornskin_I_sim"
+        description: "+50% INC 荆棘伤害（不影响 TotalDPS）"
+
+  "Thornskin II":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportThornskinPlayerTwo"
+    skill_type: "spirit_support"
+    condition: "荆棘伤害（非直接DPS）"
+    effects:
+      - type: "mod"
+        mod_name: "ThornsDamage"
+        mod_type: "INC"
+        value: 80
+        source: "Thornskin_II_sim"
+        description: "+80% INC 荆棘伤害（不影响 TotalDPS）"
+
+  "Upwelling I":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportUpwellingPlayer"
+    skill_type: "spirit_support"
+    condition: "非满蓝时（召唤物）"
+    effects:
+      - type: "mod"
+        mod_name: "MinionDamage"
+        mod_type: "INC"
+        value: 30
+        source: "Upwelling_I_sim"
+        description: "非满蓝时召唤物 +30% INC 伤害"
+
+  "Upwelling II":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportUpwellingPlayerTwo"
+    skill_type: "spirit_support"
+    condition: "非满蓝时（召唤物）"
+    effects:
+      - type: "mod"
+        mod_name: "MinionDamage"
+        mod_type: "INC"
+        value: 50
+        source: "Upwelling_II_sim"
+        description: "非满蓝时召唤物 +50% INC 伤害"
 
   # ===================================================================
   # 预留：其他重要未实现效果（已扫描但未添加）

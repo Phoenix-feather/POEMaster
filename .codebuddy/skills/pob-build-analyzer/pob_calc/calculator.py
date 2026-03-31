@@ -34,6 +34,14 @@ def calculate(lua, calcs, mode: str = "MAIN") -> dict[str, float]:
                 lines[#lines+1] = k .. "=" .. tostring(v)
             end
         end
+        -- 额外读取 skillModList 中的 Speed INC（用于门槛效果分析）
+        local ms = env.player.mainSkill
+        if ms and ms.skillModList and ms.skillCfg then
+            local sInc = ms.skillModList:Sum("INC", ms.skillCfg, "Speed")
+            lines[#lines+1] = "Speed_INC=" .. tostring(sInc)
+            local sMore = ms.skillModList:More(ms.skillCfg, "Speed")
+            lines[#lines+1] = "Speed_MORE=" .. tostring(sMore)
+        end
         return table.concat(lines, "|")
     ''')
 
