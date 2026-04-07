@@ -852,6 +852,445 @@ def load_config(lua, build_info: dict) -> int:
     return loaded
 
 
+def _inject_unimplemented_mods(lua, input_json: str) -> int:
+    """从 pob_unimplemented_effects.yaml 读取配置，为满足条件的未实现效果注入 mod。
+
+    通用逻辑：
+    1. 加载 YAML 配置
+    2. 检测构筑中存在的技能（通过 skillId）
+    3. 检查 require_build_condition 是否被 input 满足
+    4. 满足条件则注入 mod 到 configTab.modList
+
+    Returns:
+        注入的 mod 数量
+    """
+    import json
+    from pathlib import Path
+
+    # 加载 YAML 配置
+    config_path = Path(__file__).parent.parent / "config" / "pob_unimplemented_effects.yaml"
+    if not config_path.exists():
+        return 0
+
+    try:
+        import yaml
+        with open(config_path, encoding='utf-8') as f:
+            config = yaml.safe_load(f) or {}
+    except Exception as e:
+        logger.warning("加载未实现效果配置失败: %s", e)
+        return 0
+
+    skills_config = config.get("skills", {})
+    if not skills_config:
+        return 0
+
+    # 从 input JSON 获取已配置的条件
+    try:
+        input_data = json.loads(input_json)
+    except (json.JSONDecodeError, TypeError):
+        input_data = {}
+
+    # 构建条件映射：require_build_condition → input key → 是否满足
+    condition_map = {
+        "FullMana": input_data.get("conditionFullMana", False),
+        "FullLife": input_data.get("conditionFullLife", False),
+        "LowLife": input_data.get("conditionLowLife", False),
+        "FullEnergyShield": input_data.get("conditionFullEnergyShield", False),
+    }
+
+    # 注入列表
+    inject_list = []
+    for skill_name, skill_config in skills_config.items():
+        effects = skill_config.get("effects", [])
+        if not effects:
+            continue
+
+        # 检查检测条件
+        detect = skill_config.get("detect", {})
+        detect_type = detect.get("type", "gem_name")
+
+        # 构造 Lua 检测代码（返回 boolean 表达式，不用 return）
+        if detect_type == "skill_id":
+            skill_id = detect.get("skill_id", "")
+            check_lua = f'skillIds["{skill_id}"] == true'
+        elif detect_type == "gem_name":
+            name = detect.get("name", skill_name)
+            check_lua = f'skillNames["{name}"] == true'
+        else:
+            continue
+
+        # 检查 build condition
+        req_cond = skill_config.get("require_build_condition", "")
+        if req_cond and not condition_map.get(req_cond, False):
+            continue
+
+        # 收集要注入的 mod
+        for eff in effects:
+            if eff.get("type") != "mod":
+                continue
+            mod_name = eff.get("mod_name", "")
+            mod_type = eff.get("mod_type", "BASE")
+            value = eff.get("value")
+            source = eff.get("source", "unimpl_config")
+            if mod_name is None:
+                continue
+
+            if value is not None:
+                # 固定值
+                inject_list.append({
+                    "skill_name": skill_name,
+                    "detect_lua": check_lua,
+                    "mod_name": mod_name,
+                    "mod_type": mod_type,
+                    "value": int(value) if isinstance(value, (int, float)) else value,
+                    "source": source,
+                })
+            else:
+                # value=null: 从 Lua 读取宝石等级对应的 stat 值
+                # 优先使用 stat_skill_id，否则用 detect 的 skill_id/gem_name
+                stat_skill_id = skill_config.get("stat_skill_id", "")
+                if not stat_skill_id:
+                    if detect_type == "skill_id":
+                        stat_skill_id = detect.get("skill_id", "")
+                if not stat_skill_id:
+                    continue
+                inject_list.append({
+                    "skill_name": skill_name,
+                    "detect_lua": check_lua,
+                    "mod_name": mod_name,
+                    "mod_type": mod_type,
+                    "value": None,  # 动态值标记
+                    "source": source,
+                    "stat_skill_id": stat_skill_id,
+                    "expect_factor": skill_config.get("expect_factor", 1.0),
+                    "level_index": eff.get("level_index", 1),
+                })
+
+    if not inject_list:
+        return 0
+
+    # 分离固定值和动态值
+    fixed_items = [it for it in inject_list if it["value"] is not None]
+    dynamic_items = [it for it in inject_list if it["value"] is None]
+
+    # 批量注入固定值 mod 到 Lua
+    inject_lua_lines = [r"""
+local build = _spike_build
+local modList = build.configTab.modList
+if not modList then return 0 end
+
+-- 重新收集技能 ID
+local skillIds = {}
+local skillNames = {}
+if build.skillsTab and build.skillsTab.socketGroupList then
+    for _, sg in ipairs(build.skillsTab.socketGroupList) do
+        local gemList = sg.gems or sg.gemList or {}
+        for _, gem in ipairs(gemList) do
+            if gem.skillId then skillIds[gem.skillId] = true end
+            local n = gem.name or (gem.gemData and gem.gemData.name)
+            if n then skillNames[n] = true end
+        end
+    end
+end
+
+local injected = 0
+"""]
+
+    for item in fixed_items:
+        inject_lua_lines.append(f"""if {item['detect_lua']} then
+    modList:NewMod("{item['mod_name']}", "{item['mod_type']}", {item['value']}, "{item['source']}")
+    injected = injected + 1
+end
+""")
+
+    # 动态值：从 Lua 读取宝石等级和对应的 stat 值
+    if dynamic_items:
+        # 为每个需要动态值的技能，从 skillData.statSets.levels 读取
+        for item in dynamic_items:
+            sid = item["stat_skill_id"]
+            factor = item.get("expect_factor", 1.0)
+            lv_idx = item.get("level_index", 1)
+            inject_lua_lines.append(f"""
+-- 动态值: {item['skill_name']} ({sid})
+do
+    local gemLevel = nil
+    local gemQuality = 0
+    for _, sg in ipairs(build.skillsTab.socketGroupList or {{}}) do
+        for _, gem in ipairs(sg.gems or sg.gemList or {{}}) do
+            if gem.skillId == "{sid}" then
+                gemLevel = gem.level or 1
+                gemQuality = gem.quality or 0
+                break
+            end
+        end
+        if gemLevel then break end
+    end
+    if {item['detect_lua']} and gemLevel then
+        local baseVal = 0
+        local sk = build.data.skills and build.data.skills["{sid}"]
+        if sk and sk.statSets then
+            for _, ss in ipairs(sk.statSets) do
+                if ss.levels and ss.levels[gemLevel] then
+                    baseVal = ss.levels[gemLevel][{lv_idx}] or 0
+                    break
+                end
+            end
+        end
+        -- 品质增量（从 qualityStats 读取每品质点增量）
+        -- 仅当 qualityStats 的 stat 名称与 mod_name 匹配时才添加
+        local qualityBonus = 0
+        if sk and sk.qualityStats then
+            for _, qs in ipairs(sk.qualityStats) do
+                local statName = qs[1] or ""
+                -- 简单启发：如果 stat 名称包含 mod_name 关键词或 "damage"/"more"/"inc"，才计入品质
+                local snl = statName:lower()
+                if snl:find("damage") or snl:find("more") or snl:find("inc") or snl:find("crit") or snl:find("speed") or snl:find("defence") then
+                    qualityBonus = qualityBonus + gemQuality * (qs[2] or 0)
+                end
+            end
+        end
+        local totalVal = baseVal + qualityBonus
+        local finalVal = math.max(0, math.floor(totalVal * {factor}))
+        if finalVal > 0 then
+            modList:NewMod("{item['mod_name']}", "{item['mod_type']}", finalVal, "{item['source']}")
+            injected = injected + 1
+        end
+    end
+end
+""")
+
+    inject_lua_lines.append("return injected")
+    inject_lua = "\n".join(inject_lua_lines)
+
+    try:
+        result = lua.execute(inject_lua)
+        injected_count = int(result) if result else 0
+    except Exception as e:
+        logger.warning("注入未实现效果失败: %s", e)
+        injected_count = 0
+
+    return injected_count
+
+
+def auto_configure_combat(lua) -> int:
+    """自动配置战斗条件：扫描构筑技能/天赋，设置合理的战斗默认值。
+
+    策略：
+    1. 技能专属条件：扫描技能组，为匹配的 ifSkill 条件设置默认值
+    2. 通用战斗条件：FullLife、FullMana、CastSpellRecently 等
+    3. 重新运行 BuildModList 使配置生效
+    4. 注入 YAML 配置的未实现效果（条件满足时）
+
+    Returns:
+        自动设置的配置项数量
+    """
+    auto_lua = r'''
+        local build = _spike_build
+        local input = build.configTab.input
+        local count = 0
+
+        -- === 1. 收集构筑中所有技能名称和 skillId ===
+        local skillNames = {}
+        local skillIds = {}
+        if build.skillsTab and build.skillsTab.socketGroupList then
+            for _, sg in ipairs(build.skillsTab.socketGroupList) do
+                local gemList = sg.gems or sg.gemList or {}
+                for _, gem in ipairs(gemList) do
+                    -- gem.name 可能为 nil，使用 skillId 和 grantedEffect.name
+                    local name = gem.name
+                        or (gem.grantedEffect and gem.grantedEffect.name)
+                        or (gem.skillSpec and gem.skillSpec and gem.skillSpec.name)
+                        or nil
+                    if name then skillNames[name] = true end
+                    if gem.skillId then skillIds[gem.skillId] = true end
+                end
+            end
+        end
+
+        -- 辅助：通过 skillId 模糊匹配检查
+        local function hasSkillIdFragment(frag)
+            for id, _ in pairs(skillIds) do
+                if id:find(frag, 1, true) then return true end
+            end
+            return false
+        end
+
+        -- === 2. 技能专属自动配置 ===
+
+        -- Rising Tempest: 如果有此辅助，默认所有元素类型都触发
+        if skillNames["Rising Tempest"] or hasSkillIdFragment("RisingTempest") or hasSkillIdFragment("TempestuousTempo") then
+            if input["risingTempestLightning"] == nil then input["risingTempestLightning"] = true; count = count + 1 end
+            if input["risingTempestCold"] == nil then input["risingTempestCold"] = true; count = count + 1 end
+            if input["risingTempestFire"] == nil then input["risingTempestFire"] = true; count = count + 1 end
+        end
+
+        -- Trinity: 默认 250（门槛值，触发 Trinity Speed 效果）
+        if skillNames["Trinity"] or hasSkillIdFragment("Trinity") then
+            if input["configResonanceCount"] == nil then input["configResonanceCount"] = 250; count = count + 1 end
+        end
+
+        -- Twister: 默认所有元素
+        if skillNames["Twister"] or hasSkillIdFragment("Twister") then
+            if input["twisterCold"] == nil then input["twisterCold"] = true; count = count + 1 end
+            if input["twisterFire"] == nil then input["twisterFire"] = true; count = count + 1 end
+        end
+
+        -- Sigil of Power: 默认 1 stage
+        if skillNames["Sigil of Power"] or hasSkillIdFragment("SigilOfPower") then
+            if input["sigilOfPowerStages"] == nil then input["sigilOfPowerStages"] = 1; count = count + 1 end
+        end
+
+        -- Thirst for Blood: 默认 1 个流血敌人
+        if skillNames["Thirst for Blood"] or hasSkillIdFragment("ThirstForBlood") then
+            if input["nearbyBleedingEnemies"] == nil then input["nearbyBleedingEnemies"] = 1; count = count + 1 end
+        end
+
+        -- Corrupting Cry: 默认 1 stack
+        if skillNames["Corrupting Cry"] or hasSkillIdFragment("CorruptingCry") then
+            if input["conditionCorruptingCryStages"] == nil then input["conditionCorruptingCryStages"] = 1; count = count + 1 end
+        end
+
+        -- Zenith: 有此辅助时启用 FullMana（already handled below, but explicit)
+        if hasSkillIdFragment("Zenith") then
+            -- Zenith needs >90% mana, ensure conditionFullMana is true
+            if input["conditionFullMana"] == nil then input["conditionFullMana"] = true; count = count + 1 end
+        end
+
+        -- Frost Bomb: 默认 1 阶段
+        if skillNames["Frost Bomb"] or hasSkillIdFragment("FrostBomb") then
+            if input["frostBombStage"] == nil then input["frostBombStage"] = 1; count = count + 1 end
+        end
+
+        -- Comet
+        if skillNames["Comet"] or hasSkillIdFragment("Comet") then
+            if input["cometStage"] == nil then input["cometStage"] = 1; count = count + 1 end
+        end
+
+        -- Charge Infusion / Charge Regulation: 需要充能球才能触发 MORE 效果
+        if hasSkillIdFragment("ChargeRegulation") or skillNames["Charge Infusion"] or skillNames["Charge Regulation"] then
+            -- 读取构筑的充能球上限，默认设为最大值
+            local env = calcs.initEnv(build, "MAIN")
+            calcs.perform(env)
+            local o = env.player.output
+            if input["powerCharges"] == nil then
+                input["powerCharges"] = o.PowerChargesMax or 8; count = count + 1
+            end
+            if input["frenzyCharges"] == nil then
+                input["frenzyCharges"] = o.FrenzyChargesMax or 3; count = count + 1
+            end
+            if input["enduranceCharges"] == nil then
+                input["enduranceCharges"] = o.EnduranceChargesMax or 3; count = count + 1
+            end
+        end
+
+        -- === 3. 通用战斗条件 ===
+
+        -- Full Life: 战斗开始时满血（不与 LowLife 冲突时才启用）
+        if input["conditionFullLife"] == nil and input["conditionLowLife"] ~= true then
+            input["conditionFullLife"] = true; count = count + 1
+        end
+
+        -- Full Mana: 战斗开始时满蓝（用于 Zenith 等 "above 90% mana" 条件）
+        if input["conditionFullMana"] == nil then
+            input["conditionFullMana"] = true; count = count + 1
+        end
+
+        -- Cast Spell Recently: 法术构筑战斗中必然施法
+        if input["conditionCastSpellRecently"] == nil then
+            input["conditionCastSpellRecently"] = true; count = count + 1
+        end
+
+        -- Skills Used Recently: 默认 2（大部分构筑战斗中使用多种技能）
+        if input["multiplierSkillUsedRecently"] == nil then
+            input["multiplierSkillUsedRecently"] = 2; count = count + 1
+        end
+
+        -- Champion Intimidate: 默认启用
+        if input["conditionChampionIntimidate"] == nil then
+            input["conditionChampionIntimidate"] = true; count = count + 1
+        end
+
+        -- === 4. 重新运行 BuildModList ===
+        if count > 0 then
+            local configSettings = LoadModule("Modules/ConfigOptions")
+            if configSettings then
+                local modList = new("ModList")
+                local enemyModList = new("ModList")
+                local placeholder = build.configTab.placeholder
+
+                for _, varData in ipairs(configSettings) do
+                    if varData.apply then
+                        local varName = varData.var
+                        if varData.type == "check" then
+                            local val = input[varName]
+                            if val == nil and varData.defaultState then val = true end
+                            if val then pcall(varData.apply, true, modList, enemyModList, build) end
+                        elseif varData.type == "count" or varData.type == "integer" or varData.type == "countAllowZero" or varData.type == "float" then
+                            local val = input[varName]
+                            if val and (val ~= 0 or varData.type ~= "count") then
+                                pcall(varData.apply, val, modList, enemyModList, build)
+                            elseif placeholder[varName] and (placeholder[varName] ~= 0 or varData.type ~= "count") then
+                                pcall(varData.apply, placeholder[varName], modList, enemyModList, build)
+                            end
+                        elseif varData.type == "list" then
+                            local val = input[varName]
+                            if val == nil and varData.list and varData.defaultIndex then
+                                local defaultEntry = varData.list[varData.defaultIndex]
+                                if defaultEntry then val = defaultEntry.val end
+                            end
+                            if val then pcall(varData.apply, val, modList, enemyModList, build) end
+                        elseif varData.type == "text" then
+                            if input[varName] then pcall(varData.apply, input[varName], modList, enemyModList, build) end
+                        end
+                    end
+                end
+
+                build.configTab.modList = modList
+                build.configTab.enemyModList = enemyModList
+                build.buildFlag = true
+            end
+        end
+
+        -- 序列化 input 为 JSON（仅 boolean/number 类型值）
+        local inputParts = {}
+        for k, v in pairs(input) do
+            if type(v) == "boolean" then
+                inputParts[#inputParts+1] = '"' .. tostring(k) .. '":' .. tostring(v)
+            elseif type(v) == "number" then
+                inputParts[#inputParts+1] = '"' .. tostring(k) .. '":' .. tostring(v)
+            end
+        end
+        local inputStr = "{" .. table.concat(inputParts, ",") .. "}"
+
+        -- 序列化 skillIds 为 JSON
+        local idParts = {}
+        for id, _ in pairs(skillIds) do
+            idParts[#idParts+1] = '"' .. id .. '":true'
+        end
+        local idsStr = "{" .. table.concat(idParts, ",") .. "}"
+
+        return tostring(count) .. "|||" .. inputStr .. "|||" .. idsStr
+    '''
+
+    result = lua.execute(auto_lua)
+    try:
+        parts = str(result).split("|||", 2)
+        count = int(parts[0])
+        input_json = parts[1] if len(parts) > 1 else "{}"
+    except (ValueError, TypeError, IndexError):
+        count = 0
+        input_json = "{}"
+
+    # === 第5步：注入 YAML 配置的未实现效果 ===
+    injected = _inject_unimplemented_mods(lua, input_json)
+
+    total = count + injected
+    if total > 0:
+        logger.info("auto_configure_combat: 自动设置 %d 个战斗条件 + %d 个未实现效果",
+                    count, injected)
+    return total
+
+
 def load_all(lua, build_info: dict):
     """按正确顺序加载全部构筑数据。
 
@@ -882,6 +1321,9 @@ def load_all(lua, build_info: dict):
     item_count = load_items(lua, build_info)
     mod_fixes = postprocess_unparsed_mods(lua, build_info)
     config_count = load_config(lua, build_info)
+
+    # 自动配置战斗条件（技能专属 + 通用战斗状态）
+    auto_configure_combat(lua)
 
     # 恢复 mainSocketGroup
     msg = build_info['mainSocketGroup']

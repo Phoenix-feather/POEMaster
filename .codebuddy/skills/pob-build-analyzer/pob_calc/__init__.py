@@ -455,31 +455,92 @@ class POBCalculator:
         # 更新缓存的基线
         self._baseline = result["baseline"]
 
+        # 提取全局数据并保存 global.json
+        global_data = _whatif.extract_global_data(result)
+        skill_data = _whatif.strip_global_data(result)
+
         # 自动持久化到缓存目录
         if self._build_id:
             try:
                 actual_skill = result.get("main_skill", {}).get("name", skill_name or "unknown")
-                report_md = _whatif.format_report(result)
-                _cache.save_report(self._build_id, actual_skill, result, report_md)
+                report_md = _whatif.format_report(result, global_data=global_data)
+                _cache.save_report(self._build_id, actual_skill, skill_data, report_md)
+                _cache.save_global(self._build_id, global_data)
+
+                # 自动生成汇总 HTML 报告
+                from report_generator import generate_html_report
+                html = generate_html_report(self._build_id)
+                if html:
+                    _cache._cache_dir.mkdir(parents=True, exist_ok=True)
+                    html_path = _cache._cache_dir / "builds" / self._build_id / "report.html"
+                    html_path.write_text(html, encoding="utf-8")
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning("报告持久化失败: %s", e)
 
         return result
 
-    @staticmethod
-    def format_report(data: dict) -> str:
-        """将 full_analysis() 返回的数据格式化为 Markdown 表格报告。
+    def full_build_analysis(self, skills: list[str] = None,
+                            weapon_sets: list[int] = None,
+                            target_pct: float = 20.0,
+                            exploration_min_pct: float = 0.5) -> dict:
+        """多技能 × 多套装完整分析。
 
-        所有详细来源均以表格展示，提高可读性。
+        Phase 0: 全局分析（防御/资源/恢复/光环/珠宝，每套装一次）
+        Phase 1: 技能分析（灵敏度/天赋/DPS拆解，每技能×每套装）
+        Phase 2: 套装对比（如果有多套装）
+
+        Args:
+            skills: 技能名称列表。None = 自动发现
+            weapon_sets: 套装列表 [1] 或 [1,2]。None = 自动检测
+            target_pct: 灵敏度分析目标
+            exploration_min_pct: 天赋探索阈值
+
+        Returns:
+            {"weapon_sets", "ws1": {"global", "skills"}, "ws2": {...}, "comparison"}
+        """
+        from .full_analysis import full_build_analysis as _fba
+
+        result = _fba(
+            self._lua, self._calcs,
+            skills=skills,
+            weapon_sets=weapon_sets,
+            target_pct=target_pct,
+            exploration_min_pct=exploration_min_pct,
+        )
+
+        # 持久化
+        if self._build_id:
+            try:
+                _cache.save_full_build(
+                    self._build_id, result,
+                    format_fn=_whatif.format_report)
+
+                from report_generator import generate_html_report
+                html = generate_html_report(self._build_id)
+                if html:
+                    html_path = (_cache._cache_dir / "builds"
+                                 / self._build_id / "report.html")
+                    html_path.write_text(html, encoding="utf-8")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "full_build_analysis 持久化失败: %s", e)
+
+        return result
+
+    @staticmethod
+    def format_report(data: dict, global_data: dict = None) -> str:
+        """将 full_analysis() 返回的数据格式化为 Markdown 表格报告。
 
         Args:
             data: full_analysis() 的返回值
+            global_data: extract_global_data() 的返回值（可选）
 
         Returns:
-            完整的 Markdown 报告字符串
+            完整的 Markdown 格式报告字符串
         """
-        return _whatif.format_report(data)
+        return _whatif.format_report(data, global_data=global_data)
 
     @staticmethod
     def get_report(skill_name: str, build_id: str = None,
@@ -518,6 +579,19 @@ class POBCalculator:
         path = _cache.get_report_path(bid, skill_name, fmt)
         return str(path) if path else None
 
+    def get_html_report_path(self, build_id: str = None) -> str | None:
+        """获取汇总 HTML 报告路径（full_analysis 自动生成）。
+
+        Returns:
+            report.html 的绝对路径，不存在则返回 None
+        """
+        bid = build_id or self._build_id or _cache.get_current_id()
+        if not bid:
+            return None
+        from pathlib import Path
+        p = _cache._cache_dir / "builds" / bid / "report.html"
+        return str(p) if p.exists() else None
+
     def run_and_save(self, target_pct: float = 20.0, skill_name: str = None
                      ) -> dict:
         """运行完整分析并保存报告到文件。
@@ -533,7 +607,8 @@ class POBCalculator:
             {"data": dict, "report": str, "path": str}
         """
         data = self.full_analysis(target_pct=target_pct, skill_name=skill_name)
-        report = self.format_report(data)
+        global_data = _whatif.extract_global_data(data)
+        report = self.format_report(data, global_data=global_data)
 
         skill = data.get("main_skill", {}).get("name", "unknown")
         bid = self._build_id or "unknown"

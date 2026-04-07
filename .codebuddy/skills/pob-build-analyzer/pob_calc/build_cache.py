@@ -136,13 +136,19 @@ class BuildCache:
         Returns:
             XML 文本
         """
-        xml_file = self._builds_dir / build_id / "build.xml"
+        build_dir = self._builds_dir / build_id
+        xml_file = build_dir / "build.xml"
         if not xml_file.exists():
             raise FileNotFoundError(f"构筑不存在: {build_id}")
 
+        # 确保 meta.json 存在（从 build.xml 生成）
+        meta_file = build_dir / "meta.json"
+        if not meta_file.exists():
+            self._ensure_meta(build_id, xml_file)
+
         # 更新 last_used
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        self._update_last_used(self._builds_dir / build_id, now)
+        self._update_last_used(build_dir, now)
 
         return xml_file.read_text(encoding="utf-8")
 
@@ -277,7 +283,7 @@ class BuildCache:
         # 写 analysis JSON
         json_path = build_dir / f"analysis_{slug}.json"
         json_path.write_text(
-            json.dumps(analysis_data, ensure_ascii=False, indent=2),
+            json.dumps(analysis_data, ensure_ascii=True, indent=2, default=str),
             encoding="utf-8",
         )
 
@@ -286,6 +292,98 @@ class BuildCache:
         md_path.write_text(report_md, encoding="utf-8")
 
         logger.info("报告已保存: %s → %s, %s", build_id, json_path.name, md_path.name)
+
+    def save_global(self, build_id: str, global_data: dict):
+        """保存全局数据到 global.json。"""
+        build_dir = self._builds_dir / build_id
+        if not build_dir.exists():
+            raise FileNotFoundError(f"构筑不存在: {build_id}")
+        path = build_dir / "global.json"
+        path.write_text(
+            json.dumps(global_data, ensure_ascii=True, indent=2, default=str),
+            encoding="utf-8",
+        )
+        logger.info("全局数据已保存: %s → %s", build_id, path.name)
+
+    def save_ws_global(self, build_id: str, ws: int, global_data: dict):
+        """保存套装级全局数据到 ws{N}/global.json。"""
+        ws_dir = self._builds_dir / build_id / f"ws{ws}"
+        ws_dir.mkdir(parents=True, exist_ok=True)
+        path = ws_dir / "global.json"
+        path.write_text(
+            json.dumps(global_data, ensure_ascii=True, indent=2, default=str),
+            encoding="utf-8",
+        )
+        logger.info("套装 %d 全局数据已保存: %s", ws, path.name)
+
+    def save_ws_skill(self, build_id: str, ws: int, skill_name: str,
+                      analysis_data: dict, report_md: str):
+        """保存套装级技能数据到 ws{N}/skills/{skill}.json + .md。"""
+        skills_dir = self._builds_dir / build_id / f"ws{ws}" / "skills"
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        slug = self._normalize_skill_name(skill_name)
+        json_path = skills_dir / f"{slug}.json"
+        json_path.write_text(
+            json.dumps(analysis_data, ensure_ascii=True, indent=2, default=str),
+            encoding="utf-8",
+        )
+        md_path = skills_dir / f"{slug}.md"
+        md_path.write_text(report_md, encoding="utf-8")
+        logger.info("套装 %d 技能报告已保存: %s", ws, slug)
+
+    def save_comparison(self, build_id: str, comparison_data: dict):
+        """保存套装对比数据到 comparison.json。"""
+        build_dir = self._builds_dir / build_id
+        if not build_dir.exists():
+            raise FileNotFoundError(f"构筑不存在: {build_id}")
+        path = build_dir / "comparison.json"
+        path.write_text(
+            json.dumps(comparison_data, ensure_ascii=True, indent=2, default=str),
+            encoding="utf-8",
+        )
+        logger.info("套装对比已保存: %s", path.name)
+
+    def save_full_build(self, build_id: str, result: dict,
+                        format_fn=None):
+        """保存 full_build_analysis 的完整结果。
+
+        Args:
+            build_id: 构筑 ID
+            result: full_build_analysis() 的返回值
+            format_fn: 报告格式化函数（可选）
+        """
+        weapon_sets = result.get("weapon_sets", [1])
+        ws1_global = None
+        for ws in weapon_sets:
+            ws_key = f"ws{ws}"
+            ws_data = result.get(ws_key, {})
+            if not ws_data:
+                continue
+            global_data = ws_data.get("global", {})
+            if ws == 1:
+                ws1_global = global_data
+            self.save_ws_global(build_id, ws, global_data)
+            for skill_name, skill_data in ws_data.get("skills", {}).items():
+                report_md = ""
+                if format_fn:
+                    try:
+                        report_md = format_fn(skill_data, global_data=global_data)
+                    except Exception as e:
+                        logger.warning("格式化报告失败 (%s ws%d): %s",
+                                       skill_name, ws, e)
+                self.save_ws_skill(build_id, ws, skill_name,
+                                   skill_data, report_md)
+                # 向后兼容：同时写到旧的扁平路径（只用 WS1 数据）
+                if ws == 1:
+                    self.save_report(build_id, skill_name, skill_data, report_md)
+        # 向后兼容：扁平 global.json 使用 WS1 数据
+        if ws1_global:
+            self.save_global(build_id, ws1_global)
+
+        # 保存对比
+        comparison = result.get("comparison")
+        if comparison:
+            self.save_comparison(build_id, comparison)
 
     def get_report_path(self, build_id: str, skill_name: str,
                         fmt: str = "md") -> Path | None:
@@ -384,6 +482,59 @@ class BuildCache:
             "main_socket_group": build_info.get("mainSocketGroup", 1),
             "skills": skills,
         }
+
+    def _ensure_meta(self, build_id: str, xml_file: Path):
+        """从 build.xml 提取元信息并生成 meta.json（如果不存在）。"""
+        import xml.etree.ElementTree as ET
+
+        try:
+            tree = ET.parse(xml_file)
+            root = tree.getroot()
+        except ET.ParseError:
+            logger.warning("无法解析 build.xml: %s", xml_file)
+            return
+
+        # 提取基本信息
+        build_elem = root.find("Build")
+        class_name = build_elem.get("className", "") if build_elem is not None else ""
+        ascendancy = build_elem.get("ascendClassName", "") if build_elem is not None else ""
+        level = int(build_elem.get("level", 0)) if build_elem is not None else 0
+        main_socket_group = int(build_elem.get("mainSocketGroup", 1)) if build_elem is not None else 1
+
+        # 提取技能组
+        skill_groups = []
+        skills_elem = root.find("Skills")
+        if skills_elem is not None:
+            skill_set = skills_elem.find("SkillSet")
+            if skill_set is not None:
+                for i, skill in enumerate(skill_set.findall("Skill"), 1):
+                    gems = []
+                    for gem in skill.findall("Gem"):
+                        name_spec = gem.get("nameSpec", gem.get("skillId", "?"))
+                        if name_spec:
+                            gems.append(name_spec)
+                    if gems:
+                        skill_groups.append({"group": i, "gems": gems})
+
+        # 生成 meta
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        xml_hash = build_id.rsplit("_", 1)[-1] if "_" in build_id else ""
+        meta = {
+            "build_id": build_id,
+            "class_name": class_name,
+            "ascendancy": ascendancy,
+            "level": level,
+            "hash": xml_hash,
+            "created_at": now,
+            "last_used": now,
+            "main_socket_group": main_socket_group,
+            "skills": skill_groups,
+        }
+
+        # 写入
+        meta_file = xml_file.parent / "meta.json"
+        meta_file.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("已从 build.xml 生成 meta.json: %s", build_id)
 
     def _set_current(self, build_id: str):
         """写入 current.txt。"""

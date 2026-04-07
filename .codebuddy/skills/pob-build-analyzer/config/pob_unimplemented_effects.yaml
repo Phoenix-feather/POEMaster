@@ -103,7 +103,39 @@ skills:
   # 注意：大部分 support_*_damage_+%_final 类型的 stat
   # POB 已通过 ModCache.lua 正确处理，无需手动注入
   # 仅当确认某辅助效果缺失时才添加
-  
+
+  "Zenith I":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportZenithPlayer"
+    skill_type: "support"
+    condition: "法力值 > 90% 最大法力"
+    require_build_condition: "FullMana"
+    require_flag: "Spell"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "MORE"
+        value: 30
+        source: "Zenith_I_sim"
+        description: "法力 > 90% 时 +30% MORE 伤害"
+
+  "Zenith II":
+    detect:
+      type: "skill_id"
+      skill_id: "SupportZenithPlayerTwo"
+    skill_type: "support"
+    condition: "法力值 > 90% 最大法力"
+    require_build_condition: "FullMana"
+    require_flag: "Spell"
+    effects:
+      - type: "mod"
+        mod_name: "Damage"
+        mod_type: "MORE"
+        value: 30
+        source: "Zenith_II_sim"
+        description: "法力 > 90% 时 +30% MORE 伤害"
+
   "Brutality Support":
     detect:
       type: "gem_name"
@@ -163,6 +195,35 @@ skills:
     # 特殊处理：需要在 what_if.py 中动态解析
     stat_skill_id: "ElementalConfluxPlayer"
     expect_factor: 0.333  # 期望 = MORE * 1/3
+
+  # ===================================================================
+  # 充能球驱动技能
+  # ===================================================================
+
+  "Charge Infusion":
+    detect:
+      type: "skill_id"
+      skill_id: "ChargeRegulationPlayer"
+    skill_type: "aura"
+    condition: "有充能球时触发（auto_configure_combat 自动设置）"
+    stat_skill_id: "ChargeRegulationPlayer"
+    effects:
+      - type: "mod"
+        mod_name: "CritChance"
+        mod_type: "MORE"
+        value: null  # 动态从 skillData.statSets.levels 读取（Lv21=26%）
+        level_index: 2  # statSets.levels[Lv][2] = CritChance MORE
+        source: "CI_crit_sim"
+        description: "有 PowerCharge 时 +26% MORE 暴击率"
+      - type: "mod"
+        mod_name: "Speed"
+        mod_type: "INC"
+        value: null  # 动态读取（Lv21=25%）
+        level_index: 1  # statSets.levels[Lv][1] = Speed INC
+        source: "CI_speed_sim"
+        description: "有 FrenzyCharge 时 +25% INC 施法/攻击速度"
+    # statSets.levels[Lv] = {Speed_INC, CritChance_MORE, Defences_MORE}
+    # Lv21: {25, 26, 20}
 
   # ===================================================================
   # 精魄辅助（skill_type: spirit_support）
@@ -340,7 +401,7 @@ skills:
   # - support_inhibitor_damage_+%_final_per_charge_type_or_infusion_type
   # - support_mobility_damage_+%_final
   # - support_pierce_damage_+%_final_per_pierced_target
-  # - support_spell_damage_+%_final_while_above_90%_maximum_mana
+  # - support_spell_damage_+%_final_while_above_90%_maximum_mana (已添加: Zenith I/II)
   # - support_sticky_grenade_damage_+%_final
   # - support_stunning_magic_grant_spell_damage_+%_buff_on_heavy_stunning
   # - support_unseen_critical_damage_multiplier_+%_final_vs_blinded_enemies

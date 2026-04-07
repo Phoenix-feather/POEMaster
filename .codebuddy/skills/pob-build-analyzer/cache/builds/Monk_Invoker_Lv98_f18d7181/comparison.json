@@ -1,0 +1,29 @@
+{
+  "defence": {
+    "ehp_ws1": 9591.2782127835,
+    "ehp_ws2": 9834.4492810162,
+    "delta_pct": 2.5
+  },
+  "resource": {
+    "spirit_ws1": -125.0,
+    "spirit_ws2": -278.0
+  },
+  "skills": {
+    "Comet": {
+      "dps_ws1": 117441.37730461,
+      "dps_ws2": 25526.648245019,
+      "delta_pct": -78.3
+    },
+    "Spark": {
+      "dps_ws1": 79615.081999787,
+      "dps_ws2": 21205.584361711,
+      "delta_pct": -73.4
+    }
+  },
+  "ws1_only_skills": [],
+  "ws2_only_skills": [],
+  "shared_skills": [
+    "Comet",
+    "Spark"
+  ]
+}
