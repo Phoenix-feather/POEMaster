@@ -315,23 +315,28 @@ class POBCalculator:
 
     def passive_node_exploration(self, dps_stat: str = "TotalDPS",
                                  ehp_stat: str = "TotalEHP",
-                                 min_dps_pct: float = 0.5) -> list[dict]:
-        """天赋探索：逐个添加未分配的 Notable/Keystone 天赋，评估 DPS 和 EHP 收益。
+                                 min_dps_pct: float = 0.5,
+                                 include_normal: bool = True) -> list[dict]:
+        """天赋探索：逐个添加未分配天赋节点，评估 DPS 和 EHP 收益。
 
         使用 POB 原生 override.addNodes 机制，不修改 build 对象。
         注意：绕过了路径连通性检查，部分节点实际游戏中可能无法直接点出。
+
+        优化：modKey 缓存（相同修饰语的节点只计算一次）+ Normal 小天赋覆盖。
 
         Args:
             dps_stat: DPS 指标名（默认 TotalDPS）
             ehp_stat: EHP 指标名（默认 TotalEHP）
             min_dps_pct: 最小变化百分比阈值（低于此不返回，默认 0.5%）
+            include_normal: 是否包含 Normal 小天赋（默认 True）
 
         Returns:
             按 DPS 增益降序排列的列表，每项包含:
-            - id, name, type (Notable/Keystone)
+            - id, name, type (Notable/Keystone/Normal)
             - dps_before, dps_after, dps_delta, dps_pct
             - ehp_before, ehp_after, ehp_delta, ehp_pct
             - category: "进攻" / "防御" / "混合" / "无效"
+            - mod_key: 节点修饰语指纹
         """
         return _whatif.passive_node_exploration(
             self._lua, self._calcs,
@@ -339,6 +344,7 @@ class POBCalculator:
             dps_stat=dps_stat,
             ehp_stat=ehp_stat,
             min_dps_pct=min_dps_pct,
+            include_normal=include_normal,
         )
 
     def diagnose_jewels(self, dps_stat: str = "TotalDPS") -> list[dict]:

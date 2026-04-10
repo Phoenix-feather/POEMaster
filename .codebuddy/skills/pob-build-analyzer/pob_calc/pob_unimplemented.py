@@ -84,6 +84,12 @@ def detect_unimplemented_skills(lua, build=None) -> list[dict]:
     # 匹配配置中的技能
     detected = []
     for skill_name, skill_config in config["skills"].items():
+        # 跳过精魄辅助：已装备的精魄辅助 POB 会原生计算其效果，
+        # 不需要在光环分析中重复注入。精魄辅助的模拟仅用于推荐测试
+        # （_test_add_spirit_support 中对未装备辅助的效果预估）。
+        if skill_config.get("skill_type") == "spirit_support":
+            continue
+
         detect = skill_config.get("detect", {})
         detect_type = detect.get("type", "gem_name")
         
@@ -99,19 +105,167 @@ def detect_unimplemented_skills(lua, build=None) -> list[dict]:
         if matched:
             effects = skill_config.get("effects", [])
             if effects:
+                # 解析动态值
+                resolved_effects = _resolve_dynamic_values(
+                    lua, effects, skill_config, build_var)
+                
                 asc_node = skill_config.get("ascendancy_node", {})
-                desc = effects[0].get("description", skill_name) if effects else skill_name
+                desc = resolved_effects[0].get("description", skill_name) if resolved_effects else skill_name
                 detected.append({
                     "skill_name": skill_name,
-                    "effects": effects,
+                    "effects": resolved_effects,
                     "asc_pattern": asc_node.get("pattern", ""),
                     "description": desc,
                     "stat_skill_id": skill_config.get("stat_skill_id", ""),
                     "expect_factor": skill_config.get("expect_factor", 1.0),
                 })
-                logger.info("检测到 POB 未实现技能: %s (%d 个效果)", skill_name, len(effects))
+                logger.info("检测到 POB 未实现技能: %s (%d 个效果)", skill_name, len(resolved_effects))
     
     return detected
+
+
+def _resolve_dynamic_values(lua, effects: list[dict], skill_config: dict,
+                            build_var: str = "_spike_build") -> list[dict]:
+    """解析效果中的动态值（如 charge_based、stack_based）。
+
+    对于 value=null 的效果，根据 dynamic_value 配置从构筑数据中计算实际值。
+
+    Args:
+        lua: LuaRuntime
+        effects: 原始效果列表
+        skill_config: 技能配置（含 dynamic_value）
+        build_var: Lua build 变量名
+
+    Returns:
+        解析后的效果列表（value 已填充）
+    """
+    dynamic_cfg = skill_config.get("dynamic_value")
+    if not dynamic_cfg:
+        # 无动态配置，直接返回（value=null 的效果保持不变）
+        return effects
+
+    resolved = []
+    for eff in effects:
+        eff = dict(eff)  # 浅拷贝
+        if eff.get("value") is not None:
+            resolved.append(eff)
+            continue
+
+        dyn_type = dynamic_cfg.get("type", "")
+
+        if dyn_type == "charge_based":
+            # 从构筑 output 读取 charge 数量
+            charge_stat = dynamic_cfg.get("charge_stat", "PowerChargesMax")
+            per_charge = dynamic_cfg.get("per_charge_value", 0)
+            quality_per = dynamic_cfg.get("quality_per_charge", 0)
+
+            # 读取构筑的 charge 数量和宝石品质
+            charge_count, quality = _read_charge_and_quality(
+                lua, skill_config, charge_stat, build_var)
+
+            if charge_count > 0:
+                value = charge_count * (per_charge + quality * quality_per)
+                eff["value"] = round(value, 2)
+                eff["description"] = (
+                    f"{charge_count:.0f} × ({per_charge}%"
+                    f"{f' + {quality:.0f}×{quality_per}%' if quality_per and quality else ''})"
+                    f" = {value:.0f}% MORE 元素伤害（{charge_stat}）")
+                logger.info("动态值解析: %s -> %s = %.1f",
+                           skill_config.get("detect", {}).get("skill_id", "?"),
+                           charge_stat, value)
+            else:
+                eff["value"] = 0
+                eff["description"] = f"无 {charge_stat}，效果为 0"
+
+        elif dyn_type == "stack_based":
+            # TODO: 实现层数型动态值（如 Demon Form）
+            pass
+
+        resolved.append(eff)
+
+    return resolved
+
+
+def _read_charge_and_quality(lua, skill_config: dict, charge_stat: str,
+                             build_var: str = "_spike_build") -> tuple:
+    """从构筑中读取 charge 数量和宝石品质。
+
+    对于装备附带的技能（fromItem/Grants Skill），POB 硬编码 quality=0，
+    不会将武器品质传递给 Grants Skill。本函数补偿这个 POB bug：
+    如果 gem.quality=0，从武器物品读取品质。
+
+    补偿策略：遍历所有武器 slot（Weapon 1, Weapon 2, Weapon 1 Swap, Weapon 2 Swap），
+    检查其物品的 grantedSkills 是否包含目标 skillId。
+
+    Returns:
+        (charge_count, quality)
+    """
+    skill_id = skill_config.get("detect", {}).get("skill_id", "")
+
+    # 先计算一次 baseline 获取 output，同时读取 gem 品质
+    # 使用 .format() 避免 f-string 中 Lua 大括号转义问题
+    lua_code = """
+        local build = {build_var}
+        local env = calcs.initEnv(build, "MAIN")
+        calcs.perform(env)
+        local charges = env.player.output.{charge_stat} or 0
+        local gemQuality = 0
+        local weaponQuality = 0
+
+        -- 查找该技能的 gem quality
+        for _, g in ipairs(build.skillsTab.socketGroupList) do
+            for _, gem in ipairs(g.gemList or {{}}) do
+                if gem.skillId == "{skill_id}" then
+                    gemQuality = gem.quality or 0
+                    break
+                end
+            end
+            if gemQuality ~= 0 then break end
+        end
+
+        -- POB bug 补偿: gem.quality=0 时，从武器物品读取品质
+        if gemQuality == 0 then
+            local weaponSlotNames = {{"Weapon 1", "Weapon 2", "Weapon 1 Swap", "Weapon 2 Swap"}}
+            for _, sn in ipairs(weaponSlotNames) do
+                local slot = build.itemsTab.slots[sn]
+                if slot then
+                    local it = build.itemsTab.items[slot.selItemId]
+                    if it and it.grantedSkills then
+                        for _, gs in ipairs(it.grantedSkills) do
+                            if gs.skillId == "{skill_id}" then
+                                weaponQuality = it.quality or 0
+                                break
+                            end
+                        end
+                    end
+                end
+                if weaponQuality > 0 then break end
+            end
+        end
+
+        return tostring(charges) .. "|" .. tostring(gemQuality) .. "|" .. tostring(weaponQuality)
+    """.format(build_var=build_var, charge_stat=charge_stat, skill_id=skill_id)
+
+    charge_result = lua.execute(lua_code)
+
+    if charge_result and str(charge_result) != "nil":
+        parts = str(charge_result).split("|")
+        try:
+            charge_count = float(parts[0])
+            gem_quality = float(parts[1]) if len(parts) > 1 else 0
+            weapon_quality = float(parts[2]) if len(parts) > 2 else 0
+
+            # POB bug 补偿：gem quality=0 时，使用武器品质
+            if gem_quality == 0 and weapon_quality > 0:
+                logger.info("POB bug 补偿: %s gem.quality=0, 使用武器品质=%.0f",
+                           skill_id, weapon_quality)
+                gem_quality = weapon_quality
+
+            return charge_count, gem_quality
+        except (ValueError, IndexError):
+            pass
+
+    return 0, 0
 
 
 def get_effects_for_skill(skill_name: str) -> list[dict]:

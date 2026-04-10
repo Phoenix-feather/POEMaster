@@ -61,6 +61,9 @@ def _classify_source(source: str, jewel_node_ids: set = None) -> str:
     """
     if not source:
         return "Other"
+    # sim mods（我们模拟注入的 POB 未实现效果）
+    if "sim" in source.lower():
+        return "Sim"
     prefix = source.split(":")[0] if ":" in source else source
     if prefix == "Tree" and jewel_node_ids:
         node_id = source.split(":")[1] if ":" in source else ""
@@ -75,6 +78,10 @@ def _source_label_fallback(source: str) -> str:
     """当 Lua 端未返回 label 时的 fallback 转换。"""
     if not source:
         return "未知"
+    if "sim" in source.lower():
+        # sim mods 的人类可读名称
+        clean = source.replace("_sim", "").replace("_", " ")
+        return f"⚠ {clean} (模拟)"
     if source == "Base":
         return "基础值"
     if source == "Config":
@@ -440,30 +447,55 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
 
         -- === 4. Speed ===
         if (output.Speed or 0) > 0 then
-            -- 基础速度（非 modDB 中的值）
             local baseSpeed = 0
             local baseSpeedLabel = "Base"
-            -- 判断是否攻击技能：ModFlag.Attack = 0x01
             local isAttack = cfg.flags and (cfg.flags & 0x01) ~= 0
+            local isTrigger = false
+            local baseCastTime = 0
             if isAttack and damageSource and damageSource.AttackRate then
                 baseSpeed = damageSource.AttackRate
-                baseSpeedLabel = "Weapon Attack Rate"
+                baseCastTime = 1 / baseSpeed
+                baseSpeedLabel = "武器攻击频率"
             elseif ms.skillData.castTimeOverride then
-                baseSpeed = 1 / ms.skillData.castTimeOverride
-                baseSpeedLabel = "Cast Time Override"
-            elseif ms.skillData.castTime then
-                baseSpeed = 1 / ms.skillData.castTime
-                baseSpeedLabel = "Base Cast Rate"
+                baseCastTime = ms.skillData.castTimeOverride
+                baseSpeed = 1 / baseCastTime
+                baseSpeedLabel = "施法时间(Override)"
+            elseif ms.activeEffect.grantedEffect.castTime
+                   and ms.activeEffect.grantedEffect.castTime > 0
+                   and not ms.skillData.triggered then
+                baseCastTime = ms.activeEffect.grantedEffect.castTime
+                baseSpeed = 1 / baseCastTime
+                baseSpeedLabel = "基础施法频率 (1/" .. baseCastTime .. "s)"
+            elseif ms.skillData.triggerRate then
+                baseSpeed = ms.skillData.triggerRate
+                isTrigger = true
+                baseSpeedLabel = "触发频率"
+            elseif ms.skillData.triggerTime then
+                local cdRec = 1 + skillModList:Sum("INC", cfg, "CooldownRecovery") / 100
+                local linked = skillModList:Sum("BASE", cfg, "ActiveSkillsLinkedToTrigger")
+                local trigTime = ms.skillData.triggerTime / cdRec
+                if linked > 0 then trigTime = trigTime * linked end
+                baseSpeed = 1 / trigTime
+                isTrigger = true
+                baseSpeedLabel = "触发频率 (cd=" .. string.format("%.3f", ms.skillData.triggerTime) .. "s)"
             else
-                -- 触发技能等：castTime 不可用，使用 output.Speed（已含 INC/MORE）
                 baseSpeed = output.Speed
-                baseSpeedLabel = "Trigger Rate (computed)"
+                isTrigger = true
+                baseSpeedLabel = "最终速度(POB计算)"
             end
-            lines[#lines+1] = "SPEED_BASE|Speed|" .. tostring(baseSpeed) .. "|" .. baseSpeedLabel
+            -- 输出 base
+            lines[#lines+1] = "SPEED_BASE|Speed|" .. string.format("%.4f", baseSpeed) .. "|" .. baseSpeedLabel
+            -- INC
             local sInc = skillModList:Sum("INC", cfg, "Speed")
             lines[#lines+1] = "SPEED_INC|Speed|" .. tostring(sInc) .. "|" .. tabStr("INC", "Speed")
+            -- MORE
             local sMore = skillModList:More(cfg, "Speed")
             lines[#lines+1] = "SPEED_MORE|Speed|" .. tostring(sMore) .. "|" .. tabStr("MORE", "Speed")
+            -- 额外信息：触发标记、最终速度、ActionSpeedMod
+            lines[#lines+1] = "SPEED_META|" .. tostring(isTrigger) .. "|" .. tostring(output.Speed)
+                .. "|" .. tostring(output.ActionSpeedMod or 1)
+                .. "|" .. tostring(baseCastTime)
+                .. "|" .. (output.Cooldown and tostring(output.Cooldown) or "0")
         end
 
         -- === 5. CritChance ===
@@ -681,6 +713,10 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
     if not result:
         return _empty_breakdown(baseline)
 
+    # 速度构成元数据（由 SPEED_META 行填充）
+    speed_meta = {"is_trigger": False, "final_speed": 0, "action_speed": 1,
+                  "base_cast_time": 0, "cooldown": 0}
+
     raw = str(result).replace('\r', '')
     for line in raw.split('\n'):
         if not line.strip():
@@ -707,6 +743,28 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             # 格式: SPEED_BASE|Speed|baseSpeed|label
             parts = line.split('|', 3)
             _parse_speed_base(parts, formula_items)
+
+        elif section == "SPEED_META":
+            # 格式: SPEED_META|isTrigger|finalSpeed|actionSpeedMod|baseCastTime|cooldown
+            meta_parts = line.split('|')
+            if len(meta_parts) >= 6:
+                speed_meta["is_trigger"] = meta_parts[1] == "true"
+                try:
+                    speed_meta["final_speed"] = float(meta_parts[2])
+                except ValueError:
+                    pass
+                try:
+                    speed_meta["action_speed"] = float(meta_parts[3])
+                except ValueError:
+                    pass
+                try:
+                    speed_meta["base_cast_time"] = float(meta_parts[4])
+                except ValueError:
+                    pass
+                try:
+                    speed_meta["cooldown"] = float(meta_parts[5])
+                except ValueError:
+                    pass
 
         elif section in ("DMG_INC_BY_MOD", "DMG_MORE_BY_MOD",
                          "SPEED_INC", "SPEED_MORE",
@@ -838,7 +896,7 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         fi.pop("_no_sources_ok", None)
 
     # === 计算 DPS 乘区流程（供报告渲染使用） ===
-    flow_stages = _compute_dps_flow_stages(formula_items, baseline)
+    flow_stages = _compute_dps_flow_stages(formula_items, baseline, speed_meta)
 
     return {
         "total_dps": baseline.get("TotalDPS", 0),
@@ -852,7 +910,8 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
     }
 
 
-def _compute_dps_flow_stages(formula_items: list, baseline: dict) -> list:
+def _compute_dps_flow_stages(formula_items: list, baseline: dict,
+                             speed_meta: dict = None) -> list:
     """从 formula_items 生成展示用的 DPS 乘区分组。
 
     注意：不手动推导最终 DPS，而是展示各乘区的数值贡献。
@@ -900,9 +959,15 @@ def _compute_dps_flow_stages(formula_items: list, baseline: dict) -> list:
     crit_multi_inc_val = sum(it["total_value"] for it in crit if it["key"] == "CritMultiplier_INC")
     # 暴击率 = base% × (1 + INC/100) × MORE，上限 100%
     cc = min(crit_base_val * (1 + crit_inc_val / 100) * crit_more_val, 100) / 100
-    # 暴击倍率 = (100 + CritMultiplier_BASE + CritMultiplier_INC) / 100
+    # 暴击倍率：POB 公式 = 1 + (BASE/100) × (1 + INC/100) × MORE
+    # BASE=100 表示基础额外伤害 100%（即暴击打 2× 伤害）
     cm_base = sum(it["total_value"] for it in crit if it["key"] == "CritMultiplier_BASE")
-    cm = (cm_base + crit_multi_inc_val) / 100
+    cm_more = 1.0
+    for it in crit:
+        if it["key"] == "CritMultiplier_MORE":
+            cm_more *= it["total_value"]
+    extra_damage = (cm_base / 100) * (1 + crit_multi_inc_val / 100) * cm_more
+    cm = 1 + extra_damage
     # 暴击效应 = 1 - cc + cc × cm（非暴击概率 × 1 + 暴击概率 × 暴击倍率）
     crit_eff = 1 - cc + cc * cm
 
@@ -950,13 +1015,44 @@ def _compute_dps_flow_stages(formula_items: list, baseline: dict) -> list:
         _add("敌人抗性",
          ", ".join(f"{it['formula_name']} ×{it['total_value']:.2f}" for it in eff),
          "已内含在 AvgHit 中", "#e05555", eff)
-    speed_label = "施法速度" if baseline.get("Speed_INC", 0) >= 0 and not any(
-        it["key"] == "Speed_BASE" and "attack" in it.get("formula_name", "").lower()
-        for it in speed_items) else "攻击速度"
-    _add(speed_label, f"{spd:.2f}/s",
-         f"\u00d7{spd:.2f}", "#44bbcc", speed_items)
-    _add("Total DPS", f"{base_avg:,.0f} \u00d7 {spd:.2f} = {total_dps:,.0f}",
-         "POB \u5b9e\u9645\u8f93\u51fa", "#d4a843", [])
+
+    # Speed 标签和构成说明
+    sm = speed_meta or {}
+    is_trigger = sm.get("is_trigger", False)
+    speed_inc_val = sum(it["total_value"] for it in speed_items if it["key"] == "Speed_INC")
+    speed_more_val = 1.0
+    for it in speed_items:
+        if it["key"] == "Speed_MORE":
+            try:
+                speed_more_val = float(it["total_value"])
+            except (ValueError, TypeError):
+                pass
+    base_ct = sm.get("base_cast_time", 0)
+    cd = sm.get("cooldown", 0)
+    trigger_note = " (触发)" if is_trigger else ""
+    speed_label = f"施法速度{trigger_note}"
+
+    # 构成公式
+    formula_parts = []
+    if is_trigger:
+        formula_parts.append(f"= {spd:.2f}/s (由触发链路决定)")
+        if speed_inc_val:
+            formula_parts.append(f"构筑 Speed INC +{speed_inc_val:.0f}% (已内含)")
+        if cd > 0:
+            formula_parts.append(f"冷却 {cd:.3f}s")
+    else:
+        if base_ct > 0:
+            base_rate = 1 / base_ct
+            formula_parts.append(f"基础 1/{base_ct:.2f}s = {base_rate:.2f}/s")
+        if speed_inc_val:
+            formula_parts.append(f"× (1 + {speed_inc_val:.0f}%)")
+        if speed_more_val != 1:
+            formula_parts.append(f"× {speed_more_val:.2f}")
+        formula_parts.append(f"= {spd:.2f}/s")
+    speed_formula = "  ".join(formula_parts)
+    _add(speed_label, speed_formula, f"×{spd:.2f}", "#44bbcc", speed_items)
+    _add("Total DPS", f"{base_avg:,.0f} × {spd:.2f} = {total_dps:,.0f}",
+         "POB 实际输出", "#d4a843", [])
 
     return stages
 
@@ -1111,11 +1207,13 @@ def _parse_tabulate_item(parts: list, mod_type: str, formula_items: list,
                     val = float(p[2])
                 except ValueError:
                     continue
-                label = p[3] if len(p) > 3 else _source_label_fallback(p[1])
+                category = _classify_source(p[1], jewel_node_ids)
+                label = (_source_label_fallback(p[1]) if category == "Sim"
+                         else (p[3] if len(p) > 3 else _source_label_fallback(p[1])))
                 sources.append({
                     "source": p[1],
                     "label": label,
-                    "category": _classify_source(p[1], jewel_node_ids),
+                    "category": category,
                     "value": val,
                     "mod_name": p[0],
                 })
@@ -1198,11 +1296,13 @@ def _parse_crit_base(parts: list, formula_items: list,
                     val = float(p[2])
                 except ValueError:
                     continue
-                label = p[3] if len(p) > 3 else _source_label_fallback(p[1])
+                category = _classify_source(p[1], jewel_node_ids)
+                label = (_source_label_fallback(p[1]) if category == "Sim"
+                         else (p[3] if len(p) > 3 else _source_label_fallback(p[1])))
                 sources.append({
                     "source": p[1],
                     "label": label,
-                    "category": _classify_source(p[1], jewel_node_ids),
+                    "category": category,
                     "value": val,
                     "mod_name": p[0],
                 })
@@ -1240,6 +1340,7 @@ def _parse_speed_base(parts: list, formula_items: list):
         return
 
     label = parts[3] if len(parts) > 3 else "Base"
+    base_speed = round(base_speed, 2)
     sources = [{
         "source": "gem",
         "label": label,
@@ -1250,7 +1351,7 @@ def _parse_speed_base(parts: list, formula_items: list):
 
     formula_items.append({
         "key": "Speed_BASE",
-        "formula_name": "Speed Base",
+        "formula_name": "施法速度",
         "total_value": base_speed,
         "display_value": f"{base_speed:.2f}/s",
         "category_summary": {"Skill": base_speed},
@@ -1296,11 +1397,13 @@ def _parse_conv_gain(parts: list, formula_items: list,
                         val = float(p[2])
                     except ValueError:
                         continue
-                    label = p[3] if len(p) > 3 else _source_label_fallback(p[1])
+                    category = _classify_source(p[1], jewel_node_ids)
+                    label = (_source_label_fallback(p[1]) if category == "Sim"
+                             else (p[3] if len(p) > 3 else _source_label_fallback(p[1])))
                     sources.append({
                         "source": p[1],
                         "label": label,
-                        "category": _classify_source(p[1], jewel_node_ids),
+                        "category": category,
                         "value": val,
                         "mod_name": p[0],
                         "detail": f"Gain as {to_type}",

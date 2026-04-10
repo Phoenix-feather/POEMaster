@@ -1,0 +1,106 @@
+---
+description: pob-build-analyzer 代码开发规则，防止重复注入、状态污染和数值错误。修改 pob_calc/ 或 config/ 下文件时自动生效。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-04-09T11:50:00.000Z
+provider: 
+---
+
+# POB Build Analyzer 代码开发规则
+
+## 规则 1：新增 YAML 效果前必须确认 POB 是否已原生计算
+
+**触发条件**：修改 `config/pob_unimplemented_effects.yaml` 时
+
+**执行流程**：
+
+```
+1. 在 dps_breakdown.sources 中搜索目标效果的 Skill 来源
+   → 已有 Skill:{SkillId} 来源 → POB 已原生计算
+   → 无对应来源 → POB 未实现，可以注入
+
+2. 如果 POB 已原生计算：
+   - 精魄辅助 → 标记 skill_type: "spirit_support"（代码自动跳过注入）
+   - 其他技能 → 不添加到 YAML（避免双倍计算）
+
+3. 验证方法：
+   python -c "
+   from pob_calc import POBCalculator
+   calc = POBCalculator.from_current()
+   r = calc.full_analysis(skill_name='spark')
+   for fi in r['dps_breakdown']['formula_items']:
+       for s in fi['sources']:
+           if '目标SkillId' in s.get('source', ''):
+               print(f'POB 已计算: {fi[\"key\"]} {s[\"value\"]}')
+   "
+```
+
+**禁止事项**：
+- 禁止不验证就添加 YAML 效果
+- 禁止 YAML 数值凭记忆填写（必须从 `POBData/Data/Skills/sup_*.lua` 的 `constantStats` 查证）
+
+**防护机制**：
+- `build_loader._inject_unimplemented_mods`：跳过 `skill_type == "spirit_support"`
+- `pob_unimplemented.detect_unimplemented_skills`：跳过 `skill_type == "spirit_support"`
+- 违反时表现：DPS 异常偏高（某个 INC/MORE 被双倍计算）
+
+---
+
+## 规则 2：需要修改 Lua 状态的分析必须排序执行
+
+**触发条件**：修改 `full_analysis.py` 或 `aura_analysis.py` 中的分析步骤顺序时
+
+**强制执行顺序**：
+
+```
+步骤 1-8:   干净环境分析（灵敏度/天赋/DPS拆解等）
+步骤 8.5:   精魄辅助贡献测试（干净环境，逐个禁用已装备辅助）
+步骤 8.6:   精魄辅助推荐（干净环境，模拟添加未装备辅助）★ INVARIANT
+步骤 9:     aura_spirit_analysis（会污染 configTab，必须最后执行）
+```
+
+**核心约束**：
+- `aura_spirit_analysis` 入口调用 `_rebuild_config_tab_modlist`，会**永久修改** `configTab.modList`
+- 任何需要读取干净 `configTab.modList` 的分析**必须**在步骤 9 之前
+- 步骤 8.6 的结果通过 `spirit_support_results` 参数传入步骤 9（数据流依赖 + `assert`）
+
+**新增分析模块的规则**：
+1. 只读分析（纯 output 读取）→ 可以放在任意位置
+2. 临时修改状态的分析（如灵敏度注入 mod）→ 必须在 scope 保护内
+3. 需要 `calcs.initEnv` 读取 `configTab` 的分析 → 必须在步骤 9 之前
+4. 会永久修改 `configTab/gem` 状态的分析 → 必须在最后，用 `config_scope() + gem_scope()` 包裹
+
+**防护机制**：
+- `full_analysis.py` 中有 `assert spirit_support_results is not None`
+- `aura_spirit_analysis` 未收到 `spirit_support_results` 时打 `logger.warning`
+
+**违反时表现**：精魄辅助推荐 DPS 异常偏低（+0.5% 而非 +7%），因为 baseline 被污染
+
+---
+
+## 规则 3：Lua 状态修改必须用 scope 保护
+
+**触发条件**：修改任何操作 `configTab.input`、`gem.enabled`、`group.enabled` 的代码时
+
+**强制使用**：
+- 修改 `configTab.input` → `env.config_scope()`
+- 修改 `gem.enabled / group.enabled` → `env.gem_scope()`
+- 切换武器套装 → `env.weapon_set_scope()`
+- 切换主技能 → `env.skill_scope()`
+
+**禁止事项**：
+- 禁止直接修改后手动恢复（容易遗漏异常路径）
+- 禁止在循环中修改状态后"恢复到中间值"——必须恢复到原始值
+
+---
+
+## 验证清单
+
+修改 `pob_calc/` 或 `config/` 后验证：
+
+- [ ] 新增 YAML 效果是否已确认 POB 未原生计算？
+- [ ] 精魄辅助是否标记了 `skill_type: "spirit_support"`？
+- [ ] 分析步骤顺序是否符合强制排序（8.6 在 9 之前）？
+- [ ] Lua 状态修改是否在 scope 保护内？
+- [ ] 端到端运行 `full_analysis` 后 DPS 数值是否合理？
+- [ ] `dps_breakdown.sources` 中是否有重复的 Sim + Skill 来源？

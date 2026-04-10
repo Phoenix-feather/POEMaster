@@ -144,6 +144,208 @@ def _find_best_dps_socket_group(lua, calcs) -> tuple:
     return (None, 0)
 
 
+def _test_spirit_support_contributions(lua, calcs, baseline: dict):
+    """对构筑中每个精魄辅助做禁用测试，测量实际贡献。
+
+    在干净的 Lua 环境中逐个执行（光环分析之前）。
+    """
+    base_dps = baseline.get("TotalDPS", 0)
+    base_ehp = baseline.get("TotalEHP", 0)
+    base_regen = baseline.get("LifeRegenRecovery", 0)
+
+    # 先收集所有精魄辅助的 skillId
+    sids_raw = lua.execute(r'''
+        local b = _spike_build
+        local sids = {}
+        for _, g in ipairs(b.skillsTab.socketGroupList) do
+            for _, gem in ipairs(g.gemList or {}) do
+                local ge = gem.grantedEffect
+                    or (gem.gemData and gem.gemData.grantedEffect)
+                if ge and ge.support and gem.enabled and gem.skillId then
+                    local lv = ge.levels and ge.levels[gem.level or 1]
+                    if lv and (lv.spiritReservationFlat or 0) > 0 then
+                        sids[#sids+1] = gem.skillId
+                    end
+                end
+            end
+        end
+        return table.concat(sids, "|")
+    ''')
+
+    contribs = {}
+    if sids_raw:
+        for sid in str(sids_raw).split("|"):
+            if not sid:
+                continue
+            # 每个辅助独立测试：禁用 → 计算 → 恢复
+            r = lua.execute(
+                'local b = _spike_build\n'
+                'for _, g in ipairs(b.skillsTab.socketGroupList) do\n'
+                '  for _, gem in ipairs(g.gemList or {}) do\n'
+                '    if gem.skillId == "' + sid + '" then\n'
+                '      gem.enabled = false\n'
+                '      local env = calcs.initEnv(b, "MAIN")\n'
+                '      calcs.perform(env)\n'
+                '      local o = env.player.output\n'
+                '      gem.enabled = true\n'
+                '      return string.format("%.2f|%.2f|%.1f",\n'
+                '        o.TotalDPS or 0, o.TotalEHP or 0,\n'
+                '        o.LifeRegenRecovery or 0)\n'
+                '    end\n'
+                '  end\n'
+                'end\n'
+                'return nil')
+            if r and str(r) != "nil":
+                p = str(r).split("|")
+                try:
+                    contribs[sid] = {
+                        "dps_delta": round(base_dps - float(p[0]), 1),
+                        "ehp_delta": round(base_ehp - float(p[1]), 1),
+                        "regen_delta": round(base_regen - float(p[2]), 1),
+                    }
+                except (ValueError, IndexError):
+                    pass
+
+    _test_spirit_support_contributions._cache = contribs
+
+
+_test_spirit_support_contributions._cache = {}
+
+
+def _test_spirit_support_recommendations(lua, calcs, baseline: dict,
+                                          skill_flags: dict = None) -> list:
+    """在干净环境中测试精魄辅助推荐。
+
+    必须在 aura_spirit_analysis 之前调用——后者的 _rebuild_config_tab_modlist
+    会污染 configTab.modList，导致 calcs.initEnv 读到错误的 modifier。
+
+    本函数复用 aura_analysis 中的候选发现/过滤/测试逻辑，
+    但在编排层的干净 baseline 环境下执行。
+
+    Args:
+        lua: LuaRuntime
+        calcs: POB calcs 模块
+        baseline: 干净环境下的基线 output
+        skill_flags: 技能 flags
+
+    Returns:
+        精魄辅助测试结果列表（与 aura_spirit_analysis 7C 格式一致）
+    """
+    from .aura_analysis import (
+        _query_active_skills_info,
+        _query_total_spirit,
+        discover_spirit_supports,
+        merge_candidates,
+        filter_spirit_supports,
+        _test_add_spirit_support,
+        _SPIRIT_SUPPORT_CANDIDATES,
+    )
+
+    is_attack = skill_flags.get("is_attack", False) if skill_flags else False
+    is_spell = skill_flags.get("is_spell", True) if skill_flags else True
+
+    # 查询光环技能组
+    skills_info = _query_active_skills_info(lua, calcs)
+    aura_groups = [si for si in skills_info if si["is_aura"]]
+    if not aura_groups:
+        logger.info("精魄辅助推荐: 无光环技能组，跳过")
+        return []
+
+    # 查询精魄
+    total_spirit, reserved_spirit = _query_total_spirit(lua, calcs)
+    available_spirit = total_spirit - reserved_spirit
+
+    # 动态扫描 + 合并 + 过滤
+    discovered_supports = discover_spirit_supports(lua)
+
+    hardcoded_formatted = []
+    for ss in _SPIRIT_SUPPORT_CANDIDATES:
+        hardcoded_formatted.append({
+            "key": ss.get("key", ""),
+            "name": ss.get("name", ""),
+            "name_cn": ss.get("name_cn", ""),
+            "skill_id": ss.get("skill_id", ""),
+            "spirit": ss.get("spirit", 0),
+            "description": ss.get("description", ""),
+            "condition": ss.get("condition", ""),
+            "note": ss.get("note", ""),
+            "estimated": ss.get("estimated", False),
+        })
+
+    merged_supports = merge_candidates(hardcoded_formatted, discovered_supports)
+    filtered_supports = filter_spirit_supports(
+        merged_supports, is_attack, is_spell, skill_flags)
+    filtered_supports.sort(key=lambda x: x.get("spirit", 0))
+
+    logger.info("精魄辅助推荐(干净环境): 候选 %d → 过滤后 %d, 光环组 %d",
+                len(merged_supports), len(filtered_supports), len(aura_groups))
+
+    # 测试所有候选（在干净 baseline 环境中）
+    spirit_support_tests = []
+    for ss in filtered_supports:
+        for aura_si in aura_groups:
+            result = _test_add_spirit_support(
+                lua, calcs, ss, aura_si["group_idx"], baseline, skill_flags)
+            # 标注精魄需求
+            actual_spirit = result.get("spirit", 0)
+            if actual_spirit > available_spirit:
+                shortfall = actual_spirit - available_spirit
+                result["spirit_shortfall"] = shortfall
+                result["spirit_note"] = (
+                    f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）")
+            result["source"] = ss.get("source", "unknown")
+            spirit_support_tests.append(result)
+
+    logger.info("精魄辅助推荐完成: %d 个测试结果", len(spirit_support_tests))
+    return spirit_support_tests
+
+
+def _test_candidate_auras(lua, calcs, baseline: dict,
+                          skill_flags: dict = None) -> list:
+    """在干净环境中测试候选光环推荐。
+
+    必须在 aura_spirit_analysis 之前调用——后者的 _rebuild_config_tab_modlist
+    会污染 configTab.modList，导致 calcs.initEnv 读到错误的 modifier。
+
+    Returns:
+        候选光环测试结果列表（与 aura_spirit_analysis 7B 格式一致）
+    """
+    from .aura_analysis import (
+        _query_active_skills_info,
+        _query_total_spirit,
+        _test_add_candidate_aura,
+        _AURA_CANDIDATES,
+    )
+
+    # 查询光环技能组
+    skills_info = _query_active_skills_info(lua, calcs)
+    aura_names = {si["main_skill_name"] for si in skills_info if si["is_aura"]}
+
+    # 查询精魄
+    total_spirit, reserved_spirit = _query_total_spirit(lua, calcs)
+    available_spirit = total_spirit - reserved_spirit
+
+    candidate_auras = []
+    for aura in _AURA_CANDIDATES:
+        # 跳过构筑中已有的光环
+        if aura["name"] in aura_names:
+            continue
+        result = _test_add_candidate_aura(lua, calcs, aura, baseline)
+        # 标注精魄需求
+        actual_spirit = result.get("spirit", 0)
+        if actual_spirit > available_spirit:
+            shortfall = actual_spirit - available_spirit
+            result["spirit_shortfall"] = shortfall
+            result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
+        candidate_auras.append(result)
+
+    candidate_auras.sort(key=lambda x: x.get("dps_pct", 0), reverse=True)
+    logger.info("候选光环推荐(干净环境): %d 个候选（跳过已有: %s）",
+                len(candidate_auras),
+                ", ".join(aura_names & {a["name"] for a in _AURA_CANDIDATES}))
+    return candidate_auras
+
+
 # =============================================================================
 # 完整分析流程（单技能，向后兼容）
 # =============================================================================
@@ -248,10 +450,33 @@ def full_analysis(lua, calcs, target_pct: float = 20.0,
     dps_bd = dps_breakdown(lua, calcs, baseline=baseline)
     logger.info("DPS 拆解完成: %d 个公式项", len(dps_bd["formula_items"]))
 
-    # 9. 光环与精魄分析（传入 dps_breakdown 以引用构筑已有 modifier）
-    aura_spirit = aura_spirit_analysis(
-        lua, calcs, baseline=baseline, skill_flags=skill_flags,
-        dps_breakdown=dps_bd)
+    # 8.5 精魄辅助贡献测试（在干净环境中，光环分析之前）
+    _test_spirit_support_contributions(lua, calcs, baseline)
+
+    # 8.6 精魄辅助推荐（在干净环境中执行，避免 aura_spirit_analysis 的状态污染）
+    # INVARIANT: 必须在 aura_spirit_analysis 之前执行——后者的 _rebuild_config_tab_modlist
+    #            会污染 configTab.modList，导致推荐测试的 calcs.initEnv 读到脏状态
+    spirit_support_results = _test_spirit_support_recommendations(
+        lua, calcs, baseline, skill_flags=skill_flags)
+    assert spirit_support_results is not None, \
+        "spirit_support_results must be computed before aura_spirit_analysis"
+    logger.info("精魄辅助推荐完成(干净环境): %d 个结果", len(spirit_support_results))
+
+    # 8.7 候选光环推荐（在干净环境中执行，避免状态污染导致 DPS 值异常）
+    candidate_aura_results = _test_candidate_auras(
+        lua, calcs, baseline, skill_flags=skill_flags)
+    logger.info("候选光环推荐完成(干净环境): %d 个结果", len(candidate_aura_results))
+
+    # 9. 光环与精魄分析（用 scope 保护，防止 configTab/gem 状态泄漏）
+    from .lua_env import LuaEnvManager
+    _env = LuaEnvManager(lua, calcs)
+    with _env.config_scope():
+        with _env.gem_scope():
+            aura_spirit = aura_spirit_analysis(
+                lua, calcs, baseline=baseline, skill_flags=skill_flags,
+                dps_breakdown=dps_bd,
+                spirit_support_results=spirit_support_results,
+                candidate_aura_results=candidate_aura_results)
     logger.info("光环与精魄分析完成")
 
     # 10. 防御概览（纯 output 读取，零 Lua 交互）
@@ -389,39 +614,59 @@ def _extract_damage_composition(baseline: dict) -> list:
     return elems
 
 
-def _extract_build_modifiers(dps_bd: dict) -> dict:
-    """从 dps_breakdown 提取通用修饰符汇总（排除 category=Skill）。
+def _extract_build_modifiers(dps_bd: dict,
+                             spirit_support_ids: set = None) -> dict:
+    """从 dps_breakdown 提取构筑通用修饰符汇总。
+
+    包含：天赋/装备/珠宝 + 精魄辅助宝石的实际效果。
+    精魄辅助"开启即生效"，属于构筑常驻修饰符。
+    排除：光环本体效果（Trinity等）、普通技能辅助、模拟注入(Sim)、Base、Enemy等。
+
+    Args:
+        dps_bd: dps_breakdown 数据
+        spirit_support_ids: 精魄辅助的 skill_id 集合（如 {"SupportMysticismPlayerTwo"}）
+                           用于从 Skill 来源中筛选精魄辅助
 
     Returns:
         {modifier_key: {"total": float, "sources": [source_dict, ...],
                         "affects": str, "formula_name": str}}
     """
+    _BASE_CATEGORIES = {"Tree", "Item", "Jewel"}
+    _spirit_ids = spirit_support_ids or set()
+
+    def _is_included(source: dict) -> bool:
+        cat = source.get("category", "")
+        if cat in _BASE_CATEGORIES:
+            return True
+        # 精魄辅助：category=Skill, source="Skill:{skill_id}"
+        if cat == "Skill" and _spirit_ids:
+            src = source.get("source", "")
+            # source 格式: "Skill:SupportMysticismPlayerTwo"
+            for sid in _spirit_ids:
+                if sid in src:
+                    return True
+        return False
+
     modifiers = {}
     for item in dps_bd.get("formula_items", []):
         key = item.get("key", "")
         if not key or key == "CombinedDPS":
             continue
-        # 过滤掉 EffMult（敌人抗性系数，不适合展示）
         if key.endswith("_EffMult"):
             continue
-        # 只保留构筑级别来源：天赋/装备/珠宝
-        # 排除 Skill（技能专属如 Cascade）和 Other（模拟注入如 Zenith）
         universal_sources = [
-            s for s in item.get("sources", [])
-            if s.get("category") in ("Tree", "Item", "Jewel")
+            s for s in item.get("sources", []) if _is_included(s)
         ]
         if not universal_sources:
             continue
 
-        # 重新计算通用来源的总值
+        # 重新计算来源总值
         is_more = key.endswith("_MORE")
         if is_more:
-            # MORE: 累乘
             total = 1.0
             for s in universal_sources:
                 total *= (1 + (s.get("value", 0) / 100))
         else:
-            # INC/BASE: 累加
             total = sum(s.get("value", 0) for s in universal_sources)
 
         # 从 formula_name 提取 affects（例如 "通用伤害 INC (Lightning,Cold,Fire)"）
@@ -439,6 +684,18 @@ def _extract_build_modifiers(dps_bd: dict) -> dict:
     return modifiers
 
 
+def _collect_spirit_support_ids(full_result: dict) -> set:
+    """从 aura_spirit 数据中提取构筑已装备精魄辅助的 skill_id 集合。"""
+    ids = set()
+    aura = full_result.get("aura_spirit", {})
+    for a in aura.get("existing_auras", []):
+        for ss in a.get("spirit_supports", []):
+            sid = ss.get("skill_id", "")
+            if sid:
+                ids.add(sid)
+    return ids
+
+
 def extract_global_data(full_result: dict) -> dict:
     """从 full_analysis 结果中提取全局数据。
 
@@ -451,8 +708,11 @@ def extract_global_data(full_result: dict) -> dict:
     baseline = full_result.get("baseline", {})
     dps_bd = full_result.get("dps_breakdown", {})
 
+    # 提取构筑中已装备精魄辅助的 skill_id
+    spirit_ids = _collect_spirit_support_ids(full_result)
+
     return {
-        "build_modifiers": _extract_build_modifiers(dps_bd),
+        "build_modifiers": _extract_build_modifiers(dps_bd, spirit_ids),
         "build_attributes": _extract_build_attributes(baseline),
         "damage_composition": _extract_damage_composition(baseline),
         "defence_overview": full_result.get("defence_overview"),
@@ -587,34 +847,58 @@ def full_build_analysis(lua, calcs, skills: list[str] = None,
 
                             main_skill = get_main_skill(lua, calcs)
                             dps_bd = dps_breakdown(lua, calcs, baseline=baseline)
+                            jewel_diag = diagnose_jewels(lua, calcs, baseline=baseline)
+                            _test_spirit_support_contributions(lua, calcs, baseline)
+                            # INVARIANT: 精魄辅助推荐必须在 aura_spirit_analysis 之前
+                            ss_results = _test_spirit_support_recommendations(
+                                lua, calcs, baseline, skill_flags=skill_flags)
+                            assert ss_results is not None
+                            # 候选光环推荐（干净环境，光环分析之前）
+                            ca_results = _test_candidate_auras(
+                                lua, calcs, baseline, skill_flags=skill_flags)
+                            sens = sensitivity_analysis(
+                                lua, calcs,
+                                profiles=offence_profiles,
+                                target_pct=target_pct,
+                                baseline=baseline)
+                            talent_val = passive_node_analysis(
+                                lua, calcs, baseline=baseline)
+                            talent_exp = passive_node_exploration(
+                                lua, calcs, baseline=baseline,
+                                min_dps_pct=exploration_min_pct)
+
+                            # 光环分析必须最后执行（会修改 configTab/gem 状态）
+                            aura_data = aura_spirit_analysis(
+                                lua, calcs, baseline=baseline,
+                                skill_flags=skill_flags,
+                                dps_breakdown=dps_bd,
+                                spirit_support_results=ss_results,
+                                candidate_aura_results=ca_results)
 
                             skill_results[main_skill.get("name", skill_name)] = {
                                 "baseline": baseline,
                                 "main_skill": main_skill,
                                 "skill_flags": skill_flags,
-                                "sensitivity": sensitivity_analysis(
-                                    lua, calcs,
-                                    profiles=offence_profiles,
-                                    target_pct=target_pct,
-                                    baseline=baseline),
-                                "talent_value": passive_node_analysis(
-                                    lua, calcs, baseline=baseline),
-                                "talent_exploration": passive_node_exploration(
-                                    lua, calcs, baseline=baseline,
-                                    min_dps_pct=exploration_min_pct),
+                                "sensitivity": sens,
+                                "talent_value": talent_val,
+                                "talent_exploration": talent_exp,
                                 "dps_breakdown": dps_bd,
-                                "aura_spirit": aura_spirit_analysis(
-                                    lua, calcs, baseline=baseline,
-                                    skill_flags=skill_flags,
-                                    dps_breakdown=dps_bd),
-                                "jewel_diagnosis": diagnose_jewels(
-                                    lua, calcs, baseline=baseline),
+                                "aura_spirit": aura_data,
+                                "jewel_diagnosis": jewel_diag,
                             }
 
             results[f"ws{ws}"] = {
                 "global": global_data,
                 "skills": skill_results,
             }
+
+            # 从技能分析结果中提取精魄辅助 ID，更新 build_modifiers
+            if skill_results:
+                first_skill = next(iter(skill_results.values()))
+                spirit_ids = _collect_spirit_support_ids(first_skill)
+                if spirit_ids:
+                    global_data["build_modifiers"] = _extract_build_modifiers(
+                        best_dps_bd, spirit_ids)
 
     # Phase 2: 套装对比
     if len(weapon_sets) > 1 and "ws1" in results and "ws2" in results:

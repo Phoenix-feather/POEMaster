@@ -454,7 +454,8 @@ function fmtComma(n) {
 
 const CAT_COLORS = {
   Tree: '#55c078', Item: '#5588dd', Skill: '#d4a843',
-  Base: '#a0a0b8', Jewel: '#cc5599', Other: '#6e6e88'
+  Base: '#a0a0b8', Jewel: '#cc5599', Other: '#6e6e88',
+  Sim: '#ff9800'
 };
 const CATEGORY_COLORS = {
   '进攻': '#e05555', '防御': '#5588dd', '混合': '#9966cc', '无效': '#6e6e88'
@@ -471,7 +472,7 @@ function GlobalBaselineSection({ activeWS }) {
   var ba = g.build_attributes || {};
 
   // Category color map
-  var catClr = { Tree: '#44bbcc', Item: '#dd8844', Jewel: '#cc5599', Base: '#8888aa', Gem: '#55c078' };
+  var catClr = { Tree: '#44bbcc', Item: '#dd8844', Jewel: '#cc5599', Skill: '#d4a843', Sim: '#ff9800', Base: '#8888aa', Gem: '#55c078' };
 
   // Element emoji/icon map for affects display
   var elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
@@ -490,21 +491,22 @@ function GlobalBaselineSection({ activeWS }) {
     var isMore = key.indexOf('MORE') >= 0;
     var suffix = key.indexOf('INC') >= 0 ? '%' : '';
     var srcs = m.sources || [];
-    var tree = 0, item = 0, jewel = 0;
+    var tree = 0, item = 0, jewel = 0, support = 0;
     if (isMore) {
-      // MORE: value 是百分比，汇总用乘法
-      tree = 1; item = 1; jewel = 1;
+      tree = 1; item = 1; jewel = 1; support = 1;
       srcs.forEach(function(s) {
         var v = s.value || 0;
         if (s.category === 'Tree') tree *= (1 + v / 100);
         else if (s.category === 'Item') item *= (1 + v / 100);
         else if (s.category === 'Jewel') jewel *= (1 + v / 100);
+        else if (s.category === 'Skill') support *= (1 + v / 100);
       });
     } else {
       srcs.forEach(function(s) {
         if (s.category === 'Tree') tree += s.value || 0;
         else if (s.category === 'Item') item += s.value || 0;
         else if (s.category === 'Jewel') jewel += s.value || 0;
+        else if (s.category === 'Skill') support += s.value || 0;
       });
     }
     // Build affects tag from data
@@ -538,6 +540,7 @@ function GlobalBaselineSection({ activeWS }) {
         h('span', { style: { width: 70, textAlign: 'right', color: (isMore ? tree !== 1 : tree) ? '#44bbcc' : '#6e6e88', fontFamily: 'monospace', fontSize: 12 } }, isMore ? (tree !== 1 ? (tree >= 1 ? '+' : '') + Math.round((tree - 1) * 100) + '%' : '\u2014') : (tree ? '+' + Math.round(tree) + suffix : '\u2014')),
         h('span', { style: { width: 70, textAlign: 'right', color: (isMore ? item !== 1 : item) ? '#dd8844' : '#6e6e88', fontFamily: 'monospace', fontSize: 12 } }, isMore ? (item !== 1 ? (item >= 1 ? '+' : '') + Math.round((item - 1) * 100) + '%' : '\u2014') : (item ? '+' + Math.round(item) + suffix : '\u2014')),
         h('span', { style: { width: 70, textAlign: 'right', color: (isMore ? jewel !== 1 : jewel) ? '#cc5599' : '#6e6e88', fontFamily: 'monospace', fontSize: 12 } }, isMore ? (jewel !== 1 ? (jewel >= 1 ? '+' : '') + Math.round((jewel - 1) * 100) + '%' : '\u2014') : (jewel ? '+' + Math.round(jewel) + suffix : '\u2014')),
+        h('span', { style: { width: 70, textAlign: 'right', color: (isMore ? support !== 1 : support) ? '#d4a843' : '#6e6e88', fontFamily: 'monospace', fontSize: 12 } }, isMore ? (support !== 1 ? (support >= 1 ? '+' : '') + Math.round((support - 1) * 100) + '%' : '\u2014') : (support ? '+' + Math.round(support) + suffix : '\u2014')),
         srcs.length > 0 && h('span', { style: { flex: 1, textAlign: 'right', color: '#6e6e88', fontSize: 10 } }, srcs.length + ' \u6761')
       ),
       // Expandable source detail
@@ -618,7 +621,8 @@ function GlobalBaselineSection({ activeWS }) {
         h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u603B\u91CF'),
         h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u5929\u8D4B'),
         h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u88C5\u5907'),
-        h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u73E0\u5B9D')
+        h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u73E0\u5B9D'),
+        h('span', { style: { width: 70, textAlign: 'right', color: '#6e6e88', fontSize: 11, fontWeight: 600 } }, '\u8F85\u52A9')
       ),
       h('div', null, bmCards)
     ),
@@ -784,7 +788,7 @@ function DPSFlowTable({ data }) {
 function FormulaBreakdown({ data }) {
   if (!data || !data.formula_items) return null;
 
-  const catColors = { Tree: '#55c078', Item: '#5588dd', Skill: '#d4a843', Base: '#a0a0b8', Jewel: '#cc5599', Enemy: '#e05555' };
+  const catColors = { Tree: '#55c078', Item: '#5588dd', Skill: '#d4a843', Base: '#a0a0b8', Jewel: '#cc5599', Enemy: '#e05555', Sim: '#ff9800' };
   const elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
 
   // Merge {Element}_Lucky rows into single entry
@@ -1040,17 +1044,21 @@ function AuraChart({ auras }) {
     const bareMax = cr.bare_pct_max != null ? cr.bare_pct_max : pctMax;
     const supMin = pctMin - bareMin;
     const supMax = pctMax - bareMax;
+    const spiritMin = cr.spirit_pct_min || 0;
+    const spiritMax = cr.spirit_pct_max || 0;
     // Min 端点
     rows.push({
       name: aura.name + (aura.simulated ? ' ⚠' : ''),
       endpoint: paramLabel + '=0',
       bare: bareMin, real: pctMin, support: supMin,
+      spiritSup: spiritMin,
       ehp: aura.ehp_pct || 0, spirit: Math.round(aura.spirit_cost || 0)
     });
     // Max 端点
     rows.push({
       name: '', endpoint: paramLabel + '=' + maxVal,
       bare: bareMax, real: pctMax, support: supMax,
+      spiritSup: spiritMax,
       ehp: '', spirit: ''
     });
   });
@@ -1060,6 +1068,7 @@ function AuraChart({ auras }) {
       endpoint: '—',
       bare: a.bare_dps_pct || 0, real: a.dps_pct || 0,
       support: a.supports_extra_pct || 0,
+      spiritSup: a.spirit_support_pct || 0,
       ehp: a.ehp_pct || 0, spirit: Math.round(a.spirit_cost || 0)
     });
   });
@@ -1069,7 +1078,7 @@ function AuraChart({ auras }) {
     h('table', null,
       h('thead', null, h('tr', null,
         h('th', null, '光环'), h('th', null, '条件'), h('th', null, '裸光环'), h('th', null, '真实'),
-        h('th', null, '辅助增益'), h('th', null, 'EHP'), h('th', null, '精魄')
+        h('th', null, '辅助增益'), h('th', null, '精魄辅助'), h('th', null, 'EHP'), h('th', null, '精魄')
       )),
       h('tbody', null, rows.map((r, i) => h('tr', { key: i },
         h('td', { style: r.name ? {} : { opacity: 0 } }, r.name),
@@ -1077,9 +1086,135 @@ function AuraChart({ auras }) {
         h('td', null, fmtSign(r.bare)),
         h('td', { style: { color: '#55c078', fontWeight: 500 } }, fmtSign(r.real)),
         h('td', { style: { color: '#cc5599' } }, Math.abs(r.support) >= 0.05 ? fmtSign(r.support, 2) : '—'),
+        h('td', { style: { color: '#e8a838' } }, Math.abs(r.spiritSup) >= 0.05 ? fmtSign(r.spiritSup, 2) : '—'),
         h('td', null, r.ehp !== '' ? fmtSign(r.ehp) : ''),
         h('td', null, r.spirit !== '' ? r.spirit : '')
       )))
+    )
+  );
+}
+
+// ── 候选光环推荐 + 精魄辅助 + 精魄预算 ──
+function CandidateAurasTable({ aura_spirit, baseline }) {
+  if (!aura_spirit) return null;
+  var candidates = aura_spirit.candidate_auras || [];
+  var spiritTests = aura_spirit.spirit_support_tests || [];
+  var budget = aura_spirit.spirit_budget || {};
+  var existing = aura_spirit.existing_auras || [];
+
+  // 精魄辅助推荐：排除已有辅助，按名称去重，取 top 5
+  var existingSupportNames = {};
+  existing.forEach(function(a) {
+    (a.spirit_supports || []).forEach(function(s) { existingSupportNames[s.name] = true; });
+  });
+  var effectiveTests = spiritTests.filter(function(t) {
+    return (t.dps_pct || 0) > 0.1 && !existingSupportNames[t.name];
+  });
+  effectiveTests.sort(function(a, b) { return (b.dps_pct || 0) - (a.dps_pct || 0); });
+  var seenNames = {};
+  var topTests = [];
+  effectiveTests.forEach(function(t) {
+    var key = t.name || '?';
+    if (!seenNames[key]) {
+      seenNames[key] = true;
+      topTests.push(t);
+    }
+  });
+  topTests = topTests.slice(0, 5);
+
+  // 现有光环的精魄辅助列表
+  var spiritSupports = [];
+  existing.forEach(function(a) {
+    if (a.spirit_supports && a.spirit_supports.length > 0) {
+      spiritSupports.push({ aura: a.name, supports: a.spirit_supports, spirit: a.spirit_cost });
+    }
+  });
+
+  var hasCandidates = candidates.length > 0;
+  var hasSpirit = spiritSupports.length > 0;
+  var hasBudget = budget.total > 0;
+
+  if (!hasCandidates && !hasSpirit && !hasBudget && topTests.length === 0) return null;
+
+  return h('div', { className: 'chart-box full-width' },
+    // 精魄预算
+    hasBudget && h('div', { style: { marginBottom: 12 } },
+      h('div', { className: 'chart-title' }, h('span', { className: 'dot' }), '\u7CBE\u9B42\u9884\u7B97'),
+      h('div', { style: { display: 'flex', gap: 20, fontSize: 13, padding: '4px 8px' } },
+        h('span', null, '\u603B\u8BA1: ', h('b', null, Math.round(budget.total || 0))),
+        h('span', null, '\u5DF2\u7528: ', h('b', { style: { color: '#dd8844' } }, Math.round(budget.reserved || 0))),
+        h('span', null, '\u53EF\u7528: ', h('b', { style: { color: budget.available > 0 ? '#55c078' : '#e05555' } }, Math.round(budget.available || 0)))
+      )
+    ),
+    // 现有光环的精魄辅助
+    hasSpirit && h('div', { style: { marginBottom: 12 } },
+      h('div', { className: 'chart-title' }, h('span', { className: 'dot' }), '\u7CBE\u9B42\u8F85\u52A9\u5B9D\u77F3'),
+      h('table', null,
+        h('thead', null, h('tr', null,
+          h('th', null, '\u5149\u73AF'), h('th', null, '\u8F85\u52A9'), h('th', null, '\u7CBE\u9B42'), h('th', null, '\u6548\u679C')
+        )),
+        h('tbody', null,
+          spiritSupports.map(function(sp) {
+            return sp.supports.map(function(s, si) {
+              return h('tr', { key: sp.aura + si },
+                si === 0 ? h('td', { rowSpan: sp.supports.length, style: { color: '#d4a843', fontWeight: 500 } }, sp.aura) : null,
+                h('td', null, s.name),
+                h('td', null, Math.round(s.spirit || 0)),
+                h('td', { style: { color: '#a0a0b8', fontSize: 11 } },
+                  (function() {
+                    var bl = baseline || {};
+                    var baseDps = bl.TotalDPS || 1;
+                    var baseEhp = bl.TotalEHP || 1;
+                    var parts = [];
+                    if (s.dps_delta && Math.abs(s.dps_delta) > 0.5) parts.push('DPS ' + (s.dps_delta > 0 ? '+' : '') + (s.dps_delta / baseDps * 100).toFixed(1) + '%');
+                    if (s.ehp_delta && Math.abs(s.ehp_delta) > 0.5) parts.push('EHP ' + (s.ehp_delta > 0 ? '+' : '') + (s.ehp_delta / baseEhp * 100).toFixed(1) + '%');
+                    if (s.regen_delta && Math.abs(s.regen_delta) > 0.1) parts.push('\u751F\u547D\u6062\u590D ' + (s.regen_delta > 0 ? '+' : '') + s.regen_delta.toFixed(1) + '/s');
+                    return parts.length > 0 ? parts.join(', ') : '\u9632\u5FA1\u6548\u679C';
+                  })()
+                )
+              );
+            });
+          }).flat()
+        )
+      )
+    ),
+    // 候选光环推荐
+    hasCandidates && h('div', { style: { marginBottom: 12 } },
+      h('div', { className: 'chart-title' }, h('span', { className: 'dot' }), '\u6F5C\u5728\u5149\u73AF\u63A8\u8350'),
+      h('table', null,
+        h('thead', null, h('tr', null,
+          h('th', null, '\u5149\u73AF'), h('th', null, 'DPS'), h('th', null, '\u7CBE\u9B42'), h('th', null, '\u5907\u6CE8')
+        )),
+        h('tbody', null,
+          candidates.map(function(c, i) {
+            return h('tr', { key: i },
+              h('td', null, c.name),
+              h('td', { style: { color: (c.dps_pct || 0) > 0 ? '#55c078' : '#e05555' } }, fmtSign(c.dps_pct || 0)),
+              h('td', null, Math.round(c.spirit || 0)),
+              h('td', { style: { color: '#a0a0b8', fontSize: 11 } }, c.spirit_note || '')
+            );
+          })
+        )
+      )
+    ),
+    // 精魄辅助推荐 Top 5
+    topTests.length > 0 && h('div', null,
+      h('div', { className: 'chart-title' }, h('span', { className: 'dot' }), '\u7CBE\u9B42\u8F85\u52A9\u63A8\u8350 Top ' + topTests.length),
+      h('table', null,
+        h('thead', null, h('tr', null,
+          h('th', null, '\u8F85\u52A9'), h('th', null, '\u76EE\u6807\u5149\u73AF'), h('th', null, 'DPS'), h('th', null, '\u7CBE\u9B42')
+        )),
+        h('tbody', null,
+          topTests.map(function(t, i) {
+            return h('tr', { key: i },
+              h('td', null, t.name || ''),
+              h('td', { style: { color: '#a0a0b8' } }, t.target_aura || ''),
+              h('td', { style: { color: '#55c078' } }, fmtSign(t.dps_pct || 0)),
+              h('td', null, Math.round(t.spirit || 0))
+            );
+          })
+        )
+      )
     )
   );
 }
@@ -1230,20 +1365,46 @@ function SensitivityTable({ sensitivity }) {
 
 function TalentExplorationTable({ talents }) {
   if (!talents || talents.length === 0) return null;
-  return h(DetailSection, { title: `天赋探索推荐 (${talents.length})`, defaultOpen: false },
-    h('table', null,
-      h('thead', null, h('tr', null, h('th', null, '名称'), h('th', null, '类型'), h('th', null, 'DPS%'), h('th', null, 'EHP%'))),
-      h('tbody', null,
-        [...talents].sort((a, b) => b.dps_pct - a.dps_pct).map(t =>
-          h('tr', { key: t.id || t.name },
-            h('td', null, t.name),
-            h('td', null, t.type),
-            h('td', { style: { color: '#55c078' } }, fmtSign(t.dps_pct)),
-            h('td', { style: { color: t.ehp_pct >= 0 ? '#55c078' : '#e05555' } }, fmtSign(t.ehp_pct))
-          )
+
+  // 分离输出和生存节点
+  var offence = talents.filter(function(t) {
+    return t.category === '\u8f93\u51fa' || t.category === '\u517c\u987e';
+  }).sort(function(a, b) { return b.dps_pct - a.dps_pct; }).slice(0, 10);
+
+  var defence = talents.filter(function(t) {
+    return t.category === '\u751f\u5b58' || t.category === '\u517c\u987e';
+  }).sort(function(a, b) { return b.ehp_pct - a.ehp_pct; }).slice(0, 10);
+
+  // 去重：已在输出榜的兼顾节点不重复出现在生存榜
+  var offenceIds = new Set(offence.map(function(t) { return t.id; }));
+  var defenceFiltered = defence.filter(function(t) {
+    return !(t.category === '\u517c\u987e' && offenceIds.has(t.id));
+  }).slice(0, 10);
+
+  function makeTable(title, items, sortKey) {
+    if (items.length === 0) return null;
+    return h(DetailSection, { title: title, defaultOpen: false },
+      h('table', null,
+        h('thead', null, h('tr', null, h('th', null, '\u540d\u79f0'), h('th', null, '\u7c7b\u578b'), h('th', null, 'DPS%'), h('th', null, 'EHP%'))),
+        h('tbody', null,
+          items.map(function(t) {
+            return h('tr', { key: t.id || t.name },
+              h('td', null, t.name),
+              h('td', { style: { color: '#6e6e88', fontSize: 11 } }, t.type),
+              h('td', { style: { color: '#55c078' } }, fmtSign(t.dps_pct)),
+              h('td', { style: { color: t.ehp_pct >= 0 ? '#55c078' : '#e05555' } }, fmtSign(t.ehp_pct))
+            );
+          })
         )
       )
-    )
+    );
+  }
+
+  return h('div', null,
+    h('div', { style: { color: '#6e6e88', fontSize: 11, marginBottom: 4 } },
+      '\u603b\u5019\u9009 ' + talents.length + ' \u4e2a\uff0c\u5206\u522b\u5c55\u793a\u8fdb\u653b/\u9632\u5fa1 TOP 10'),
+    makeTable('\u8f93\u51fa TOP 10', offence, 'dps_pct'),
+    makeTable('\u751f\u5b58 TOP 10', defenceFiltered, 'ehp_pct')
   );
 }
 
@@ -1389,6 +1550,7 @@ function App() {
       h('div', { className: 'chart-grid' },
         h(SensitivityChart, { sensitivity: data.sensitivity }),
         h(AuraChart, { auras: (data.aura_spirit || {}).existing_auras }),
+        h(CandidateAurasTable, { aura_spirit: data.aura_spirit || {}, baseline: data.baseline || {} }),
         h(TalentScatter, { talents: data.talent_value }),
         h(DefenceRadar, { baseline: data.baseline })
       ),

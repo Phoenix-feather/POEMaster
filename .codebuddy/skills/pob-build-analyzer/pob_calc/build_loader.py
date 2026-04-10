@@ -901,6 +901,11 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
     # 注入列表
     inject_list = []
     for skill_name, skill_config in skills_config.items():
+        # 跳过精魄辅助：已装备的精魄辅助 POB 会原生计算其效果，
+        # 不需要模拟注入。模拟仅用于推荐测试（_test_add_spirit_support）。
+        if skill_config.get("skill_type") == "spirit_support":
+            continue
+
         effects = skill_config.get("effects", [])
         if not effects:
             continue
@@ -932,6 +937,7 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
             mod_type = eff.get("mod_type", "BASE")
             value = eff.get("value")
             source = eff.get("source", "unimpl_config")
+            mod_flag = eff.get("mod_flag", "")
             if mod_name is None:
                 continue
 
@@ -944,27 +950,52 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
                     "mod_type": mod_type,
                     "value": int(value) if isinstance(value, (int, float)) else value,
                     "source": source,
+                    "mod_flag": mod_flag,
                 })
             else:
-                # value=null: 从 Lua 读取宝石等级对应的 stat 值
-                # 优先使用 stat_skill_id，否则用 detect 的 skill_id/gem_name
-                stat_skill_id = skill_config.get("stat_skill_id", "")
-                if not stat_skill_id:
-                    if detect_type == "skill_id":
-                        stat_skill_id = detect.get("skill_id", "")
-                if not stat_skill_id:
-                    continue
-                inject_list.append({
-                    "skill_name": skill_name,
-                    "detect_lua": check_lua,
-                    "mod_name": mod_name,
-                    "mod_type": mod_type,
-                    "value": None,  # 动态值标记
-                    "source": source,
-                    "stat_skill_id": stat_skill_id,
-                    "expect_factor": skill_config.get("expect_factor", 1.0),
-                    "level_index": eff.get("level_index", 1),
-                })
+                # value=null: 检查 dynamic_value 配置
+                dynamic_cfg = skill_config.get("dynamic_value", {})
+                dyn_type = dynamic_cfg.get("type", "")
+
+                if dyn_type == "charge_based":
+                    # 电荷型动态值：PowerChargesMax × (per_charge + quality × quality_per_charge)
+                    charge_stat = dynamic_cfg.get("charge_stat", "PowerChargesMax")
+                    per_charge = dynamic_cfg.get("per_charge_value", 0)
+                    quality_per = dynamic_cfg.get("quality_per_charge", 0)
+                    inject_list.append({
+                        "skill_name": skill_name,
+                        "detect_lua": check_lua,
+                        "mod_name": mod_name,
+                        "mod_type": mod_type,
+                        "value": None,
+                        "source": source,
+                        "mod_flag": mod_flag,
+                        "dynamic_type": "charge_based",
+                        "charge_stat": charge_stat,
+                        "per_charge_value": per_charge,
+                        "quality_per_charge": quality_per,
+                        "stat_skill_id": detect.get("skill_id", ""),
+                    })
+                else:
+                    # 原有逻辑：从 statSets.levels 读取
+                    stat_skill_id = skill_config.get("stat_skill_id", "")
+                    if not stat_skill_id:
+                        if detect_type == "skill_id":
+                            stat_skill_id = detect.get("skill_id", "")
+                    if not stat_skill_id:
+                        continue
+                    inject_list.append({
+                        "skill_name": skill_name,
+                        "detect_lua": check_lua,
+                        "mod_name": mod_name,
+                        "mod_type": mod_type,
+                        "value": None,  # 动态值标记
+                        "source": source,
+                        "mod_flag": mod_flag,
+                        "stat_skill_id": stat_skill_id,
+                        "expect_factor": skill_config.get("expect_factor", 1.0),
+                        "level_index": eff.get("level_index", 1),
+                    })
 
     if not inject_list:
         return 0
@@ -972,6 +1003,8 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
     # 分离固定值和动态值
     fixed_items = [it for it in inject_list if it["value"] is not None]
     dynamic_items = [it for it in inject_list if it["value"] is None]
+    charge_items = [it for it in dynamic_items if it.get("dynamic_type") == "charge_based"]
+    statset_items = [it for it in dynamic_items if it.get("dynamic_type") != "charge_based"]
 
     # 批量注入固定值 mod 到 Lua
     inject_lua_lines = [r"""
@@ -993,6 +1026,42 @@ if build.skillsTab and build.skillsTab.socketGroupList then
     end
 end
 
+-- 通用函数：读取宝石品质，含 POB bug 补偿
+-- POB CalcSetup.lua 硬编码 fromItem 技能 quality=0，不传递武器品质
+-- 本函数在 gem.quality=0 时，遍历武器 slot 检查物品的 grantedSkills
+local function getGemQuality(skillId)
+    local gemQuality = 0
+    for _, sg in ipairs(build.skillsTab.socketGroupList or {}) do
+        for _, gem in ipairs(sg.gems or sg.gemList or {}) do
+            if gem.skillId == skillId then
+                gemQuality = gem.quality or 0
+                break
+            end
+        end
+        if gemQuality ~= 0 then break end
+    end
+    -- POB bug 补偿: gem.quality=0 时，从武器物品读取品质
+    if gemQuality == 0 then
+        local weaponSlotNames = {"Weapon 1", "Weapon 2", "Weapon 1 Swap", "Weapon 2 Swap"}
+        for _, sn in ipairs(weaponSlotNames) do
+            local slot = build.itemsTab.slots[sn]
+            if slot then
+                local it = build.itemsTab.items[slot.selItemId]
+                if it and it.grantedSkills then
+                    for _, gs in ipairs(it.grantedSkills) do
+                        if gs.skillId == skillId then
+                            gemQuality = it.quality or 0
+                            break
+                        end
+                    end
+                end
+            end
+            if gemQuality > 0 then break end
+        end
+    end
+    return gemQuality
+end
+
 local injected = 0
 """]
 
@@ -1003,10 +1072,50 @@ local injected = 0
 end
 """)
 
-    # 动态值：从 Lua 读取宝石等级和对应的 stat 值
-    if dynamic_items:
+    # 动态值（charge_based）：从 output 读取 charge 数量并计算
+    if charge_items:
+        for item in charge_items:
+            charge_stat = item.get("charge_stat", "PowerChargesMax")
+            per_charge = item.get("per_charge_value", 0)
+            quality_per = item.get("quality_per_charge", 0)
+            sid = item.get("stat_skill_id", "")
+            # 使用 format 避免复杂的 f-string 转义
+            lua_template = """
+-- charge_based 动态值: {skill_name} ({sid})
+do
+    local gemQuality = getGemQuality("{sid}")
+    if {detect_lua} then
+        -- 先计算一次获取 output 中的 charge 数量
+        local env = calcs.initEnv(build, "MAIN")
+        calcs.perform(env)
+        local chargeCount = env.player.output.{charge_stat} or 0
+        if chargeCount > 0 then
+            local perVal = {per_charge} + gemQuality * {quality_per}
+            local totalVal = math.floor(chargeCount * perVal)
+            if totalVal > 0 then
+                modList:NewMod("{mod_name}", "{mod_type}", totalVal, "{source}")
+                injected = injected + 1
+            end
+        end
+    end
+end
+"""
+            inject_lua_lines.append(lua_template.format(
+                skill_name=item['skill_name'],
+                sid=sid,
+                detect_lua=item['detect_lua'],
+                charge_stat=charge_stat,
+                per_charge=per_charge,
+                quality_per=quality_per,
+                mod_name=item['mod_name'],
+                mod_type=item['mod_type'],
+                source=item['source'],
+            ))
+
+    # 动态值（statSet based）：从 Lua 读取宝石等级和对应的 stat 值
+    if statset_items:
         # 为每个需要动态值的技能，从 skillData.statSets.levels 读取
-        for item in dynamic_items:
+        for item in statset_items:
             sid = item["stat_skill_id"]
             factor = item.get("expect_factor", 1.0)
             lv_idx = item.get("level_index", 1)
@@ -1014,12 +1123,11 @@ end
 -- 动态值: {item['skill_name']} ({sid})
 do
     local gemLevel = nil
-    local gemQuality = 0
+    local gemQuality = getGemQuality("{sid}")
     for _, sg in ipairs(build.skillsTab.socketGroupList or {{}}) do
         for _, gem in ipairs(sg.gems or sg.gemList or {{}}) do
             if gem.skillId == "{sid}" then
                 gemLevel = gem.level or 1
-                gemQuality = gem.quality or 0
                 break
             end
         end
@@ -1089,9 +1197,23 @@ def auto_configure_combat(lua) -> int:
         local input = build.configTab.input
         local count = 0
 
-        -- === 1. 收集构筑中所有技能名称和 skillId ===
+        -- === 1. 收集构筑中所有技能名称、skillId 和 skillTypes ===
         local skillNames = {}
         local skillIds = {}
+        local hasCold = false
+        local hasLightning = false
+        local hasFire = false
+        local hasChaos = false
+        local hasPhysical = false
+        local hasBleed = false
+        local hasPoison = false
+        local hasIgnite = false
+        local hasChill = false
+        local hasFreeze = false
+        local hasShock = false
+        local hasCurse = false
+        local hasStun = false
+
         if build.skillsTab and build.skillsTab.socketGroupList then
             for _, sg in ipairs(build.skillsTab.socketGroupList) do
                 local gemList = sg.gems or sg.gemList or {}
@@ -1103,7 +1225,58 @@ def auto_configure_combat(lua) -> int:
                         or nil
                     if name then skillNames[name] = true end
                     if gem.skillId then skillIds[gem.skillId] = true end
+
+                    -- 收集 skillTypes（元素/伤害类型标签）
+                    local ge = gem.grantedEffect
+                        or (gem.gemData and gem.gemData.grantedEffect)
+                        or nil
+                    if ge and ge.skillTypes then
+                        if ge.skillTypes[SkillType.Cold] then hasCold = true end
+                        if ge.skillTypes[SkillType.Lightning] then hasLightning = true end
+                        if ge.skillTypes[SkillType.Fire] then hasFire = true end
+                        if ge.skillTypes[SkillType.Chaos] then hasChaos = true end
+                        if ge.skillTypes[SkillType.Physical] then hasPhysical = true end
+                        -- ElementalStatus: 能造成元素异常
+                        if ge.skillTypes[SkillType.ElementalStatus] then
+                            hasIgnite = true
+                            hasChill = true
+                            hasShock = true
+                        end
+                        -- CausesBurning: 能造成燃烧（点燃）
+                        if ge.skillTypes[SkillType.CausesBurning] then hasIgnite = true end
+                    end
+                    -- 额外从 skillId 推断（某些 fromItem 技能可能没有 grantedEffect.skillTypes）
+                    local sid = gem.skillId or ""
+                    local sidl = sid:lower()
+                    if sidl:find("cold") or sidl:find("frost") or sidl:find("ice") or sidl:find("freeze") or sidl:find("chill") then
+                        hasCold = true
+                    end
+                    if sidl:find("lightning") or sidl:find("thunder") or sidl:find("shock") or sidl:find("electrocut") then
+                        hasLightning = true
+                    end
+                    if sidl:find("fire") or sidl:find("flame") or sidl:find("ignite") or sidl:find("burn") then
+                        hasFire = true
+                    end
+                    if sidl:find("chaos") then hasChaos = true end
+                    if sidl:find("physical") then hasPhysical = true end
+                    if sidl:find("bleed") then hasBleed = true end
+                    if sidl:find("poison") then hasPoison = true end
+                    if sidl:find("curse") then hasCurse = true end
+                    if sidl:find("stun") then hasStun = true end
                 end
+            end
+        end
+
+        -- 从 skillNames 进一步推断（辅助宝石和光环）
+        -- 冰霜光环 -> Cold
+        if skillNames["Hatred"] or skillNames["Wrath"] or skillNames["Anger"] then
+            -- Hatred=Cold, Wrath=Lightning, Anger=Fire — 已由 skillTypes 覆盖
+        end
+        -- 诅咒类技能
+        for sn, _ in pairs(skillNames) do
+            if sn:find("Curse") or sn:find("Vulnerability") or sn:find("Enfeeble") or sn:find("Temporal Chains") or sn:find("Despair") or sn:find("Elemental Weakness") or sn:find("Flammability") or sn:find("Frostbite") or sn:find("Conductivity") or sn:find("Punishment") then
+                hasCurse = true
+                break
             end
         end
 
@@ -1183,6 +1356,75 @@ def auto_configure_combat(lua) -> int:
             end
         end
 
+        -- === 2.5. 敌人状态自动推断 ===
+        -- 根据构筑技能的 skillTypes 标签，自动设置合理的敌人异常状态条件
+        -- 原理：如果构筑有冰霜技能 -> 敌人会被冰缓; 有闪电技能 -> 敌人会被感电; 等
+        -- 这使得条件天赋（如 "对冰缓敌人增加伤害"）能正确反映其 DPS 贡献
+
+        -- 冰霜类：Cold 技能能造成冰缓，部分能冰冻
+        if hasCold then
+            hasChill = true
+            if input["conditionEnemyChilled"] == nil then
+                input["conditionEnemyChilled"] = true; count = count + 1
+            end
+            -- 有 Cold 技能不一定能冰冻（需要足够伤害），但大部分法术型 Cold 技能都能
+            -- 只在有明确的 Freeze 相关技能或 ColdDamageOverTime 时设冰冻
+            -- 安全做法：不自动设冰冻（因为 Boss 免疫冰冻），只设冰缓
+        end
+
+        -- 闪电类：Lightning 技能能造成感电
+        if hasLightning then
+            hasShock = true
+            if input["conditionEnemyShocked"] == nil then
+                input["conditionEnemyShocked"] = true; count = count + 1
+            end
+        end
+
+        -- 火焰类：Fire 技能能造成点燃 -> 敌人燃烧
+        if hasFire then
+            hasIgnite = true
+            if input["conditionEnemyIgnited"] == nil then
+                input["conditionEnemyIgnited"] = true; count = count + 1
+            end
+            -- Ignited 暗含 Burning
+        end
+
+        -- 物理类：Physical 技能能造成流血
+        if hasPhysical then
+            hasBleed = true
+            if input["conditionEnemyBleeding"] == nil then
+                input["conditionEnemyBleeding"] = true; count = count + 1
+            end
+        end
+
+        -- 混沌类：Chaos 技能能造成中毒
+        if hasChaos then
+            hasPoison = true
+            if input["conditionEnemyPoisoned"] == nil then
+                input["conditionEnemyPoisoned"] = true; count = count + 1
+            end
+        end
+
+        -- 诅咒类：如果构筑有诅咒，敌人被视为被诅咒
+        -- 注意：POB 自动在有诅咒技能时设 Cursed，但这里是显式确认
+        if hasCurse then
+            if input["conditionEnemyCursed"] == nil then
+                input["conditionEnemyCursed"] = true; count = count + 1
+            end
+        end
+
+        -- 敌人是 Rare/Unique（Boss 战默认）
+        if input["conditionEnemyRareOrUnique"] == nil then
+            input["conditionEnemyRareOrUnique"] = true; count = count + 1
+        end
+
+        -- 敌人在移动（流血相关加成需要）
+        if hasBleed then
+            if input["conditionEnemyMoving"] == nil then
+                input["conditionEnemyMoving"] = true; count = count + 1
+            end
+        end
+
         -- === 3. 通用战斗条件 ===
 
         -- Full Life: 战斗开始时满血（不与 LowLife 冲突时才启用）
@@ -1190,9 +1432,31 @@ def auto_configure_combat(lua) -> int:
             input["conditionFullLife"] = true; count = count + 1
         end
 
+        -- Full Energy Shield: 理论值测试假设满 ES（不与 LowLife 冲突时才启用）
+        if input["conditionFullEnergyShield"] == nil and input["conditionLowLife"] ~= true then
+            input["conditionFullEnergyShield"] = true; count = count + 1
+        end
+
         -- Full Mana: 战斗开始时满蓝（用于 Zenith 等 "above 90% mana" 条件）
         if input["conditionFullMana"] == nil then
             input["conditionFullMana"] = true; count = count + 1
+        end
+
+        -- === 3b. 战斗行为条件（基于构筑特征推断） ===
+
+        -- Crit Recently: 如果构筑暴击率 > 0（几乎所有法术构筑都有暴击）
+        -- 注意：conditionCritRecently 会同时设置 CritRecently + SkillCritRecently + CritInPast8Sec
+        -- 这会激活 "if you've dealt a Critical Hit Recently" 和 "in the past 8 seconds" 条件天赋
+        local hasCritChance = false
+        if build.configTab and build.configTab.modList then
+            local critVal = build.configTab.modList:Sum("INC", nil, "CritChance")
+            if critVal and critVal > 0 then hasCritChance = true end
+        end
+        -- 法术构筑几乎必然暴击（Spark 等多 hit 技能暴击概率极高）
+        if hasCritChance or hasFire or hasLightning or hasCold then
+            if input["conditionCritRecently"] == nil then
+                input["conditionCritRecently"] = true; count = count + 1
+            end
         end
 
         -- Cast Spell Recently: 法术构筑战斗中必然施法
@@ -1200,9 +1464,55 @@ def auto_configure_combat(lua) -> int:
             input["conditionCastSpellRecently"] = true; count = count + 1
         end
 
+        -- Hit Recently: 主动攻击必然命中
+        if input["conditionHitRecently"] == nil then
+            input["conditionHitRecently"] = true; count = count + 1
+        end
+
+        -- Hit with Spell Recently: 法术构筑必然法术命中
+        if input["conditionHitSpellRecently"] == nil then
+            input["conditionHitSpellRecently"] = true; count = count + 1
+        end
+
         -- Skills Used Recently: 默认 2（大部分构筑战斗中使用多种技能）
         if input["multiplierSkillUsedRecently"] == nil then
             input["multiplierSkillUsedRecently"] = 2; count = count + 1
+        end
+
+        -- Used a Skill Recently: 战斗中必然使用技能
+        if input["conditionUsedSkillRecently"] == nil then
+            input["conditionUsedSkillRecently"] = true; count = count + 1
+        end
+
+        -- Killed Recently: 清图场景默认击杀
+        if input["conditionKilledRecently"] == nil then
+            input["conditionKilledRecently"] = true; count = count + 1
+        end
+
+        -- Killed in Past 4s: 同上
+        if input["conditionKilledInPast4s"] == nil then
+            input["conditionKilledInPast4s"] = true; count = count + 1
+        end
+
+        -- Triggered a Skill Recently: 如果构筑有触发技能
+        if hasSkillIdFragment("Trigger") or hasSkillIdFragment("CastOn") then
+            if input["conditionTriggeredSkillRecently"] == nil then
+                input["conditionTriggeredSkillRecently"] = true; count = count + 1
+            end
+        end
+
+        -- Summoned Totem Recently: 如果构筑有图腾技能
+        if hasSkillIdFragment("Totem") then
+            if input["conditionSummonedTotemRecently"] == nil then
+                input["conditionSummonedTotemRecently"] = true; count = count + 1
+            end
+        end
+
+        -- Consumed a Power Charge Recently: 如果构筑有 Pinnacle of Power 或消耗充能技能
+        if hasSkillIdFragment("Pinnacle") or hasSkillIdFragment("ChargeRegulation") then
+            if input["conditionConsumedPowerChargeRecently"] == nil then
+                input["conditionConsumedPowerChargeRecently"] = true; count = count + 1
+            end
         end
 
         -- Champion Intimidate: 默认启用

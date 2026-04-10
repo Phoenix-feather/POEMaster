@@ -41,21 +41,32 @@ def _get_notable_nodes(lua) -> list[dict]:
     return nodes
 
 
-def _get_unallocated_notable_nodes(lua) -> list[dict]:
-    """获取天赋树上未分配的 Notable / Keystone 节点列表。
+def _get_unallocated_nodes(lua, include_normal: bool = False) -> list[dict]:
+    """获取天赋树上未分配的节点列表。
 
-    从 spec.nodes（全部节点）中排除 spec.allocNodes（已分配节点），
-    仅返回 Notable 和 Keystone 类型的节点。
+    Args:
+        lua: LuaRuntime
+        include_normal: 是否包含 Normal 类型的小天赋节点
+
+    Returns:
+        [{id, name, type, mod_key}, ...]
+        mod_key: 节点修饰语的序列化指纹，相同 mod_key 的节点效果相同
     """
-    result = lua.execute('''
+    type_filter = ""
+    if include_normal:
+        type_filter = "if node.type == 'Notable' or node.type == 'Keystone' or node.type == 'Normal' then"
+    else:
+        type_filter = "if node.type == 'Notable' or node.type == 'Keystone' then"
+
+    result = lua.execute(f'''
         local build = _spike_build
-        local nodes = {}
+        local nodes = {{}}
         for id, node in pairs(build.spec.nodes) do
             if not build.spec.allocNodes[id] then
-                if node.type == "Notable" or node.type == "Keystone" then
+                {type_filter}
                     -- 排除升华节点（不同升华的节点不应混入）
                     if not node.ascendancyName or node.ascendancyName == build.spec.curAscendClassName then
-                        nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?")
+                        nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?") .. "|" .. (node.modKey or "")
                     end
                 end
             end
@@ -67,13 +78,14 @@ def _get_unallocated_notable_nodes(lua) -> list[dict]:
         for line in str(result).strip().split('\n'):
             if not line:
                 continue
-            parts = line.split('|', 2)
-            if len(parts) == 3:
+            parts = line.split('|', 3)
+            if len(parts) == 4:
                 try:
                     nodes.append({
                         'id': int(parts[0]),
                         'name': parts[1],
                         'type': parts[2],
+                        'mod_key': parts[3],
                     })
                 except ValueError:
                     pass
@@ -118,13 +130,13 @@ def passive_node_analysis(lua, calcs, baseline: dict = None,
         has_dps = abs(dps_pct) > 0.1
         has_ehp = abs(ehp_pct) > 0.1
         if has_dps and has_ehp:
-            category = "混合"
+            category = "兼顾"
         elif has_dps:
-            category = "进攻"
+            category = "输出"
         elif has_ehp:
-            category = "防御"
+            category = "生存"
         else:
-            category = "无效"
+            category = "无收益"
 
         results.append({
             "id": nid, "name": node['name'], "type": node['type'],
@@ -142,58 +154,81 @@ def passive_node_analysis(lua, calcs, baseline: dict = None,
 def passive_node_exploration(lua, calcs, baseline: dict = None,
                              dps_stat: str = "TotalDPS",
                              ehp_stat: str = "TotalEHP",
-                             min_dps_pct: float = 0.5) -> list[dict]:
-    """天赋探索分析：逐个添加未分配的 Notable/Keystone，评估 DPS 和 EHP 收益。
+                             min_dps_pct: float = 0.5,
+                             include_normal: bool = True) -> list[dict]:
+    """天赋探索分析：逐个添加未分配节点，评估 DPS 和 EHP 收益。
 
     使用 POB 原生 override.addNodes 机制临时添加节点，不修改 build 对象。
     注意：由于绕过了路径连通性检查，部分节点在实际游戏中可能无法直接点出。
+
+    优化：
+    - modKey 缓存：相同 modKey 的节点只计算一次（如多个 +10% 伤害小天赋共享结果）
+    - Normal 小天赋：可选包含，大幅增加覆盖范围（~1000+ 节点）
 
     Args:
         baseline: 基线 output
         dps_stat: DPS 指标名（默认 TotalDPS）
         ehp_stat: EHP 指标名（默认 TotalEHP）
         min_dps_pct: 最小 DPS 变化百分比阈值（低于此值不显示，默认 0.5%）
+        include_normal: 是否包含 Normal 小天赋节点（默认 True）
 
     Returns:
         按 DPS 增益降序排列：
-        [{id, name, type, dps_pct, ehp_pct, category}, ...]
+        [{id, name, type, dps_pct, ehp_pct, category, mod_key}, ...]
         category: "进攻" / "防御" / "混合" / "无效"
     """
     if baseline is None:
         baseline = calculate(lua, calcs)
 
-    nodes = _get_unallocated_notable_nodes(lua)
-    logger.info("天赋探索: %d 个未分配 Notable/Keystone", len(nodes))
+    nodes = _get_unallocated_nodes(lua, include_normal=include_normal)
+    # 过滤掉 modKey 为空的节点（解析失败的修饰语）
+    nodes = [n for n in nodes if n.get('mod_key', '')]
+
+    notable_count = sum(1 for n in nodes if n['type'] in ('Notable', 'Keystone'))
+    normal_count = sum(1 for n in nodes if n['type'] == 'Normal')
+    logger.info("天赋探索: %d 个未分配节点 (Notable/Keystone: %d, Normal: %d)",
+                len(nodes), notable_count, normal_count)
 
     base_dps = baseline.get(dps_stat, 0)
     base_ehp = baseline.get(ehp_stat, 0)
 
+    # modKey 缓存：相同 modKey 的节点共享计算结果
+    # 与 POB PowerBuilder 一致——modKey 是节点所有修饰语的序列化指纹
+    modkey_cache: dict[str, tuple] = {}
+    cache_hits = 0
+
     results = []
-    for node in nodes:
+    for i, node in enumerate(nodes):
         nid = node['id']
-        diff = what_if_nodes(lua, calcs, add=[nid], baseline=baseline)
+        mod_key = node['mod_key']
 
-        dps_entry = diff.get(dps_stat)
-        ehp_entry = diff.get(ehp_stat)
+        # 检查缓存
+        if mod_key in modkey_cache:
+            dps_after, dps_delta, ehp_after, ehp_delta = modkey_cache[mod_key]
+            cache_hits += 1
+        else:
+            diff = what_if_nodes(lua, calcs, add=[nid], baseline=baseline)
+            dps_entry = diff.get(dps_stat)
+            ehp_entry = diff.get(ehp_stat)
+            dps_after = dps_entry[1] if dps_entry else base_dps
+            dps_delta = dps_entry[2] if dps_entry else 0
+            ehp_after = ehp_entry[1] if ehp_entry else base_ehp
+            ehp_delta = ehp_entry[2] if ehp_entry else 0
+            modkey_cache[mod_key] = (dps_after, dps_delta, ehp_after, ehp_delta)
 
-        dps_after = dps_entry[1] if dps_entry else base_dps
-        dps_delta = dps_entry[2] if dps_entry else 0
         dps_pct = (dps_delta / base_dps * 100) if base_dps != 0 else 0
-
-        ehp_after = ehp_entry[1] if ehp_entry else base_ehp
-        ehp_delta = ehp_entry[2] if ehp_entry else 0
         ehp_pct = (ehp_delta / base_ehp * 100) if base_ehp != 0 else 0
 
         has_dps = abs(dps_pct) > 0.1
         has_ehp = abs(ehp_pct) > 0.1
         if has_dps and has_ehp:
-            category = "混合"
+            category = "兼顾"
         elif has_dps:
-            category = "进攻"
+            category = "输出"
         elif has_ehp:
-            category = "防御"
+            category = "生存"
         else:
-            category = "无效"
+            category = "无收益"
 
         # 只保留有意义的结果
         if abs(dps_pct) >= min_dps_pct or abs(ehp_pct) >= min_dps_pct:
@@ -204,7 +239,18 @@ def passive_node_exploration(lua, calcs, baseline: dict = None,
                 "ehp_before": base_ehp, "ehp_after": ehp_after,
                 "ehp_delta": ehp_delta, "ehp_pct": round(ehp_pct, 2),
                 "category": category,
+                "mod_key": mod_key,
             })
+
+        # 进度日志
+        if (i + 1) % 200 == 0:
+            logger.info("天赋探索进度: %d/%d (%.0f%%), 缓存命中: %d/%d unique modKeys",
+                        i + 1, len(nodes), (i + 1) / len(nodes) * 100,
+                        cache_hits, len(modkey_cache))
+
+    unique_modkeys = len(modkey_cache)
+    logger.info("天赋探索完成: %d 个有效结果, 缓存: %d unique modKeys / %d 次计算节省",
+                len(results), unique_modkeys, cache_hits)
 
     results.sort(key=lambda x: x["dps_pct"], reverse=True)
     return results
