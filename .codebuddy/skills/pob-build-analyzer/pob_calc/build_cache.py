@@ -280,6 +280,11 @@ class BuildCache:
 
         slug = self._normalize_skill_name(skill_name)
 
+        # 注入 display_name 以便报告生成器还原可读名称
+        if "display_name" not in analysis_data:
+            analysis_data = dict(analysis_data)
+            analysis_data["display_name"] = skill_name
+
         # 写 analysis JSON
         json_path = build_dir / f"analysis_{slug}.json"
         json_path.write_text(
@@ -322,6 +327,10 @@ class BuildCache:
         skills_dir = self._builds_dir / build_id / f"ws{ws}" / "skills"
         skills_dir.mkdir(parents=True, exist_ok=True)
         slug = self._normalize_skill_name(skill_name)
+        # 注入 display_name 以便报告生成器还原可读名称
+        if "display_name" not in analysis_data:
+            analysis_data = dict(analysis_data)
+            analysis_data["display_name"] = skill_name
         json_path = skills_dir / f"{slug}.json"
         json_path.write_text(
             json.dumps(analysis_data, ensure_ascii=True, indent=2, default=str),

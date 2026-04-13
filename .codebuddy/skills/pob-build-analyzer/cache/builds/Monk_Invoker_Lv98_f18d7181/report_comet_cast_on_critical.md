@@ -33,7 +33,7 @@
 | 修饰符 | 总量 | 天赋 | 装备 | 珠宝 |
 |--------|------|------|------|------|
 | 施法速度 INC | 83% | +19% | +64% | — |
-| 伤害 INC | 289% | +249% | — | — |
+| 伤害 INC | 217% | +177% | — | — |
 | 元素伤害 INC | 101% | +72% | +29% | — |
 | 暴击率 INC | 251% | +231% | +20% | — |
 | 暴击伤害 INC | 200% | +200% | — | — |
@@ -68,7 +68,7 @@
 
 ### 通用伤害 INC (Lightning,Cold,Fire) = 289%
 
-**类别汇总**: Tree: +249.0 | Skill: +40.0
+**类别汇总**: Tree: +177.0 | Triggered: +72.0 | Skill: +40.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
@@ -79,11 +79,11 @@
 | Deadly Force | Tree | +25.0 |
 | Damage on Critical | Tree | +20.0 |
 | Damage on Critical | Tree | +20.0 |
-| Triggered Spell Damage | Tree | +16.0 |
-| Triggered Spell Damage | Tree | +14.0 |
-| Triggered Spell Damage | Tree | +14.0 |
-| Triggered Spell Damage | Tree | +14.0 |
-| Triggered Spell Damage | Tree | +14.0 |
+| Triggered Spell Damage | Triggered | +16.0 |
+| Triggered Spell Damage | Triggered | +14.0 |
+| Triggered Spell Damage | Triggered | +14.0 |
+| Triggered Spell Damage | Triggered | +14.0 |
+| Triggered Spell Damage | Triggered | +14.0 |
 | Life Spell Damage and Costs | Tree | +6.0 |
 
 ### 元素伤害 INC (Lightning,Cold,Fire) = 101%
@@ -338,13 +338,13 @@
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 法术格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
 | 格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
+| 法术格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
 | 生命上限 | INC | 46.5% | +0.44%/单位 | INC 5%→52%, 需要 +46 → EHP +20.3% |
 | 混沌抗性 | BASE | 68.5% | +0.29%/单位 | BASE 0→68, 需要 +68 → EHP +19.9% |
 | 闪避值 | BASE | 1991.5 | +0.01%/单位 | BASE 7→1998, 需要 +1992 → EHP +20.3% |
 
-**无法达到目标**: 冰霜抗性, 闪电抗性, 火焰抗性, 全元素抗性, 护甲增加, 护甲固定值, 物理减伤, 生命固定值, 闪避增加
+**无法达到目标**: 全元素抗性, 护甲增加, 火焰抗性, 护甲固定值, 闪避增加, 冰霜抗性, 物理减伤, 闪电抗性, 生命固定值
 
 ### 3C. 恢复增强灵敏度
 
@@ -508,7 +508,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 | 9 | Arcane Intensity | Notable | +9.1% | +0.0% | 输出 |
 | 10 | Calculated Hunter | Notable | +8.3% | +0.0% | 输出 |
 
-*（另有 587 个候选天赋未显示）*
+*（另有 581 个候选天赋未显示）*
 
 ## 8. 珠宝诊断
 
@@ -727,7 +727,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Thin I
 
 **最短板**: Chaos（承伤仅为最强的 24%）
 
-**防御性价比最高**: 法术格挡概率，需要 +32% 即可提升 EHP +20%
+**防御性价比最高**: 格挡概率，需要 +32% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 

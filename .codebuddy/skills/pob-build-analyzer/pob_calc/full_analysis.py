@@ -632,10 +632,14 @@ def _extract_build_modifiers(dps_bd: dict,
                         "affects": str, "formula_name": str}}
     """
     _BASE_CATEGORIES = {"Tree", "Item", "Jewel"}
+    _EXCLUDED_CATEGORIES = {"Triggered"}  # 仅对触发技能生效的 mod，不算构筑通用修饰符
     _spirit_ids = spirit_support_ids or set()
 
     def _is_included(source: dict) -> bool:
         cat = source.get("category", "")
+        # 排除仅对触发技能生效的 mod
+        if cat in _EXCLUDED_CATEGORIES:
+            return False
         if cat in _BASE_CATEGORIES:
             return True
         # 精魄辅助：category=Skill, source="Skill:{skill_id}"
@@ -816,14 +820,39 @@ def full_build_analysis(lua, calcs, skills: list[str] = None,
             }
 
             # 自动发现该套装下的技能
-            ws_skills = skills if skills else env.get_weapon_set_skills(ws)
-            if not ws_skills:
-                ws_skills = _auto_discover_skills(lua, calcs)
+            ws_skills = skills if skills else _auto_discover_skills(lua, calcs)
 
             # Phase 1: 逐技能分析（含光环/珠宝——它们的 DPS 贡献取决于主技能）
             skill_results = {}
-            for skill_name in ws_skills:
-                with env.skill_scope(skill_name):
+            for skill_entry in ws_skills:
+                # 解析 "DisplayName@groupIdx:activeSkillIdx" 格式
+                if "@" in skill_entry:
+                    display_name, rest = skill_entry.rsplit("@", 1)
+                    active_skill_idx = None
+                    if ":" in rest:
+                        group_str, active_str = rest.split(":", 1)
+                        try:
+                            group_idx = int(group_str)
+                            active_skill_idx = int(active_str)
+                        except ValueError:
+                            group_idx = None
+                    else:
+                        try:
+                            group_idx = int(rest)
+                        except ValueError:
+                            display_name = skill_entry
+                            group_idx = None
+                else:
+                    display_name = skill_entry
+                    group_idx = None
+                    active_skill_idx = None
+
+                if group_idx is not None:
+                    scope_ctx = env.skill_group_scope(
+                        group_idx, active_skill_idx=active_skill_idx)
+                else:
+                    scope_ctx = env.skill_scope(display_name)
+                with scope_ctx:
                     with env.config_scope():
                         with env.gem_scope():
                             baseline = env.calc()
@@ -875,7 +904,7 @@ def full_build_analysis(lua, calcs, skills: list[str] = None,
                                 spirit_support_results=ss_results,
                                 candidate_aura_results=ca_results)
 
-                            skill_results[main_skill.get("name", skill_name)] = {
+                            skill_results[display_name] = {
                                 "baseline": baseline,
                                 "main_skill": main_skill,
                                 "skill_flags": skill_flags,
@@ -909,38 +938,130 @@ def full_build_analysis(lua, calcs, skills: list[str] = None,
 
 
 def _auto_discover_skills(lua, calcs) -> list[str]:
-    """自动发现构筑中所有 DPS>0 的技能名称。"""
+    """自动发现构筑中所有 DPS>0 的技能名称。
+
+    不仅发现每个组的 mainSkill，还发现组内所有非辅助的主动技能，
+    并记录每个技能的 mainActiveSkill 索引。
+    同名技能出现在不同组时，用触发器宝石名做后缀区分，
+    例如 "Comet (Cast on Critical)" 和 "Comet (Elemental Invocation)"。
+    """
     result = lua.execute('''
         local build = _spike_build
-        local names = {}
-        local seen = {}
+        local entries = {}
         local orig = build.mainSocketGroup
+        local origActives = {}
+        for i = 1, #build.skillsTab.socketGroupList do
+            origActives[i] = build.skillsTab.socketGroupList[i].mainActiveSkill
+        end
+
         for i = 1, #build.skillsTab.socketGroupList do
             local g = build.skillsTab.socketGroupList[i]
             if not g.enabled then goto next end
+
+            -- 从 gemList 收集非辅助、非元触发的主动技能名
+            local gl = g.gemList or g.gems or {}
+            local activeNames = {}
+            local seenN = {}
+            for _, gem in ipairs(gl) do
+                local ge = gem.grantedEffect
+                    or (gem.gemData and gem.gemData.grantedEffect)
+                if ge and not ge.support and not ge.unsupported then
+                    -- 排除元触发技能（Cast on Critical, Elemental Invocation 等）
+                    local isMeta = ge.skillTypes
+                        and (ge.skillTypes[SkillType.Triggers] or ge.skillTypes[SkillType.Meta])
+                    if not isMeta then
+                        local gn = ge.name
+                        if gn and not seenN[gn] then
+                            seenN[gn] = true
+                            activeNames[#activeNames+1] = gn
+                        end
+                    end
+                end
+            end
+
+            if #activeNames == 0 then goto next end
+
+            -- 检测元触发器宝石（有 SkillType.Triggers 或 SkillType.Meta 的非辅助技能）
+            local triggerName = ""
+            for _, gem in ipairs(gl) do
+                local ge = gem.grantedEffect
+                    or (gem.gemData and gem.gemData.grantedEffect)
+                if ge and ge.skillTypes and not ge.support then
+                    if ge.skillTypes[SkillType.Triggers] or ge.skillTypes[SkillType.Meta] then
+                        triggerName = ge.name or ""
+                        break
+                    end
+                end
+            end
+
+            -- 逐个设 mainActiveSkill 来测试每个技能
             build.mainSocketGroup = i
-            local ok, env = pcall(calcs.initEnv, build, "MAIN")
-            if ok then
-                pcall(calcs.perform, env)
-                local dps = env.player.output.TotalDPS or 0
-                if dps > 0 then
-                    local ms = env.player.mainSkill
-                    local name = ms and ms.activeEffect
-                        and ms.activeEffect.grantedEffect
-                        and ms.activeEffect.grantedEffect.name
-                    if name and not seen[name] then
-                        seen[name] = true
-                        names[#names+1] = name
+            for _, sname in ipairs(activeNames) do
+                -- 逐步尝试 mainActiveSkill 1..N 找到匹配的
+                local foundIdx = 0
+                for tryIdx = 1, #activeNames + 1 do
+                    g.mainActiveSkill = tryIdx
+                    local ok, env = pcall(calcs.initEnv, build, "MAIN")
+                    if ok then
+                        pcall(calcs.perform, env)
+                        local ms = env.player.mainSkill
+                        local msName = ms and ms.activeEffect
+                            and ms.activeEffect.grantedEffect
+                            and ms.activeEffect.grantedEffect.name
+                        if msName == sname then
+                            local dps = env.player.output.TotalDPS or 0
+                            foundIdx = tryIdx
+                            entries[#entries+1] = {
+                                name = sname,
+                                group = i,
+                                activeIdx = tryIdx,
+                                trigger = triggerName,
+                                dps = dps
+                            }
+                            break
+                        end
                     end
                 end
             end
             ::next::
         end
+
+        -- 恢复
         build.mainSocketGroup = orig
-        return table.concat(names, "|")
+        for i = 1, #build.skillsTab.socketGroupList do
+            if origActives[i] then
+                build.skillsTab.socketGroupList[i].mainActiveSkill = origActives[i]
+            end
+        end
+
+        -- 去重逻辑：同名技能按触发器分组
+        local nameCount = {}
+        for _, e in ipairs(entries) do
+            nameCount[e.name] = (nameCount[e.name] or 0) + 1
+        end
+
+        local displayNames = {}
+        local seenDisplay = {}
+        for _, e in ipairs(entries) do
+            if e.dps == 0 then goto skip end  -- 跳过 DPS=0 的技能
+            local display
+            if nameCount[e.name] > 1 and e.trigger ~= "" then
+                display = e.name .. " (" .. e.trigger .. ")"
+            else
+                display = e.name
+            end
+            if not seenDisplay[display] then
+                seenDisplay[display] = true
+                displayNames[#displayNames+1] = display .. "@" .. tostring(e.group) .. ":" .. tostring(e.activeIdx)
+            end
+            ::skip::
+        end
+        return table.concat(displayNames, "|")
     ''')
     if result and str(result) != "":
-        return str(result).split("|")
+        raw_list = str(result).split("|")
+        # 返回格式: ["DisplayName@groupIdx:activeSkillIdx", ...]
+        return raw_list
     return []
 
 

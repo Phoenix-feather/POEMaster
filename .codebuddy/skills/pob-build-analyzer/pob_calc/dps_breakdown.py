@@ -310,7 +310,7 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         end
 
         -- === 序列化 Tabulate ===
-        -- 每条: modName\1source\1value\1label
+        -- 每条: modName\1source\1value\1label\1conditionTag
         local function tabStr(modType, ...)
             local tab = skillModList:Tabulate(modType, cfg, ...)
             local parts = {}
@@ -320,7 +320,19 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                     local src = m.source or "Unknown"
                     local name = type(m.name) == "string" and m.name or "?"
                     local lbl = resolveLabel(src)
-                    parts[#parts+1] = name .. "\1" .. src .. "\1" .. tostring(entry.value) .. "\1" .. lbl
+                    -- 检测条件标签：SkillType.Triggered 等条件限制
+                    local condTag = ""
+                    local idx = 1
+                    while m[idx] do
+                        local tag = m[idx]
+                        if type(tag) == "table" and tag.type == "SkillType" then
+                            if tag.skillType == SkillType.Triggered then
+                                condTag = "Triggered"
+                            end
+                        end
+                        idx = idx + 1
+                    end
+                    parts[#parts+1] = name .. "\1" .. src .. "\1" .. tostring(entry.value) .. "\1" .. lbl .. "\1" .. condTag
                 end
             end
             return table.concat(parts, "\2")
@@ -1139,11 +1151,12 @@ def _merge_added_damage_sources(sources: list, min_tab: str, max_tab: str,
                     val = float(p[2])
                 except ValueError:
                     continue
+                cond_tag = p[4] if len(p) > 4 else ""
                 if p[1] in min_by_source:
                     min_by_source[p[1]]["value"] += val
                 else:
                     min_by_source[p[1]] = {
-                        "mod_name": p[0], "value": val, "label": p[3]
+                        "mod_name": p[0], "value": val, "label": p[3], "cond_tag": cond_tag
                     }
 
     # 解析 max tab — 同 source 累加
@@ -1156,11 +1169,12 @@ def _merge_added_damage_sources(sources: list, min_tab: str, max_tab: str,
                     val = float(p[2])
                 except ValueError:
                     continue
+                cond_tag = p[4] if len(p) > 4 else ""
                 if p[1] in max_by_source:
                     max_by_source[p[1]]["value"] += val
                 else:
                     max_by_source[p[1]] = {
-                        "mod_name": p[0], "value": val, "label": p[3]
+                        "mod_name": p[0], "value": val, "label": p[3], "cond_tag": cond_tag
                     }
 
     # 合并同 source 的 min/max
@@ -1210,6 +1224,10 @@ def _parse_tabulate_item(parts: list, mod_type: str, formula_items: list,
                 category = _classify_source(p[1], jewel_node_ids)
                 label = (_source_label_fallback(p[1]) if category == "Sim"
                          else (p[3] if len(p) > 3 else _source_label_fallback(p[1])))
+                # 条件标签（第5字段）：如 "Triggered" 表示仅对触发技能生效
+                cond_tag = p[4] if len(p) > 4 else ""
+                if cond_tag == "Triggered":
+                    category = "Triggered"
                 sources.append({
                     "source": p[1],
                     "label": label,

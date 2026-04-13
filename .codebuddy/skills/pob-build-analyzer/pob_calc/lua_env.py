@@ -162,6 +162,40 @@ class LuaEnvManager:
                 self._lua.execute(
                     f'_spike_build.mainSocketGroup = {int(original)}')
 
+    @contextmanager
+    def skill_group_scope(self, group_idx: int, active_skill_idx: int = None):
+        """直接按组索引切换主技能，退出时恢复原始 mainSocketGroup。
+
+        用于同名技能出现在不同组时的精确切换。
+        当 active_skill_idx 指定时，同时设置组内的 mainActiveSkill，
+        用于在元触发技能组中选择特定的被触发法术。
+
+        Args:
+            group_idx: socketGroup 索引（1-based）
+            active_skill_idx: 组内技能索引（1-based），None 则不修改
+        """
+        original_group = self._lua.execute(
+            'return _spike_build.mainSocketGroup')
+        # 保存原始 mainActiveSkill
+        original_active = None
+        if active_skill_idx is not None:
+            original_active = self._lua.execute(
+                f'return _spike_build.skillsTab.socketGroupList[{group_idx}].mainActiveSkill')
+        self._lua.execute(
+            f'_spike_build.mainSocketGroup = {group_idx}')
+        if active_skill_idx is not None:
+            self._lua.execute(
+                f'_spike_build.skillsTab.socketGroupList[{group_idx}].mainActiveSkill = {active_skill_idx}')
+        try:
+            yield
+        finally:
+            if original_group is not None:
+                self._lua.execute(
+                    f'_spike_build.mainSocketGroup = {int(original_group)}')
+            if active_skill_idx is not None and original_active is not None:
+                self._lua.execute(
+                    f'_spike_build.skillsTab.socketGroupList[{group_idx}].mainActiveSkill = {int(original_active)}')
+
     def _find_skill_group(self, skill_name: str) -> int | None:
         """按技能名称模糊匹配查找 socketGroup 索引。"""
         needle = skill_name.strip().lower()
