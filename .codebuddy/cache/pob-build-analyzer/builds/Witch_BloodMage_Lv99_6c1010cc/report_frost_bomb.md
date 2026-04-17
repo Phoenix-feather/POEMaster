@@ -348,20 +348,20 @@
 | 10 | cold_damage_inc | INC | +240.0% | % | 0.08%/% | 691 | INC 691%→931%, 需要 +240 → DPS +20.1% |
 | 11 | fire_damage_inc | INC | +497.5% | % | 0.04%/% | 681 | INC 681%→1178%, 需要 +498 → DPS +20.0% |
 
-**无影响维度**: physical_damage_inc, lightning_damage_inc, chaos_damage_inc, cast_speed_inc, lightning_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
+**无影响维度**: physical_damage_inc, lightning_damage_inc, chaos_damage_inc, speed_inc, lightning_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
 
 ### 3B. 防御灵敏度（EHP）
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 法术格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
+| 法术格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 混沌抗性 | BASE | 68.0% | +0.30%/单位 | BASE 0→68, 需要 +68 → EHP +20.4% |
 | 生命上限 | INC | 78.5% | +0.26%/单位 | INC 5%→84%, 需要 +78 → EHP +20.0% |
 | 闪避值 | BASE | 2015.5 | +0.01%/单位 | BASE 142→2158, 需要 +2016 → EHP +20.6% |
 | 护甲固定值 | BASE | 4051.0 | +0.01%/单位 | BASE 0→4051, 需要 +4051 → EHP +20.5% |
 
-**无法达到目标**: 闪避增加, 闪电抗性, 物理减伤, 火焰抗性, 全元素抗性, 生命固定值, 冰霜抗性, 护甲增加
+**无法达到目标**: 生命固定值, 护甲增加, 闪避增加, 物理减伤, 火焰抗性, 闪电抗性, 冰霜抗性, 全元素抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -527,7 +527,7 @@ Invocated Echoes, The Spring Hare, Blood Transfusion, Practiced Signs, Echoing T
 | 9 | Deep Freeze | Notable | +13.8% | +0.0% | 输出 |
 | 10 | Cremation | Notable | +13.5% | +0.0% | 输出 |
 
-*（另有 584 个候选天赋未显示）*
+*（另有 163 个候选天赋未显示）*
 
 ## 8. 珠宝诊断
 
@@ -751,7 +751,7 @@ Invocated Echoes, The Spring Hare, Blood Transfusion, Practiced Signs, Echoing T
 
 **最短板**: Chaos（承伤仅为最强的 19%）
 
-**防御性价比最高**: 法术格挡概率，需要 +38% 即可提升 EHP +20%
+**防御性价比最高**: 格挡概率，需要 +38% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 

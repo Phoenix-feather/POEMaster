@@ -155,22 +155,23 @@ def passive_node_exploration(lua, calcs, baseline: dict = None,
                              dps_stat: str = "TotalDPS",
                              ehp_stat: str = "TotalEHP",
                              min_dps_pct: float = 0.5,
-                             include_normal: bool = True) -> list[dict]:
+                             include_normal: bool = False) -> list[dict]:
     """天赋探索分析：逐个添加未分配节点，评估 DPS 和 EHP 收益。
 
     使用 POB 原生 override.addNodes 机制临时添加节点，不修改 build 对象。
     注意：由于绕过了路径连通性检查，部分节点在实际游戏中可能无法直接点出。
 
     优化：
+    - Lua 批量计算：单次 Lua 调用完成所有节点评估，避免 Python↔Lua 往返开销
     - modKey 缓存：相同 modKey 的节点只计算一次（如多个 +10% 伤害小天赋共享结果）
-    - Normal 小天赋：可选包含，大幅增加覆盖范围（~1000+ 节点）
+    - Normal 小天赋：默认关闭（include_normal=False），小天赋收益极低且计算量大
 
     Args:
         baseline: 基线 output
         dps_stat: DPS 指标名（默认 TotalDPS）
         ehp_stat: EHP 指标名（默认 TotalEHP）
         min_dps_pct: 最小 DPS 变化百分比阈值（低于此值不显示，默认 0.5%）
-        include_normal: 是否包含 Normal 小天赋节点（默认 True）
+        include_normal: 是否包含 Normal 小天赋节点（默认 False，小天赋收益低且计算量大）
 
     Returns:
         按 DPS 增益降序排列：
@@ -180,76 +181,107 @@ def passive_node_exploration(lua, calcs, baseline: dict = None,
     if baseline is None:
         baseline = calculate(lua, calcs)
 
-    nodes = _get_unallocated_nodes(lua, include_normal=include_normal)
-    # 过滤掉 modKey 为空的节点（解析失败的修饰语）
-    nodes = [n for n in nodes if n.get('mod_key', '')]
-
-    notable_count = sum(1 for n in nodes if n['type'] in ('Notable', 'Keystone'))
-    normal_count = sum(1 for n in nodes if n['type'] == 'Normal')
-    logger.info("天赋探索: %d 个未分配节点 (Notable/Keystone: %d, Normal: %d)",
-                len(nodes), notable_count, normal_count)
-
     base_dps = baseline.get(dps_stat, 0)
     base_ehp = baseline.get(ehp_stat, 0)
 
-    # modKey 缓存：相同 modKey 的节点共享计算结果
-    # 与 POB PowerBuilder 一致——modKey 是节点所有修饰语的序列化指纹
-    modkey_cache: dict[str, tuple] = {}
-    cache_hits = 0
+    # Lua 批量计算：单次调用完成所有节点评估
+    # 在 Lua 端重新计算 baseline 以确保获取正确的 baseDPS/baseEHP
+    node_type_filter = 'true' if include_normal else '(node.type == "Notable" or node.type == "Keystone")'
+    lua_code = '''
+local calcs = ...
+local b = _spike_build
+local dpsStat = "''' + dps_stat + '''"
+local ehpStat = "''' + ehp_stat + '''"
+-- 重新计算基线以获取正确的 baseDPS/baseEHP
+local baseEnv = calcs.initEnv(b, "CALCULATOR", {})
+calcs.perform(baseEnv)
+local baseDPS = baseEnv.player.output[dpsStat] or 0
+local baseEHP = baseEnv.player.output[ehpStat] or 0
+local minPct = ''' + str(min_dps_pct) + '''
+local includeNormal = ''' + str(include_normal).lower() + '''
+local cache = {}
+local lines = {}
+local nodeCount = 0
+local cacheHits = 0
+local uniqueKeys = 0
+local nodes = b.spec.nodes
+for nid, node in pairs(nodes) do
+    if ''' + node_type_filter + '''
+       and not node.alloc
+       and node.modKey ~= ""
+       and not node.ascendancyName then
+        nodeCount = nodeCount + 1
+        local mk = node.modKey
+        local dpsAfter, dpsDelta, ehpAfter, ehpDelta
+        if cache[mk] then
+            dpsAfter, dpsDelta, ehpAfter, ehpDelta = cache[mk][1], cache[mk][2], cache[mk][3], cache[mk][4]
+            cacheHits = cacheHits + 1
+        else
+            local env = calcs.initEnv(b, "CALCULATOR", {addNodes={[node]=true}})
+            calcs.perform(env)
+            local out = env.player.output
+            dpsAfter = out[dpsStat] or baseDPS
+            ehpAfter = out[ehpStat] or baseEHP
+            dpsDelta = dpsAfter - baseDPS
+            ehpDelta = ehpAfter - baseEHP
+            cache[mk] = {dpsAfter, dpsDelta, ehpAfter, ehpDelta}
+            uniqueKeys = uniqueKeys + 1
+        end
+        local dpsPct = baseDPS ~= 0 and dpsDelta / baseDPS * 100 or 0
+        local ehpPct = baseEHP ~= 0 and ehpDelta / baseEHP * 100 or 0
+        if math.abs(dpsPct) >= minPct or math.abs(ehpPct) >= minPct then
+            local cat = "none"
+            if math.abs(dpsPct) > 0.1 and math.abs(ehpPct) > 0.1 then cat = "both"
+            elseif math.abs(dpsPct) > 0.1 then cat = "dps"
+            elseif math.abs(ehpPct) > 0.1 then cat = "ehp" end
+            lines[#lines+1] = nid.."\\t"..node.dn.."\\t"..node.type.."\\t"
+                ..string.format("%.6f", dpsAfter).."\\t"..string.format("%.6f", dpsDelta).."\\t"..string.format("%.4f", dpsPct).."\\t"
+                ..string.format("%.6f", ehpAfter).."\\t"..string.format("%.6f", ehpDelta).."\\t"..string.format("%.4f", ehpPct).."\\t"
+                ..cat.."\\t"..mk
+        end
+    end
+end
+return tostring(nodeCount).."\\n"..tostring(cacheHits).."\\n"..tostring(uniqueKeys).."\\n"..table.concat(lines, "\\n")
+'''
+    raw = str(lua.execute(lua_code, calcs))
+    header_lines = raw.split('\n', 3)
+    node_count = int(header_lines[0])
+    cache_hits = int(header_lines[1])
+    unique_modkeys = int(header_lines[2])
+    data_lines = header_lines[3].split('\n') if len(header_lines) > 3 and header_lines[3] else []
+
+    logger.info("天赋探索: %d 个未分配节点, Lua 批量计算完成 (缓存命中: %d, unique modKeys: %d)",
+                node_count, cache_hits, unique_modkeys)
+
+    _CAT_MAP = {"both": "兼顾", "dps": "输出", "ehp": "生存", "none": "无收益"}
 
     results = []
-    for i, node in enumerate(nodes):
-        nid = node['id']
-        mod_key = node['mod_key']
-
-        # 检查缓存
-        if mod_key in modkey_cache:
-            dps_after, dps_delta, ehp_after, ehp_delta = modkey_cache[mod_key]
-            cache_hits += 1
-        else:
-            diff = what_if_nodes(lua, calcs, add=[nid], baseline=baseline)
-            dps_entry = diff.get(dps_stat)
-            ehp_entry = diff.get(ehp_stat)
-            dps_after = dps_entry[1] if dps_entry else base_dps
-            dps_delta = dps_entry[2] if dps_entry else 0
-            ehp_after = ehp_entry[1] if ehp_entry else base_ehp
-            ehp_delta = ehp_entry[2] if ehp_entry else 0
-            modkey_cache[mod_key] = (dps_after, dps_delta, ehp_after, ehp_delta)
-
-        dps_pct = (dps_delta / base_dps * 100) if base_dps != 0 else 0
-        ehp_pct = (ehp_delta / base_ehp * 100) if base_ehp != 0 else 0
-
-        has_dps = abs(dps_pct) > 0.1
-        has_ehp = abs(ehp_pct) > 0.1
-        if has_dps and has_ehp:
-            category = "兼顾"
-        elif has_dps:
-            category = "输出"
-        elif has_ehp:
-            category = "生存"
-        else:
-            category = "无收益"
-
-        # 只保留有意义的结果
-        if abs(dps_pct) >= min_dps_pct or abs(ehp_pct) >= min_dps_pct:
+    for line in data_lines:
+        if not line.strip():
+            continue
+        parts = line.split('\t')
+        if len(parts) < 11:
+            continue
+        try:
             results.append({
-                "id": nid, "name": node['name'], "type": node['type'],
-                "dps_before": base_dps, "dps_after": dps_after,
-                "dps_delta": dps_delta, "dps_pct": round(dps_pct, 2),
-                "ehp_before": base_ehp, "ehp_after": ehp_after,
-                "ehp_delta": ehp_delta, "ehp_pct": round(ehp_pct, 2),
-                "category": category,
-                "mod_key": mod_key,
+                "id": int(parts[0]),
+                "name": parts[1],
+                "type": parts[2],
+                "dps_before": base_dps,
+                "dps_after": float(parts[3]),
+                "dps_delta": float(parts[4]),
+                "dps_pct": round(float(parts[5]), 2),
+                "ehp_before": base_ehp,
+                "ehp_after": float(parts[6]),
+                "ehp_delta": float(parts[7]),
+                "ehp_pct": round(float(parts[8]), 2),
+                "category": _CAT_MAP.get(parts[9], parts[9]),
+                "mod_key": parts[10],
             })
+        except (ValueError, IndexError):
+            continue
 
-        # 进度日志
-        if (i + 1) % 200 == 0:
-            logger.info("天赋探索进度: %d/%d (%.0f%%), 缓存命中: %d/%d unique modKeys",
-                        i + 1, len(nodes), (i + 1) / len(nodes) * 100,
-                        cache_hits, len(modkey_cache))
-
-    unique_modkeys = len(modkey_cache)
-    logger.info("天赋探索完成: %d 个有效结果, 缓存: %d unique modKeys / %d 次计算节省",
+    logger.info("天赋探索完成: %d 个有效结果, 缓存: %d unique modKeys / %d 次命中",
                 len(results), unique_modkeys, cache_hits)
 
     results.sort(key=lambda x: x["dps_pct"], reverse=True)

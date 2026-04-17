@@ -274,20 +274,20 @@
 | 6 | cold_damage_inc | INC | +110.5% | % | 0.18%/% | 453 | INC 453%→564%, 需要 +110 → DPS +20.0% |
 | 7 | elemental_damage_inc | INC | +110.5% | % | 0.18%/% | 453 | INC 453%→564%, 需要 +110 → DPS +20.0% |
 
-**无影响维度**: physical_damage_inc, fire_damage_inc, lightning_damage_inc, chaos_damage_inc, cast_speed_inc, lightning_pen, fire_pen, cold_pen, elemental_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
+**无影响维度**: physical_damage_inc, fire_damage_inc, lightning_damage_inc, chaos_damage_inc, speed_inc, lightning_pen, fire_pen, cold_pen, elemental_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
 
 ### 3B. 防御灵敏度（EHP）
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 法术格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
+| 法术格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 混沌抗性 | BASE | 68.0% | +0.30%/单位 | BASE 0→68, 需要 +68 → EHP +20.4% |
 | 生命上限 | INC | 75.5% | +0.27%/单位 | INC 5%→80%, 需要 +76 → EHP +20.0% |
 | 闪避值 | BASE | 1975.0 | +0.01%/单位 | BASE 142→2117, 需要 +1975 → EHP +20.8% |
 | 护甲固定值 | BASE | 4051.0 | +0.01%/单位 | BASE 0→4051, 需要 +4051 → EHP +20.5% |
 
-**无法达到目标**: 闪避增加, 闪电抗性, 物理减伤, 火焰抗性, 全元素抗性, 生命固定值, 冰霜抗性, 护甲增加
+**无法达到目标**: 生命固定值, 护甲增加, 闪避增加, 物理减伤, 火焰抗性, 闪电抗性, 冰霜抗性, 全元素抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -295,8 +295,8 @@
 
 | 增强属性 | 所需注入 | 当前总值 | 公式 |
 |---------|---------|---------|------|
-| 生命再生 | 7.5/s | — | BASE 0→8, 需要 +8 → 生命恢复 +21.4% |
 | 魔力再生 | 7.5/s | 35.8 | BASE 36→43, 需要 +8 → 魔力恢复 +22.3% |
+| 生命再生 | 7.5/s | — | BASE 0→8, 需要 +8 → 生命恢复 +21.4% |
 | 魔力恢复速率 | 20.0% | — | INC 0%→20%, 需要 +20 → 魔力恢复 +20.1% |
 | 生命恢复速率 | 20.5% | — | INC 0%→20%, 需要 +20 → 生命恢复 +20.4% |
 
@@ -451,7 +451,7 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Practiced Signs, Echoing
 | 9 | Power of the Storm | Notable | +9.0% | +0.0% | 输出 |
 | 10 | Biting Frost | Notable | +8.9% | +0.0% | 输出 |
 
-*（另有 525 个候选天赋未显示）*
+*（另有 145 个候选天赋未显示）*
 
 ## 8. 珠宝诊断
 
@@ -675,7 +675,7 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Practiced Signs, Echoing
 
 **最短板**: Chaos（承伤仅为最强的 19%）
 
-**防御性价比最高**: 法术格挡概率，需要 +38% 即可提升 EHP +20%
+**防御性价比最高**: 格挡概率，需要 +38% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 
@@ -683,8 +683,8 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Practiced Signs, Echoing
 
 **恢复增强 Top 3**：
 
-1. 生命再生: BASE 0→8, 需要 +8 → 生命恢复 +21.4%
-2. 魔力再生: BASE 36→43, 需要 +8 → 魔力恢复 +22.3%
+1. 魔力再生: BASE 36→43, 需要 +8 → 魔力恢复 +22.3%
+2. 生命再生: BASE 0→8, 需要 +8 → 生命恢复 +21.4%
 3. 魔力恢复速率: INC 0%→20%, 需要 +20 → 魔力恢复 +20.1%
 
 ### 🌳 天赋

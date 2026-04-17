@@ -832,6 +832,24 @@ def sensitivity_analysis(lua, calcs, profiles: list[str] = None,
         else:
             current_total = _query_mod_total_single(lua, calcs, mod_name, mod_type)
 
+        # 快速探测：注入 search_max 值，看 DPS 是否变化
+        # 如果即使注入最大值也不影响 DPS，直接跳过二分搜索
+        probe_diff = _inject_profile(lua, calcs, key, profile,
+                                     search_max, baseline)
+        probe_entry = probe_diff.get(profile_target)
+        if not probe_entry or probe_entry[2] == 0:
+            logger.debug("profile '%s' 注入最大值不影响 %s，跳过", key, profile_target)
+            results.append({
+                "key": key, "label": label, "description": description,
+                "mod_name": mod_name, "mod_type": mod_type,
+                "needed_value": None, "unit": unit,
+                "dps_per_unit": None, "target_pct": target_pct,
+                "actual_pct": 0, "current_total": current_total,
+                "formula": f"注入 {search_max}{unit} 无影响",
+                "sample_diff": {},
+            })
+            continue
+
         # 二分搜索：找到达到 profile_target_dps 所需的最小注入值
         needed_value = _binary_search_needed_value(
             lua, calcs, key, profile, baseline,
