@@ -1,0 +1,198 @@
+{
+  "build_id": "Witch_BloodMage_Lv99_6c1010cc",
+  "class_name": "Witch",
+  "ascendancy": "Blood Mage",
+  "level": 99,
+  "hash": "6c1010cc",
+  "created_at": "2026-04-17T02:47:39+00:00",
+  "last_used": "2026-04-17T07:27:29+00:00",
+  "main_socket_group": 10,
+  "skills": [
+    {
+      "group": 1,
+      "gems": [
+        "Purity of Fire",
+        "Herbalism II",
+        "Warm Blooded",
+        "Vitality II",
+        "Cool Headed",
+        "Mysticism II"
+      ]
+    },
+    {
+      "group": 2,
+      "gems": [
+        "Spark",
+        "Lightning Mastery",
+        "Zenith II",
+        "Vilenta's Propulsion",
+        "Rising Tempest",
+        "Deliberation"
+      ]
+    },
+    {
+      "group": 3,
+      "gems": [
+        "Frost Wall",
+        "Rising Tempest",
+        "Arbiter's Ignition",
+        "Spell Cascade",
+        "Magnified Area II",
+        "Zenith II"
+      ]
+    },
+    {
+      "group": 4,
+      "gems": [
+        "Frost Bomb",
+        "Cooldown Recovery II",
+        "Overabundance II",
+        "Harmonic Remnants II",
+        "Short Fuse II",
+        "Spell Echo"
+      ]
+    },
+    {
+      "group": 5,
+      "gems": [
+        "Pounce",
+        "Freezing Mark",
+        "Brutus' Brain",
+        "Cooldown Recovery II",
+        "Holy Descent",
+        "Prolonged Duration II"
+      ]
+    },
+    {
+      "group": 6,
+      "gems": [
+        "Elemental Invocation",
+        "Comet",
+        "Spell Cascade",
+        "Energy Retention",
+        "Energy Capacitor",
+        "Boundless Energy II"
+      ]
+    },
+    {
+      "group": 7,
+      "gems": [
+        "Cast on Elemental Ailment",
+        "Living Bomb",
+        "Comet",
+        "Spell Cascade",
+        "Energy Retention",
+        "Boundless Energy II"
+      ]
+    },
+    {
+      "group": 8,
+      "gems": [
+        "Life Remnants",
+        "Harmonic Remnants II",
+        "Khatal's Rejuvenation",
+        "Remnant Potency I"
+      ]
+    },
+    {
+      "group": 9,
+      "gems": [
+        "Pinnacle of Power",
+        "Heightened Charges",
+        "Cooldown Recovery II",
+        "Prolonged Duration II"
+      ]
+    },
+    {
+      "group": 10,
+      "gems": [
+        "Cackling Companions",
+        "Amanamu's Tithe",
+        "Infernal Legion III",
+        "Feeding Frenzy II"
+      ]
+    },
+    {
+      "group": 11,
+      "gems": [
+        "Shred",
+        "Rapid Attacks III",
+        "Rage III"
+      ]
+    },
+    {
+      "group": 12,
+      "gems": [
+        "Siphon Elements",
+        "Harmonic Remnants II",
+        "Fire Mastery"
+      ]
+    },
+    {
+      "group": 13,
+      "gems": [
+        "Trinity",
+        "Dialla's Desire",
+        "Lightning Mastery"
+      ]
+    },
+    {
+      "group": 14,
+      "gems": [
+        "Elemental Conflux",
+        "Uhtred's Omen",
+        "Lightning Mastery"
+      ]
+    },
+    {
+      "group": 15,
+      "gems": [
+        "Combat Frenzy",
+        "Charge Profusion II"
+      ]
+    },
+    {
+      "group": 16,
+      "gems": [
+        "Charge Regulation",
+        "Uhtred's Exodus"
+      ]
+    },
+    {
+      "group": 17,
+      "gems": [
+        "Power Siphon"
+      ]
+    },
+    {
+      "group": 18,
+      "gems": [
+        "Life Remnants"
+      ]
+    },
+    {
+      "group": 19,
+      "gems": [
+        "Power Siphon"
+      ]
+    },
+    {
+      "group": 20,
+      "gems": [
+        "Pinnacle of Power"
+      ]
+    },
+    {
+      "group": 21,
+      "gems": [
+        "Cackling Companions"
+      ]
+    },
+    {
+      "group": 22,
+      "gems": [
+        "Purity of Fire"
+      ]
+    }
+  ]
+}

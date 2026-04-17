@@ -5,12 +5,12 @@ POB Build Analyzer — 统一 API
 用法:
     # 方式 1: 直接传 share code（首次使用）
     from pob_calc import POBCalculator
-    bid = POBCalculator.save_build(share_code)      # 缓存到磁盘
-    calc = POBCalculator.from_current()              # 从缓存加载
+    bid = POBCalculator.save_build(share_code)      # 缓存 + 自动全技能分析
+    calc = POBCalculator.from_current()              # 从缓存加载（已有分析结果）
 
     # 方式 2: 已有缓存，直接加载
     calc = POBCalculator.from_current()
-    result = calc.full_analysis(skill_name="spark")
+    result = calc.full_build_analysis()              # 全技能分析
 
     # 方式 3: 传统方式（不使用缓存）
     calc = POBCalculator(share_code="eNrt...")
@@ -82,7 +82,7 @@ class POBCalculator:
 
     @classmethod
     def save_build(cls, share_code: str) -> str:
-        """保存 share code 到缓存并设为当前活跃构筑。
+        """保存 share code 到缓存，设为当前活跃构筑，并自动执行全技能分析。
 
         Args:
             share_code: POB 分享码
@@ -90,22 +90,52 @@ class POBCalculator:
         Returns:
             build_id 字符串
         """
-        return _cache.save(share_code)
+        build_id = _cache.save(share_code)
+        # 自动执行全技能分析
+        try:
+            inst = cls.from_current()
+            inst.full_build_analysis()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("自动全技能分析失败: %s", e)
+        return build_id
 
     @classmethod
     def from_current(cls, pob_path: str = None) -> "POBCalculator":
         """从当前活跃缓存构筑创建计算器。
 
+        如果没有活跃构筑，自动尝试从 share_code_new.txt 读取分享码并缓存。
+
         Raises:
-            FileNotFoundError: 无活跃构筑
+            FileNotFoundError: 无活跃构筑且无可用分享码
         """
         build_id = _cache.get_current_id()
-        if not build_id:
-            raise FileNotFoundError("没有活跃构筑，请先调用 save_build() 缓存一个构筑")
-        xml_text = _cache.load(build_id)
-        inst = cls(xml_text=xml_text, pob_path=pob_path)
-        inst._build_id = build_id
-        return inst
+        if build_id:
+            xml_text = _cache.load(build_id)
+            inst = cls(xml_text=xml_text, pob_path=pob_path)
+            inst._build_id = build_id
+            return inst
+
+        # 无活跃构筑，尝试从分享码文件加载
+        share_code = _cache.load_share_code_file()
+        if share_code:
+            import logging as _logging
+            _logging.getLogger(__name__).info("从 %s 加载分享码", _cache._share_code_file)
+            build_id = _cache.save(share_code)
+            xml_text = _cache.load(build_id)
+            inst = cls(xml_text=xml_text, pob_path=pob_path)
+            inst._build_id = build_id
+            # 自动执行全技能分析
+            try:
+                inst.full_build_analysis()
+            except Exception as e:
+                import logging as _logging2
+                _logging2.getLogger(__name__).warning("自动全技能分析失败: %s", e)
+            return inst
+
+        raise FileNotFoundError(
+            "没有活跃构筑，请先调用 save_build() 缓存一个构筑，"
+            "或将分享码保存到 share_code_new.txt")
 
     @classmethod
     def from_build_id(cls, build_id: str,
@@ -421,70 +451,23 @@ class POBCalculator:
     def full_analysis(self, target_pct: float = 20.0,
                       exploration_min_pct: float = 0.5,
                       skill_name: str = None) -> dict:
-        """完整构筑分析流程 — 一次调用完成所有分析。
+        """完整构筑分析 — 自动分析所有 DPS>0 的技能。
 
-        包含：基线计算、灵敏度分析、天赋价值分析、天赋探索、珠宝诊断、
-        DPS 来源拆解、光环与精魄分析。
-        结果可直接用于构筑优化决策，无需临时脚本。
-
-        如果当前实例是通过缓存工厂方法（from_current / from_build_id）创建的，
-        分析结果会自动持久化到构筑缓存目录：
-          - analysis_{skill}.json  （原始数据）
-          - report_{skill}.md     （格式化报告）
+        等价于 full_build_analysis()，始终执行全技能分析。
+        skill_name 参数已废弃（忽略），保留仅为向后兼容。
 
         Args:
             target_pct: 灵敏度分析 DPS 增幅目标（默认 20%）
             exploration_min_pct: 天赋探索最低 DPS 变化阈值（默认 0.5%）
-            skill_name: 指定主技能名称（自然语言，大小写不敏感，支持部分匹配）。
-                        例如 "ball lightning"、"Comet"、"ball"。
-                        若为 None，使用构筑默认主技能；若默认 DPS=0 则自动选最高 DPS 技能。
+            skill_name: 已废弃，忽略。
 
         Returns:
-            {
-                "baseline": {stat: value},
-                "main_skill": {"name": str, "castTime": float},
-                "skill_flags": {"is_spell": bool, ...},
-                "sensitivity": [灵敏度排序列表, 含 dps_per_unit],
-                "talent_value": [已分配天赋价值列表],
-                "talent_exploration": [未分配天赋探索列表],
-                "jewel_diagnosis": [珠宝诊断列表],
-                "dps_breakdown": {DPS 来源拆解，详见 dps_breakdown()},
-                "aura_spirit": {光环与精魄分析，详见 aura_spirit_analysis()},
-            }
+            full_build_analysis() 的返回值
         """
-        result = _whatif.full_analysis(
-            self._lua, self._calcs,
+        return self.full_build_analysis(
             target_pct=target_pct,
             exploration_min_pct=exploration_min_pct,
-            skill_name=skill_name,
         )
-        # 更新缓存的基线
-        self._baseline = result["baseline"]
-
-        # 提取全局数据并保存 global.json
-        global_data = _whatif.extract_global_data(result)
-        skill_data = _whatif.strip_global_data(result)
-
-        # 自动持久化到缓存目录
-        if self._build_id:
-            try:
-                actual_skill = result.get("main_skill", {}).get("name", skill_name or "unknown")
-                report_md = _whatif.format_report(result, global_data=global_data)
-                _cache.save_report(self._build_id, actual_skill, skill_data, report_md)
-                _cache.save_global(self._build_id, global_data)
-
-                # 自动生成汇总 HTML 报告
-                from report_generator import generate_html_report
-                html = generate_html_report(self._build_id)
-                if html:
-                    _cache._cache_dir.mkdir(parents=True, exist_ok=True)
-                    html_path = _cache._cache_dir / "builds" / self._build_id / "report.html"
-                    html_path.write_text(html, encoding="utf-8")
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning("报告持久化失败: %s", e)
-
-        return result
 
     def full_build_analysis(self, skills: list[str] = None,
                             weapon_sets: list[int] = None,
@@ -598,37 +581,21 @@ class POBCalculator:
         p = _cache._cache_dir / "builds" / bid / "report.html"
         return str(p) if p.exists() else None
 
-    def run_and_save(self, target_pct: float = 20.0, skill_name: str = None
+    def run_and_save(self, target_pct: float = 20.0
                      ) -> dict:
-        """运行完整分析并保存报告到文件。
+        """运行全技能分析并保存报告到文件。
 
-        一站式方法：full_analysis → format_report → 保存文件。
-        保存路径: reports/<BuildID>_<SkillName>_analysis.md
+        一站式方法：full_build_analysis → format_report → 保存文件。
 
         Args:
             target_pct: 灵敏度分析目标 DPS 增幅（默认 20%）
-            skill_name: 主技能名称（自然语言，部分匹配）
 
         Returns:
-            {"data": dict, "report": str, "path": str}
+            {"data": dict, "report_path": str}
         """
-        data = self.full_analysis(target_pct=target_pct, skill_name=skill_name)
-        global_data = _whatif.extract_global_data(data)
-        report = self.format_report(data, global_data=global_data)
-
-        skill = data.get("main_skill", {}).get("name", "unknown")
-        bid = self._build_id or "unknown"
-        safe_skill = skill.lower().replace(" ", "_")
-        filename = f"{bid}_{safe_skill}_analysis.md"
-
-        report_dir = Path(__file__).parent / "reports"
-        report_dir.mkdir(parents=True, exist_ok=True)
-        filepath = report_dir / filename
-
-        filepath.write_text(report, encoding="utf-8")
-
+        data = self.full_build_analysis(target_pct=target_pct)
+        html_path = self.get_html_report_path()
         return {
             "data": data,
-            "report": report,
-            "path": str(filepath),
+            "report_path": html_path,
         }

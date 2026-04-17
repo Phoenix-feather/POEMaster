@@ -12,7 +12,7 @@ import copy
 import urllib.request
 from pathlib import Path
 
-CACHE_DIR = Path(__file__).parent / "cache" / "builds"
+CACHE_DIR = Path(__file__).parent.parent.parent.parent / ".codebuddy" / "cache" / "pob-build-analyzer" / "builds"
 
 # CDN 库本地缓存目录
 _LIBS_DIR = Path(__file__).parent / "cache" / "libs"
@@ -53,6 +53,153 @@ def _strip_sample_diff(data: dict) -> dict:
     for entry in data.get("sensitivity", []):
         entry.pop("sample_diff", None)
     return data
+
+
+def _merge_enemy_zone(skill_data: dict) -> bool:
+    """对旧格式缓存做敌人乘区后处理合并。
+
+    旧缓存可能包含按元素展开的 Enemy_{dt}_DamageTaken_mult 和 {dt}_EffMult，
+    需要合并为 Enemy_DamageTaken_mult 和 EffMult_weighted。
+    返回是否修改了数据。
+    """
+    db = skill_data.get("dps_breakdown", {})
+    if not db:
+        return False
+    items = db.get("formula_items", [])
+    if not items:
+        return False
+
+    DT_NAMES = {"Lightning", "Cold", "Fire", "Physical", "Chaos"}
+    changed = False
+
+    # 1. 合并 DamageTaken
+    dt_entries = {}
+    for fi in items:
+        key = fi["key"]
+        if key.startswith("Enemy_") and key.endswith("_DamageTaken_mult"):
+            dt = key[len("Enemy_"):-len("_DamageTaken_mult")]
+            if dt in DT_NAMES:
+                dt_entries[dt] = fi
+
+    if len(dt_entries) >= 2:
+        values = [fi["total_value"] for fi in dt_entries.values()]
+        if max(values) - min(values) < 0.001:
+            merged_value = values[0]
+            seen = set()
+            merged_sources = []
+            for fi in dt_entries.values():
+                for s in fi.get("sources", []):
+                    src_key = (s.get("source", ""), s.get("mod_name", ""))
+                    if src_key not in seen:
+                        seen.add(src_key)
+                        merged_sources.append(s)
+            to_remove = {fi["key"] for fi in dt_entries.values()}
+            db["formula_items"] = [fi for fi in items if fi["key"] not in to_remove]
+            db["formula_items"].append({
+                "key": "Enemy_DamageTaken_mult",
+                "formula_name": "敌人受伤增加",
+                "total_value": merged_value,
+                "display_value": f"x{merged_value:.4f}",
+                "category_summary": {},
+                "sources": merged_sources,
+                "formula_detail": f"所有伤害类型共享 x{merged_value:.4f}",
+            })
+            items = db["formula_items"]
+            changed = True
+
+    # 2. 合并 EffMult 为加权
+    dc = db.get("damage_composition", [])
+    eff_entries = {}
+    for fi in items:
+        key = fi["key"]
+        if key.endswith("_EffMult") and key != "EffMult_weighted":
+            dt = key[:-len("_EffMult")]
+            if dt in DT_NAMES:
+                eff_entries[dt] = fi
+            elif dt == "Enemy":
+                # 旧格式全局 EffMult（如 Enemy_EffMult），直接重命名为 EffMult_weighted
+                fi["key"] = "EffMult_weighted"
+                fi["formula_name"] = "敌人抗性乘区"
+                changed = True
+
+    if len(eff_entries) >= 2 and dc:
+        # hit_avg 已包含 EffMult，用 pre-EffMult 伤害作为权重
+        pre_eff_map = {}
+        for e in dc:
+            elem = e.get("element", "")
+            if elem in eff_entries:
+                eff_val = eff_entries[elem]["total_value"]
+                pre_eff_map[elem] = e.get("hit_avg", 0) / eff_val if eff_val > 0 else 0
+        total_pre_eff = sum(pre_eff_map.values())
+        if total_pre_eff > 0:
+            weight_map = {elem: pre_eff / total_pre_eff for elem, pre_eff in pre_eff_map.items()}
+            if weight_map:
+                weighted = 0.0
+                sources = []
+                mod_sources = []
+                seen_mods = set()
+                for dt, weight in sorted(weight_map.items(), key=lambda x: -x[1]):
+                    eff_fi = eff_entries[dt]
+                    eff_val = eff_fi["total_value"]
+                    weighted += eff_val * weight
+                    dt_label = {"Lightning": "闪电", "Cold": "冰霜", "Fire": "火焰",
+                                "Physical": "物理", "Chaos": "混沌"}.get(dt, dt)
+                    detail = eff_fi.get("formula_detail", "")
+                    sources.append({
+                        "source": dt,
+                        "label": f"{dt_label} x{eff_val:.4f} (占{weight*100:.1f}%)",
+                        "category": "Enemy",
+                        "value": eff_val,
+                        "weight_pct": round(weight * 100, 1),
+                        "formula_detail": detail,
+                    })
+                    # 聚合 mod sources（穿透/减抗来源）
+                    for s in eff_fi.get("sources", []):
+                        src_key = (s.get("source", ""), s.get("mod_name", ""))
+                        if src_key not in seen_mods:
+                            seen_mods.add(src_key)
+                            mod_sources.append({
+                                "source": s.get("source", ""),
+                                "mod_name": s.get("mod_name", ""),
+                                "category": s.get("category", "Other"),
+                                "value": s.get("value", 0),
+                                "element": dt_label,
+                            })
+                to_remove = {fi["key"] for fi in eff_entries.values()}
+                db["formula_items"] = [fi for fi in items if fi["key"] not in to_remove]
+                # 旧格式 total_value 是绝对 effMult，需转换为增益百分比
+                # 加权基础乘区 = 各元素 (1 - resist/100) 的加权平均
+                weighted_base = 0.0
+                for dt_val, weight in sorted(weight_map.items(), key=lambda x: -x[1]):
+                    # 从 per-element source 的 formula_detail 提取 resist
+                    eff_fi = eff_entries[dt_val]
+                    resist_val = 0
+                    for s in eff_fi.get("sources", []):
+                        if s.get("mod_name", "").endswith("Resist"):
+                            resist_val = s.get("value", 0)
+                            break
+                    weighted_base += (1 - resist_val / 100) * weight
+                if abs(weighted_base) > 0.001:
+                    weighted_gain_pct = (weighted / weighted_base - 1) * 100
+                else:
+                    weighted_gain_pct = 0.0
+
+                rep_detail = sources[0].get("formula_detail", "") if sources else ""
+                db["formula_items"].append({
+                    "key": "EffMult_weighted",
+                    "formula_name": "敌人抗性乘区 (加权)",
+                    "total_value": weighted_gain_pct,
+                    "display_value": f"+{weighted_gain_pct:.1f}%",
+                    "_eff_mult_abs": weighted,
+                    "category_summary": {"Penetration": round(weighted_gain_pct, 1)},
+                    "sources": sources,
+                    "mod_sources": mod_sources,
+                    "formula_detail": rep_detail or f"按伤害构成加权: +{weighted_gain_pct:.1f}%",
+                })
+                db["eff_mult_weighted"] = weighted_gain_pct
+                changed = True
+
+    return changed
 
 
 def _load_analysis(build_dir: Path, skill: str) -> dict | None:
@@ -116,6 +263,66 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
             pass
 
     # 自动发现已分析的技能（优先 ws1/skills/，回退到扁平格式）
+    # 关键：如果 ws1/skills/ 数据缺少 dps_breakdown 新字段（如 crit_chance），
+    # 从扁平 analysis_*.json 回退补全 dps_breakdown，最终从 baseline 提取
+    # 补全后写回磁盘，确保数据源头正确，避免每次生成 HTML 都需重新修补
+    _BASELINE_TO_DB_MAP = {
+        "crit_chance": "CritChance",
+        "crit_multiplier": "CritMultiplier",
+        "speed": "Speed",
+    }
+
+    def _backfill_dps_breakdown(skill_data: dict, flat_data: dict = None):
+        """补全 dps_breakdown 中缺失的字段。
+        crit_chance/crit_multiplier/speed 始终从自身 baseline 映射（每个技能/套装独立），
+        即使已存在也以 baseline 为准修正。
+        dps_flow_stages/damage_composition 从 flat_data.dps_breakdown 补全。"""
+        db = skill_data.get("dps_breakdown", {})
+        if not db:
+            return False
+        changed = False
+        # 第一步：crit_chance/crit_multiplier/speed 始终从自身 baseline 映射
+        # 这些值是每个技能+套装组合独立的，不能用其他套装的 flat_data 覆盖
+        bl = skill_data.get("baseline", {})
+        for db_key, bl_key in _BASELINE_TO_DB_MAP.items():
+            if bl_key in bl:
+                expected = bl[bl_key]
+                current = db.get(db_key)
+                if current is None or (isinstance(expected, (int, float))
+                                       and isinstance(current, (int, float))
+                                       and abs(expected - current) > 0.01):
+                    db[db_key] = expected
+                    changed = True
+        # 第二步：结构型字段从 flat_data.dps_breakdown 补全
+        if flat_data:
+            flat_db = flat_data.get("dps_breakdown", {})
+            for new_key in ("dps_flow_stages", "damage_composition"):
+                if new_key in flat_db and new_key not in db:
+                    db[new_key] = flat_db[new_key]
+                    changed = True
+            # 第三步：敌人乘区从 flat_data 覆盖旧格式条目
+            # flat_data（full_analysis 产出）有正确的合并后数据，
+            # ws1 数据（full_build_analysis 产出）可能有旧格式或错误值
+            _ENEMY_KEYS = {"Enemy_DamageTaken_mult", "EffMult_weighted"}
+            flat_enemy_items = [fi for fi in flat_db.get("formula_items", [])
+                                if fi["key"] in _ENEMY_KEYS]
+            if flat_enemy_items:
+                # 移除 db 中所有敌人乘区条目（旧格式 + _merge_enemy_zone 产生的）
+                db["formula_items"] = [
+                    fi for fi in db.get("formula_items", [])
+                    if not (fi["key"].startswith("Enemy_") or fi["key"].endswith("_EffMult"))
+                ]
+                # 注入 flat_data 的正确条目（去重）
+                existing_keys = {fi["key"] for fi in db["formula_items"]}
+                for fi in flat_enemy_items:
+                    if fi["key"] not in existing_keys:
+                        db["formula_items"].append(fi)
+                        existing_keys.add(fi["key"])
+                if "eff_mult_weighted" in flat_db:
+                    db["eff_mult_weighted"] = flat_db["eff_mult_weighted"]
+                changed = True
+        return changed
+
     skills_data = {}
     if skills is None:
         # 自动发现：ws1/skills/ 优先，扁平路径回退
@@ -129,6 +336,29 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                         for gk in ("aura_spirit", "jewel_diagnosis"):
                             if gk not in d and gk in ws1_global:
                                 d[gk] = ws1_global[gk]
+                    # 补全 dps_breakdown 新字段
+                    flat_path = build_dir / f"analysis_{f.stem}.json"
+                    flat_d = None
+                    if flat_path.exists():
+                        try:
+                            flat_d = json.loads(flat_path.read_text(encoding="utf-8"))
+                        except (json.JSONDecodeError, OSError):
+                            pass
+                    # 先清理旧格式敌人乘区，再从 flat_data 补全正确数据
+                    _merge_enemy_zone(d)
+                    if _backfill_dps_breakdown(d, flat_d):
+                        # 写回磁盘，避免每次都需要修补
+                        try:
+                            f.write_text(json.dumps(d, ensure_ascii=False, default=str),
+                                         encoding="utf-8")
+                        except OSError:
+                            pass
+                    elif _backfill_dps_breakdown(d, flat_d):
+                        try:
+                            f.write_text(json.dumps(d, ensure_ascii=False, default=str),
+                                         encoding="utf-8")
+                        except OSError:
+                            pass
                     skills_data[display] = d
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -138,6 +368,8 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                 skill_slug = f.stem.replace("analysis_", "")
                 data = _load_analysis(build_dir, skill_slug)
                 if data is not None:
+                    _merge_enemy_zone(data)
+                    _backfill_dps_breakdown(data)
                     display = data.get("display_name") or skill_slug
                     skills_data[display] = data
     else:
@@ -153,9 +385,34 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                             for gk in ("aura_spirit", "jewel_diagnosis"):
                                 if gk not in data and gk in ws1_global:
                                     data[gk] = ws1_global[gk]
+                        # 补全 dps_breakdown 新字段
+                        flat_path = build_dir / f"analysis_{skill}.json"
+                        flat_d = None
+                        if flat_path.exists():
+                            try:
+                                flat_d = json.loads(flat_path.read_text(encoding="utf-8"))
+                            except (json.JSONDecodeError, OSError):
+                                pass
+                        _merge_enemy_zone(data)
+                        if _backfill_dps_breakdown(data, flat_d):
+                            try:
+                                ws1_path.write_text(
+                                    json.dumps(data, ensure_ascii=False, default=str),
+                                    encoding="utf-8")
+                            except OSError:
+                                pass
+                        elif _backfill_dps_breakdown(data):
+                            try:
+                                ws1_path.write_text(
+                                    json.dumps(data, ensure_ascii=False, default=str),
+                                    encoding="utf-8")
+                            except OSError:
+                                pass
                     except (json.JSONDecodeError, OSError):
                         pass
             if data is not None:
+                _merge_enemy_zone(data)
+                _backfill_dps_breakdown(data)
                 display = data.get("display_name") or skill
                 skills_data[display] = data
 
@@ -181,6 +438,27 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
             try:
                 ws2_skill = json.loads(f.read_text(encoding="utf-8"))
                 display = ws2_skill.get("display_name") or f.stem
+                # 同样补全 dps_breakdown 新字段
+                flat_path = build_dir / f"analysis_{f.stem}.json"
+                flat_d = None
+                if flat_path.exists():
+                    try:
+                        flat_d = json.loads(flat_path.read_text(encoding="utf-8"))
+                    except (json.JSONDecodeError, OSError):
+                        pass
+                _merge_enemy_zone(ws2_skill)
+                if _backfill_dps_breakdown(ws2_skill, flat_d):
+                    try:
+                        f.write_text(json.dumps(ws2_skill, ensure_ascii=False, default=str),
+                                     encoding="utf-8")
+                    except OSError:
+                        pass
+                elif _backfill_dps_breakdown(ws2_skill):
+                    try:
+                        f.write_text(json.dumps(ws2_skill, ensure_ascii=False, default=str),
+                                     encoding="utf-8")
+                    except OSError:
+                        pass
                 ws2_skills_data[display] = ws2_skill
             except (json.JSONDecodeError, OSError):
                 pass
@@ -862,171 +1140,245 @@ function SourceList({ sources }) {
   );
 }
 
-// ── DPS Calculation Flow (renders pre-computed stages from Python) ──
-function DPSFlowTable({ data }) {
-  var stages = (data && data.dps_flow_stages) || [];
-  if (stages.length === 0) return null;
-  // Total DPS is the last stage's formula text (already formatted by Python)
-  var totalLine = stages[stages.length - 1];
-
-  return h('div', { className: 'chart-box full-width' },
-    h('div', { className: 'chart-title' }, '\ud83d\udcdd DPS 计算流程'),
-    h('div', { style: { display: 'flex', flexDirection: 'column' } },
-      stages.slice(0, -1).map(function(r, i) {
-        var detail = r.detail_items;
-        var hasDetail = detail && detail.length > 0;
-        var isTotal = r.label === 'Total DPS';
-        return h('div', { key: i, style: {
-          borderBottom: '1px solid rgba(46,46,74,0.4)', padding: '6px 10px',
-          background: isTotal ? 'rgba(212,168,67,0.06)' : 'transparent'
-        }},
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-            h('div', { style: { width: 110, fontSize: 13, fontWeight: 500, color: r.color } }, r.label),
-            h('div', { style: { flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'monospace' } }, r.formula),
-            h('div', { style: { width: 160, textAlign: 'right', fontSize: 12, color: 'var(--text-muted)' } }, r.factor)
-          ),
-          hasDetail ? h('details', { style: { paddingLeft: 122, marginTop: 2 } },
-            h('summary', { style: { fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' } },
-              '\u25B6 ' + detail.length + ' \u4e2a\u5b50\u9879'
-            ),
-            detail.map(function(it, j) {
-              var isM = it.key && it.key.includes('_MORE');
-              var valStr = isM ? ('+' + fmt((it.total_value - 1) * 100, 1) + '%') : ('+' + (it.total_value < 10 ? fmt(it.total_value, 1) : Math.round(it.total_value)) + '%');
-              return h('div', { key: j, style: { padding: '2px 0' } },
-                h('div', { style: { fontSize: 12, color: 'var(--text-primary)' } },
-                  h('span', { style: { fontWeight: 500 } }, it.formula_name),
-                  h('span', { style: { color: r.color, marginLeft: 8, fontFamily: 'monospace' } },
-                    valStr
-                  )
-                ),
-                h(SourceList, { sources: it.sources })
-              );
-            })
-          ) : null
-        );
-      })
-    ),
-    h('div', { style: { marginTop: 8, padding: '8px 12px', background: 'var(--accent-light)', borderRadius: 4, textAlign: 'center' } },
-      h('span', { style: { color: 'var(--text-secondary)', fontSize: 13 } }, 'Total DPS = '),
-      h('span', { style: { color: 'var(--accent)', fontSize: 16, fontWeight: 700 } }, totalLine.formula)
-    )
-  );
-}
-
 // ── Formula Items Breakdown ──
 function FormulaBreakdown({ data }) {
   if (!data || !data.formula_items) return null;
 
-  const catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ff6b6b' };
-  const elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
+  var catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ff6b6b' };
 
-  // Merge {Element}_Lucky rows into single entry
-  const items = data.formula_items.filter(it =>
-    it.total_value !== undefined && it.total_value !== 0
-    && it.key !== 'CombinedDPS' && !it.key.endsWith('EffMult')
-  );
-  const luckyItems = items.filter(it => it.key.endsWith('_Lucky'));
-  const nonLucky = items.filter(it => !it.key.endsWith('_Lucky'));
-
-  let merged = [...nonLucky];
-  if (luckyItems.length > 0) {
-    // Merge Lucky rows
-    const totalLucky = luckyItems.reduce((s, it) => s + it.total_value, 0);
-    const seenSrcs = new Map();
-    luckyItems.forEach(it => (it.sources || []).forEach(s => {
-      const k = s.source;
-      if (!seenSrcs.has(k) || Math.abs(s.value) > Math.abs(seenSrcs.get(k).value)) seenSrcs.set(k, s);
-    }));
-    merged.push({
-      key: 'Lucky_Hits_Merged',
-      formula_name: 'Lucky Hits (' + luckyItems.length + ' \u5143\u7d20 \u00d7 ' + luckyItems[0].total_value + '%)',
-      total_value: totalLucky,
-      sources: Array.from(seenSrcs.values()),
-      category_summary: luckyItems[0].category_summary || {},
-    });
-  }
-
-  const sorted = merged.sort((a, b) => {
-    const order = { '_INC': 0, '_MORE': 1, '_BASE': 2, 'Lucky': 3, 'ConvGain': 4, 'SelfGain': 5 };
-    const aType = Object.keys(order).find(k => a.key.includes(k)) || 'zz';
-    const bType = Object.keys(order).find(k => b.key.includes(k)) || 'zz';
-    return (order[aType] || 9) - (order[bType] || 9) || Math.abs(b.total_value) - Math.abs(a.total_value);
+  // 不再合并 Lucky，保持独立分组
+  // 过滤旧格式按元素展开的敌人乘区条目（旧缓存兼容），
+  // 只保留合并后的 Enemy_DamageTaken_mult 和 EffMult_weighted
+  var items = data.formula_items.filter(function(it) {
+    if (it.total_value === undefined || it.total_value === 0 || it.key === 'CombinedDPS') return false;
+    // 过滤旧格式: Enemy_Lightning_DamageTaken_mult, Lightning_EffMult 等
+    if (/^Enemy_(Lightning|Cold|Fire|Physical|Chaos)_DamageTaken_mult$/.test(it.key)) return false;
+    if (/^(Lightning|Cold|Fire|Physical|Chaos)_EffMult$/.test(it.key)) return false;
+    return true;
   });
 
-  if (sorted.length === 0) return null;
+  // === 按乘区分组 ===
+  // group_type: 'additive' = 加法叠加(如INC), 'multiplicative' = 乘法叠加(如MORE), 'mixed' = 混合(BASE+INC+MORE)
+  var groups = [
+    { id: 'dmg_inc', label: '\u4f24\u5bb3 INC', icon: '\ud83d\udcc8', color: '#55c078', group_type: 'additive',
+      test: function(it) { return it.key.endsWith('_INC') && !it.key.startsWith('Crit') && !it.key.startsWith('Speed'); } },
+    { id: 'dmg_more', label: '\u4f24\u5bb3 MORE', icon: '\u26a1', color: '#5588dd', group_type: 'multiplicative',
+      test: function(it) { return it.key.endsWith('_MORE') && !it.key.startsWith('Crit') && !it.key.startsWith('Speed'); } },
+    { id: 'lucky', label: '\u5e78\u8fd0\u51fb\u4e2d', icon: '\ud83c\udfb2', color: '#cc5599', group_type: 'info',
+      test: function(it) { return it.key.endsWith('_Lucky'); } },
+    { id: 'crit', label: '\u66b4\u51fb', icon: '\ud83c\udfaf', color: '#e05555', group_type: 'mixed',
+      test: function(it) { return it.key.startsWith('Crit'); } },
+    { id: 'speed', label: '\u901f\u5ea6', icon: '\u23f1', color: '#44bbcc', group_type: 'mixed',
+      test: function(it) { return it.key.startsWith('Speed'); } },
+    { id: 'conv', label: '\u8f6c\u6362/\u589e\u76ca', icon: '\ud83d\udd04', color: '#dd8844', group_type: 'additive',
+      test: function(it) { return it.key.includes('ConvGain') || it.key.includes('SelfGain'); } },
+    { id: 'eff', label: '\u654c\u4eba\u4e58\u533a', icon: '\ud83d\udee1', color: '#ff6b6b', group_type: 'enemy',
+      test: function(it) { return it.key === 'EffMult_weighted' || it.key === 'Enemy_DamageTaken_mult'; } },
+    { id: 'dot', label: 'DoT DPS', icon: '\ud83d\udd25', color: '#cc66aa', group_type: 'info',
+      test: function(it) { return it.key === 'Ignite_DPS' || it.key === 'Bleed_DPS' || it.key === 'Poison_DPS'; } },
+  ];
+
+  // 分配每个 item 到组
+  var grouped = {};
+  groups.forEach(function(g) { grouped[g.id] = []; });
+  var ungrouped = [];
+  items.forEach(function(it) {
+    var assigned = false;
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].test(it)) {
+        grouped[groups[i].id].push(it);
+        assigned = true;
+        break;
+      }
+    }
+    if (!assigned) ungrouped.push(it);
+  });
+
+  // 渲染单个 formula item（带条形图+来源折叠）
+  function renderItem(it) {
+    var isEffWeighted = it.key === 'EffMult_weighted';
+    var isEnemyDT = it.key === 'Enemy_DamageTaken_mult';
+    var cats = it.category_summary || {};
+    var isMore = it.key.includes('_MORE');
+    var total = Math.abs(it.total_value);
+    var catKeys = Object.keys(cats).filter(function(k) { return cats[k] !== 0; });
+    var catEntries = catKeys.map(function(k) { return { key: k, value: Math.abs(cats[k]), color: catColors[k] || 'var(--text-muted)' }; });
+    catEntries.sort(function(a, b) { return b.value - a.value; });
+
+    var catSum, catPcts;
+    if (isEffWeighted || isEnemyDT) {
+      // 敌人乘区条目：不展示分类条形图，用来源列表代替
+      catPcts = [];
+    } else if (isMore) {
+      catSum = total - 1 || 1;
+      catPcts = catEntries.map(function(c) { return Object.assign({}, c, { pct: (c.value - 1) / catSum * 100 }); });
+    } else {
+      catSum = catEntries.reduce(function(s, c) { return s + c.value; }, 0) || 1;
+      catPcts = catEntries.map(function(c) { return Object.assign({}, c, { pct: c.value / catSum * 100 }); });
+    }
+
+    var displayStr;
+    var isDotDPS = it.key === 'Ignite_DPS' || it.key === 'Bleed_DPS' || it.key === 'Poison_DPS';
+    if (isDotDPS) {
+      displayStr = fmt(it.total_value, 0) + ' DPS';
+    } else if (isMore || it.key === 'Enemy_DamageTaken_mult') {
+      var pct = (it.total_value - 1) * 100;
+      displayStr = (pct >= 0 ? '+' : '') + fmt(pct, 1) + '%';
+    } else if (it.key === 'EffMult_weighted') {
+      // EffMult_weighted total_value 已是增益百分比（如 16.0 表示 +16%）
+      displayStr = '+' + fmt(it.total_value, 1) + '%';
+    } else if (it.key === 'CritMultiplier_BASE') {
+      // CritMultiplier_BASE=100 表示基础额外暴击伤害100%，即暴击×2
+      displayStr = fmt(it.total_value, 0) + '% (base extra)';
+    } else if (it.key === 'CritChance_BASE') {
+      displayStr = fmt(it.total_value, 1) + '%';
+    } else if (it.key.endsWith('_BASE')) {
+      displayStr = fmt(it.total_value, 2);
+    } else {
+      displayStr = (it.total_value >= 0 ? '+' : '') + (it.total_value < 10 ? fmt(it.total_value, 1) : Math.round(it.total_value)) + '%';
+    }
+
+    var catLegend = catPcts.map(function(c) {
+      var topSrcs = (it.sources || []).filter(function(s) { return s.category === c.key; });
+      topSrcs.sort(function(a, b) { return Math.abs(b.value || 0) - Math.abs(a.value || 0); });
+      var names = topSrcs.slice(0, 3).map(function(s) { return s.label || s.source; });
+      if (names.length === 0) return h('span', { key: c.key, style: { fontSize: 11, color: c.color } }, c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ' ' + fmt(c.value, 0)));
+      var rest = topSrcs.length - 3;
+      var label = names.join(', ') + (rest > 0 ? ' +' + rest : '');
+      return h('span', { key: c.key, style: { fontSize: 11, color: c.color, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: label }, label);
+    });
+
+    return h('div', { key: it.key, style: { borderBottom: '1px solid rgba(46,46,74,0.25)' } },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' } },
+        h('div', { style: { minWidth: 220, fontSize: 13, color: 'var(--text-primary)' } },
+          h('span', { style: { fontWeight: 500 } }, it.formula_name),
+          h('span', { style: { color: 'var(--accent)', fontWeight: 700, marginLeft: 8 } }, displayStr)
+        ),
+        h('div', { style: { flex: 1, height: 14, display: 'flex', borderRadius: 3, overflow: 'hidden' } },
+          catPcts.map(function(c, ci) {
+            return h('div', { key: ci, style: { width: c.pct + '%', background: c.color, opacity: 0.7 }, title: c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ': ' + fmt(c.value, 1)) });
+          })
+        ),
+        h('div', { style: { display: 'flex', gap: 8, minWidth: 180, justifyContent: 'flex-end', flexWrap: 'wrap' } }, catLegend)
+      ),
+      // 来源折叠：优先展示 mod_sources（穿透/减抗等真实来源），否则展示普通 sources
+      (function() {
+        var modSrcs = it.mod_sources || [];
+        var plainSrcs = it.sources || [];
+        if (modSrcs.length === 0 && plainSrcs.length === 0) return null;
+        var useMod = modSrcs.length > 0;
+        var srcs = useMod ? modSrcs : plainSrcs;
+        var label = useMod ? '\u25bc \u6297\u6027/\u7a7f\u900f\u6765\u6e90 (' + srcs.length + ')' : '\u25bc ' + srcs.length + ' \u4e2a\u6765\u6e90';
+        return h('details', { style: { paddingLeft: 12, paddingBottom: 2 } },
+          h('summary', { style: { fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' } }, label),
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 } },
+            srcs.map(function(s, si) {
+              var cat = s.category || (useMod ? 'Config' : 'Other');
+              var val = s.value;
+              var name = useMod ? (s.mod_name || s.source) : (s.label || s.source);
+              var elem = s.element ? ' [' + s.element + ']' : '';
+              return h('div', { key: si, style: { fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 8, paddingLeft: 8 } },
+                h('span', { style: { width: 50, color: catColors[cat] || 'var(--text-muted)', fontSize: 11 } }, cat),
+                h('span', { style: { width: 50, textAlign: 'right', color: (val || 0) >= 0 ? 'var(--text-primary)' : 'var(--red)', fontFamily: 'monospace' } }, (val >= 0 ? '+' : '') + val),
+                h('span', { style: { flex: 1 } }, name + elem)
+              );
+            })
+          )
+        );
+      })()
+    );
+  }
+
+  // 渲染分组（可折叠，默认折叠）
+  function renderGroup(g) {
+    var gItems = grouped[g.id];
+    if (!gItems || gItems.length === 0) return null;
+
+    // 汇总值：统一显示 最终效应 乘数（百分比）
+    var summary;
+    var gType = g.group_type;
+    if (gType === 'additive') {
+      // INC/ConvGain: 加法叠加，总 = 1 + sum%
+      var total = gItems.reduce(function(s, it) { return s + it.total_value; }, 0);
+      var mult = 1 + total / 100;
+      summary = '\u00d7' + fmt(mult, 2) + ' (+' + Math.round(total) + '%)';
+    } else if (gType === 'multiplicative') {
+      // MORE/EffMult/DamageTaken: 乘法叠加
+      var mult = 1;
+      gItems.forEach(function(it) {
+        if (it.key.endsWith('_MORE') || it.key === 'Enemy_DamageTaken_mult') {
+          mult *= it.total_value;
+        } else if (it.key === 'EffMult_weighted') {
+          mult *= (1 + it.total_value / 100); // EffMult total_value 是增益百分比
+        } else {
+          mult *= (1 + it.total_value / 100); // Lucky 的 total_value 是百分比
+        }
+      });
+      var pct = (mult - 1) * 100;
+      summary = '\u00d7' + fmt(mult, 2) + ' (' + (pct >= 0 ? '+' : '') + fmt(pct, 0) + '%)';
+    } else if (gType === 'enemy') {
+      // 敌人乘区：受伤增加 × takenMult，抗性穿透增益 +X%
+      var effItem = gItems.find(function(it) { return it.key === 'EffMult_weighted'; });
+      var dtItem = gItems.find(function(it) { return it.key === 'Enemy_DamageTaken_mult'; });
+      var parts = [];
+      if (dtItem) {
+        var dtPct = (dtItem.total_value - 1) * 100;
+        parts.push('\u53d7\u4f24\u589e\u52a0 \u00d7' + fmt(dtItem.total_value, 2) + ' (+' + Math.round(dtPct) + '%)');
+      }
+      if (effItem) {
+        parts.push('\u6297\u6027\u7a7f\u900f +' + fmt(effItem.total_value, 1) + '%');
+      }
+      // 总体 = takenMult × (1 + gain/100)
+      if (dtItem && effItem) {
+        var totalEff = dtItem.total_value * (1 + effItem.total_value / 100);
+        var totalPct = (totalEff - 1) * 100;
+        parts.unshift('\u603b\u4f53 \u00d7' + fmt(totalEff, 2) + ' (' + (totalPct >= 0 ? '+' : '') + fmt(totalPct, 1) + '%)');
+      }
+      summary = parts.join(' | ') || gItems.length + '\u9879';
+    } else if (g.id === 'lucky') {
+      // Lucky 不是乘法叠加——20% 是"投两次取高"概率，提升该元素伤害期望
+      // 只展示信息，不计算乘数（Lucky 效应已内含在 POB 的 MORE 计算结果中）
+      summary = gItems.length + '\u79cd\u5143\u7d20 \u5404' + fmt(gItems[0].total_value, 0) + '%\u6982\u7387';
+    } else if (g.id === 'dot') {
+      // DoT DPS: 绝对值求和
+      var total = gItems.reduce(function(s, it) { return s + it.total_value; }, 0);
+      summary = fmt(total, 0) + ' DPS';
+    } else {
+      // mixed (Crit/Speed): 直接读 POB 实际输出值
+      // 不手动从 BASE/INC/MORE 推算——POB 内部有大量修正
+      // （AccuracyHitChance、Lucky、ActionSpeedMod、baseCritOverride 等）
+      if (g.id === 'crit') {
+        var cc = data.crit_chance || 0;
+        var cm = data.crit_multiplier || 1;
+        var critFactor = 1 - cc / 100 + (cc / 100) * cm;
+        summary = '\u00d7' + fmt(critFactor, 2) + ' (cc=' + fmt(cc, 1) + '% cm=' + fmt(cm, 2) + '\u00d7)';
+      } else if (g.id === 'speed') {
+        var spd = data.speed || 0;
+        summary = '\u00d7' + fmt(spd, 2) + '/s';
+      } else {
+        // 通用 mixed（目前无此分组，预留）
+        summary = gItems.length + '\u9879';
+      }
+    }
+
+    return h('details', { key: g.id, style: { marginBottom: 2 } },
+      h('summary', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', cursor: 'pointer', userSelect: 'none', background: 'rgba(255,255,255,0.02)', borderRadius: 4 } },
+        h('span', { style: { fontSize: 14 } }, g.icon),
+        h('span', { style: { fontWeight: 700, fontSize: 14, color: g.color } }, g.label),
+        h('span', { style: { fontSize: 13, color: 'var(--accent)', fontFamily: 'monospace', fontWeight: 600 } }, summary),
+        h('span', { style: { fontSize: 11, color: 'var(--text-muted)' } }, gItems.length + ' \u4e2a\u5b50\u9879')
+      ),
+      h('div', { style: { paddingLeft: 24, paddingRight: 4 } },
+        gItems.map(renderItem)
+      )
+    );
+  }
 
   return h('div', { className: 'chart-box full-width' },
     h('div', { className: 'chart-title' }, '\u2694\ufe0f DPS \u4e58\u533a\u6765\u6e90\u62c6\u89e3'),
-    h('div', { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
-      sorted.map((it, idx) => {
-        const cats = it.category_summary || {};
-        const isMore = it.key.includes('_MORE');
-        const total = Math.abs(it.total_value);
-        const catKeys = Object.keys(cats).filter(k => cats[k] !== 0);
-        const catEntries = catKeys.map(k => ({ key: k, value: Math.abs(cats[k]), color: catColors[k] || 'var(--text-muted)' }));
-        catEntries.sort((a, b) => b.value - a.value);
-
-        // MORE: category 用乘法计算贡献比（每个 cat 的 (val-1)/(total-1)）
-        // INC/BASE: category 用加法
-        let catSum, catPcts;
-        if (isMore) {
-          catSum = total - 1 || 1;
-          catPcts = catEntries.map(c => ({ ...c, pct: (c.value - 1) / catSum * 100 }));
-        } else {
-          catSum = catEntries.reduce((s, c) => s + c.value, 0) || 1;
-          catPcts = catEntries.map(c => ({ ...c, pct: c.value / catSum * 100 }));
-        }
-
-        // 显示值: MORE 用百分比 +56%/-9%, 其他用 +N%
-        let displayStr;
-        if (isMore) {
-          const pct = (it.total_value - 1) * 100;
-          displayStr = (pct >= 0 ? '+' : '') + fmt(pct, 1) + '%';
-        } else {
-          var suffix = it.key.includes('Lucky') ? '%' : (it.key.includes('Speed') || it.total_value < 10) ? '%' : '%';
-          displayStr = (it.total_value >= 0 ? '+' : '') + (it.key.includes('Speed') || it.total_value < 10 ? fmt(it.total_value, 1) : Math.round(it.total_value)) + suffix;
-        }
-
-        // Build top-3 source names per category for legend
-        var catLegend = catPcts.map(function(c) {
-          var topSrcs = (it.sources || []).filter(function(s) { return s.category === c.key; });
-          topSrcs.sort(function(a, b) { return Math.abs(b.value || 0) - Math.abs(a.value || 0); });
-          var names = topSrcs.slice(0, 3).map(function(s) { return s.label || s.source; });
-          if (names.length === 0) return h('span', { key: c.key, style: { fontSize: 11, color: c.color } }, c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ' ' + fmt(c.value, 0)));
-          var rest = topSrcs.length - 3;
-          var label = names.join(', ') + (rest > 0 ? ' +' + rest : '');
-          return h('span', { key: c.key, style: { fontSize: 11, color: c.color, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: label }, label);
-        });
-
-        return h('div', { key: idx, style: { borderBottom: '1px solid rgba(46,46,74,0.4)' } },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px' } },
-            h('div', { style: { minWidth: 260, fontSize: 13, color: 'var(--text-primary)' } },
-              h('span', { style: { fontWeight: 500 } }, it.formula_name),
-              h('span', { style: { color: 'var(--accent)', fontWeight: 700, marginLeft: 8 } },
-                displayStr
-              )
-            ),
-            h('div', { style: { flex: 1, height: 16, display: 'flex', borderRadius: 3, overflow: 'hidden' } },
-              catPcts.map((c, ci) =>
-                h('div', { key: ci, style: { width: c.pct + '%', background: c.color, opacity: 0.7 }, title: c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ': ' + fmt(c.value, 1)) })
-              )
-            ),
-            h('div', { style: { display: 'flex', gap: 8, minWidth: 200, justifyContent: 'flex-end', flexWrap: 'wrap' } }, catLegend)
-          ),
-          (it.sources && it.sources.length > 0) ? h('details', { style: { paddingLeft: 12, paddingBottom: 4 } },
-            h('summary', { style: { fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' } }, '\u25bc ' + it.sources.length + ' \u4e2a\u6765\u6e90'),
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 } },
-              it.sources.map((s, si) =>
-                h('div', { key: si, style: { fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 8, paddingLeft: 8 } },
-                  h('span', { style: { width: 50, color: catColors[s.category] || 'var(--text-muted)', fontSize: 11 } }, s.category),
-                  h('span', { style: { width: 50, textAlign: 'right', color: (s.value || 0) >= 0 ? 'var(--text-primary)' : 'var(--red)', fontFamily: 'monospace' } }, (s.value >= 0 ? '+' : '') + s.value),
-                  h('span', { style: { flex: 1 } }, s.label || s.source)
-                )
-              )
-            )
-          ) : null
-        );
-      })
+    h('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
+      groups.map(renderGroup),
+      ungrouped.length > 0 ? h('div', { style: { paddingLeft: 24, paddingRight: 4 } }, ungrouped.map(renderItem)) : null
     )
   );
 }
@@ -1673,7 +2025,7 @@ function App() {
       h(GlobalBaselineSection, { activeWS: activeWS }),
       // Skill selector (dropdown)
       h('div', { className: 'skill-selector' },
-        h('label', { htmlFor: 'skill-select' }, '\u2728 技能选择: '),
+        h('label', { htmlFor: 'skill-select' }, '\u2694\uFE0F 技能选择: '),
         h('select', {
           id: 'skill-select',
           value: activeTab,
@@ -1688,13 +2040,11 @@ function App() {
           }
         },
           skillNames.map(function(name) {
-            var icon = '\ud83d\udd2e'; // default crystal ball
+            var icon = '\ud83d\udcdd'; // default scroll
             if (name.includes('spark')) icon = '\u26a1';
-            else if (name.includes('comet')) icon = '\u2604\ufe0f';
+            else if (name.includes('comet')) icon = '\ud83c\udf20';
             else if (name.includes('frost')) icon = '\u2744\ufe0f';
-            else if (name.includes('power_siphon')) icon = '\u267b\ufe0f';
-            else if (name.includes('bomb')) icon = '\ud83d\udca3';
-            else if (name.includes('wall')) icon = '\ud83e\uddf1';
+            else if (name.includes('power_siphon')) icon = '\ud83e\ude84';
             var displayName = name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
             displayName = displayName.replace(/\s*\((.+?)\)\s*/, ' \u2014 $1');
             return h('option', { key: name, value: name }, icon + ' ' + displayName);
@@ -1718,7 +2068,6 @@ function App() {
       ),
       // Skill-specific sections
       h(DamagePieChart, { data: data.dps_breakdown }),
-      h(DPSFlowTable, { data: data.dps_breakdown }),
       h(FormulaBreakdown, { data: data.dps_breakdown }),
       h('div', { className: 'chart-grid' },
         h(SensitivityChart, { sensitivity: data.sensitivity }),

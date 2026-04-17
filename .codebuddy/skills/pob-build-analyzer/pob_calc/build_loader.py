@@ -1361,22 +1361,59 @@ def auto_configure_combat(lua) -> int:
         -- 原理：如果构筑有冰霜技能 -> 敌人会被冰缓; 有闪电技能 -> 敌人会被感电; 等
         -- 这使得条件天赋（如 "对冰缓敌人增加伤害"）能正确反映其 DPS 贡献
 
-        -- 冰霜类：Cold 技能能造成冰缓，部分能冰冻
+        -- 冰霜类：Cold 技能能造成冰缓（必定），冰冻（需有 Freeze buildup）
         if hasCold then
             hasChill = true
             if input["conditionEnemyChilled"] == nil then
                 input["conditionEnemyChilled"] = true; count = count + 1
             end
-            -- 有 Cold 技能不一定能冰冻（需要足够伤害），但大部分法术型 Cold 技能都能
-            -- 只在有明确的 Freeze 相关技能或 ColdDamageOverTime 时设冰冻
-            -- 安全做法：不自动设冰冻（因为 Boss 免疫冰冻），只设冰缓
         end
 
-        -- 闪电类：Lightning 技能能造成感电
+        -- 闪电类：Lightning 技能能造成感电（必定）
         if hasLightning then
             hasShock = true
             if input["conditionEnemyShocked"] == nil then
                 input["conditionEnemyShocked"] = true; count = count + 1
+            end
+        end
+
+        -- === 2.6. 蓄力型效果自动检测 ===
+        -- POE2: 冰冻/电刑是蓄力型 buildup，需要技能有对应能力才能触发
+        -- 检测方法：运行 calcs.perform 后读取 FreezeBuildupAvg / ElectrocuteBuildupAvg
+        -- 注意：不是所有 Cold 技能都能冰冻，不是所有 Lightning 技能都能触电
+        local hasFreezeBuildup = false
+        local hasElectrocuteBuildup = false
+        local savedSG = build.mainSocketGroup
+        for i, group in ipairs(build.skillsTab.socketGroupList) do
+            if group.enabled then
+                build.mainSocketGroup = i
+                local env = calcs.initEnv(build, "MAIN")
+                calcs.perform(env)
+                local buildupOutput = env.player.output
+                if (buildupOutput.FreezeBuildupAvg or 0) > 0 then
+                    hasFreezeBuildup = true
+                end
+                if (buildupOutput.ElectrocuteBuildupAvg or 0) > 0 then
+                    hasElectrocuteBuildup = true
+                end
+                if hasFreezeBuildup and hasElectrocuteBuildup then
+                    break
+                end
+            end
+        end
+        build.mainSocketGroup = savedSG
+
+        if hasCold and hasFreezeBuildup then
+            if input["conditionEnemyFrozen"] == nil then
+                input["conditionEnemyFrozen"] = true; count = count + 1
+            end
+        end
+
+        -- 电刑：需要 ElectrocuteBuildupAvg > 0（需要 LightningCanElectrocute flag）
+        -- 默认 Lightning 技能不能触电，需要装备/技能有 "lightning damage can electrocute"
+        if hasLightning and hasElectrocuteBuildup then
+            if input["conditionEnemyElectrocuted"] == nil then
+                input["conditionEnemyElectrocuted"] = true; count = count + 1
             end
         end
 
@@ -1632,12 +1669,13 @@ def load_all(lua, build_info: dict):
     mod_fixes = postprocess_unparsed_mods(lua, build_info)
     config_count = load_config(lua, build_info)
 
-    # 自动配置战斗条件（技能专属 + 通用战斗状态）
-    auto_configure_combat(lua)
-
-    # 恢复 mainSocketGroup
+    # 恢复 mainSocketGroup（必须在 auto_configure_combat 之前，
+    # 因为 buildup 检测需要正确的 mainSocketGroup）
     msg = build_info['mainSocketGroup']
     lua.execute(f'_spike_build.mainSocketGroup = {msg}')
+
+    # 自动配置战斗条件（技能专属 + 通用战斗状态）
+    auto_configure_combat(lua)
 
     if warnings:
         for w in warnings:

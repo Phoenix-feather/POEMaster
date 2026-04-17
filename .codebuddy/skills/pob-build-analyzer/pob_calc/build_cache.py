@@ -31,8 +31,8 @@ from .build_parser import parse_build_xml
 
 logger = logging.getLogger(__name__)
 
-# 默认 cache 根目录：技能目录下的 cache/
-_DEFAULT_CACHE_DIR = Path(__file__).parent.parent / "cache"
+# 默认 cache 根目录：项目级别 .codebuddy/cache/pob-build-analyzer/
+_DEFAULT_CACHE_DIR = Path(__file__).parent.parent.parent.parent.parent / ".codebuddy" / "cache" / "pob-build-analyzer"
 
 _MAX_BUILDS = 10
 
@@ -49,6 +49,7 @@ class BuildCache:
         self._cache_dir = Path(cache_dir) if cache_dir else _DEFAULT_CACHE_DIR
         self._builds_dir = self._cache_dir / "builds"
         self._current_file = self._cache_dir / "current.txt"
+        self._share_code_file = self._cache_dir / "share_code_new.txt"
         self._max_builds = max_builds
 
         # 确保目录存在
@@ -63,6 +64,7 @@ class BuildCache:
 
         如果同一构筑已存在（XML hash 相同），跳过写入（幂等），
         但仍更新 current 指针和 last_used。
+        同时将分享码保存到 share_code_new.txt 以便后续使用。
 
         Args:
             share_code: POB 分享码
@@ -70,6 +72,9 @@ class BuildCache:
         Returns:
             build_id 字符串
         """
+        # 0. 保存分享码到文件
+        self.save_share_code_file(share_code)
+
         # 1. 解码
         xml_text = decode_share_code(share_code)
 
@@ -108,6 +113,30 @@ class BuildCache:
         self._prune()
 
         return build_id
+
+    # -----------------------------------------------------------------
+    # 分享码文件管理
+    # -----------------------------------------------------------------
+
+    def save_share_code_file(self, share_code: str):
+        """将分享码保存到 share_code_new.txt（供后续加载使用）。
+
+        Args:
+            share_code: POB 分享码
+        """
+        self._share_code_file.write_text(share_code.strip(), encoding="utf-8")
+        logger.info("分享码已保存到: %s", self._share_code_file)
+
+    def load_share_code_file(self) -> str | None:
+        """从 share_code_new.txt 读取分享码。
+
+        Returns:
+            分享码字符串，不存在或为空则返回 None
+        """
+        if not self._share_code_file.exists():
+            return None
+        content = self._share_code_file.read_text(encoding="utf-8").strip()
+        return content if content else None
 
     # -----------------------------------------------------------------
     # 加载

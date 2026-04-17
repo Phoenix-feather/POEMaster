@@ -94,6 +94,37 @@ provider:
 
 ---
 
+## 规则 4：禁止手动重算 POB 已计算的最终值
+
+**触发条件**：在 Python (`dps_breakdown.py`) 或 JS (`report_generator.py`) 中需要 CC/CM/Speed 等汇总值时
+
+**核心原则**：POB 的 Lua 引擎已经考虑了所有修正（AccuracyHitChance、Lucky、ActionSpeedMod、baseCritOverride、enemyDB 等），任何手动从 BASE/INC/MORE 分量推算最终值的代码都**必然不完整**。
+
+**强制规则**：
+
+| 值 | ✅ 正确写法 | ❌ 禁止写法 |
+|----|-----------|-----------|
+| CritChance | `baseline.get("CritChance")` / `data.crit_chance` | `baseCrit * (1 + ccInc/100) * ccMore` |
+| CritMultiplier | `baseline.get("CritMultiplier")` / `data.crit_multiplier` | `1 + (cmBase/100) * (1 + cmInc/100)` |
+| Speed | `baseline.get("Speed")` / `data.speed` | `spdBase * (1 + spdInc/100) * spdMore` |
+| AverageHit | `baseline.get("AverageHit")` | 任何从 Base+INC+MORE+Crit+EffMult 手动推导 |
+| TotalDPS | `baseline.get("TotalDPS")` | `avgHit * speed` |
+
+**例外**：`dps_breakdown.py` 的 Lua 脚本中读取 BASE/INC/MORE 分量用于**来源展示**是合理的，但这些分量仅用于展示各来源的贡献，不能用于计算最终值。
+
+**防护机制**：
+- `_compute_dps_flow_stages` 中 CC/CM 直接从 baseline 读取
+- JS `renderGroup` 中 crit/speed 汇总从 `data.crit_chance/crit_multiplier/speed` 读取
+- `dps_breakdown` 返回值包含 `crit_chance`/`crit_multiplier` 字段供 JS 使用
+- 代码中有 `_POB_ACTUAL_VALUE_KEYS` 断言检查不一致
+
+**违反时表现**：
+- CC=100%（手动推算将 POB 实际 CC 当作 BASE 再次乘 INC/MORE）
+- CM 偏低（遗漏 CritMultiplier MORE 修正）
+- Speed 偏高/偏低（遗漏 ActionSpeedMod 或触发链路修正）
+
+---
+
 ## 验证清单
 
 修改 `pob_calc/` 或 `config/` 后验证：
@@ -104,3 +135,4 @@ provider:
 - [ ] Lua 状态修改是否在 scope 保护内？
 - [ ] 端到端运行 `full_analysis` 后 DPS 数值是否合理？
 - [ ] `dps_breakdown.sources` 中是否有重复的 Sim + Skill 来源？
+- [ ] **是否手动重算了 POB 已计算的最终值？** → 必须直接读 baseline/dps_breakdown 输出

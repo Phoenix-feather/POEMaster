@@ -103,20 +103,19 @@ lupa>=2.0        # Python-Lua 互操作（Lua 5.4 运行时）
 ```
 from pob_calc import POBCalculator
 
-# 1. 创建计算器（from_current / from_build_id / 构造函数）
+# 0. 首次使用：保存分享码（自动触发全技能分析）
+# POBCalculator.save_build(share_code)  # 解码+缓存+全技能分析+生成HTML
+
+# 1. 创建计算器（自动从current.txt或share_code_new.txt加载）
+# 如果是新构筑，from_current() 也会自动全技能分析
 calc = POBCalculator.from_current()
 
-# 2. 运行完整分析
-result = calc.full_analysis(skill_name="spark")
+# 2. 手动重新分析（通常不需要，save_build/from_current 已自动完成）
+# result = calc.full_build_analysis()
 
-# 3. 生成报告并保存
-report = POBCalculator.format_report(result)
-report_path = calc.get_report_path("spark")
-with open(report_path, 'w', encoding='utf-8') as f:
-    f.write(report)
-
-# 4. 在 CodeBuddy 内置浏览器中打开预览 ← 必须！
-preview_url(f"file:///{report_path}")
+# 3. 在 CodeBuddy 内置浏览器中打开 HTML 报告 ← 必须！
+path = calc.get_html_report_path()
+preview_url(f"file:///{path}")
 ```
 
 ### 禁止事项
@@ -140,7 +139,7 @@ preview_url(f"file:///{report_path}")
 ### 报告预览路径格式
 
 ```
-file:///g:/POEMaster/.codebuddy/skills/pob-build-analyzer/cache/builds/{build_id}/report_{skill}.md
+file:///g:/POEMaster/.codebuddy/cache/pob-build-analyzer/builds/{build_id}/report.html
 ```
 
 ---
@@ -246,16 +245,16 @@ for stat in ["Life", "Mana", "TotalEHP"]:
 
 ```bash
 # 基本计算（从分享码文件）
-python -m pob_calc --share-code-file cache/share_code.txt
+python -m pob_calc --share-code-file .codebuddy/cache/pob-build-analyzer/share_code_new.txt
 
 # 精度对比
-python -m pob_calc --compare cache/share_code.txt
+python -m pob_calc --compare .codebuddy/cache/pob-build-analyzer/share_code_new.txt
 
 # What-If: 添加天赋点
-python -m pob_calc --share-code-file cache/share_code.txt --add-node 48524
+python -m pob_calc --share-code-file .codebuddy/cache/pob-build-analyzer/share_code_new.txt --add-node 48524
 
 # 灵敏度分析
-python -m pob_calc --share-code-file cache/share_code.txt --sensitivity
+python -m pob_calc --share-code-file .codebuddy/cache/pob-build-analyzer/share_code_new.txt --sensitivity
 ```
 
 ---
@@ -466,7 +465,7 @@ DPS 来源拆解大幅扩展 — 补全 15 个缺失公式组件：
 构筑缓存系统 + 表格格式报告：
 
 - **`BuildCache` 构筑缓存管理器**（`build_cache.py`）：
-  - `save(share_code)` → 解码 XML + 生成 `{class}_{ascendancy}_Lv{level}_{hash[:8]}` ID + 缓存到 `cache/builds/`
+  - `save(share_code)` → 解码 XML + 生成 `{class}_{ascendancy}_Lv{level}_{hash[:8]}` ID + 缓存到 `.codebuddy/cache/pob-build-analyzer/builds/`
   - `current.txt` 指针文件标识当前活跃构筑
   - `meta.json` 存储元信息 + 静态提取的技能列表（不启动 Lua）
   - LRU 自动淘汰（默认保留 10 个），幂等保存（XML hash 去重）
@@ -485,12 +484,12 @@ DPS 来源拆解大幅扩展 — 补全 15 个缺失公式组件：
 
 ### v1.0.14 (2026-03-24)
 
-主技能指定 — 支持自然语言指定分析目标技能：
+全技能分析 — 自动发现并分析所有 DPS>0 的技能：
 
-- **`skill_name` 参数**：`full_analysis(skill_name="ball lightning")` 按名称模糊匹配技能组
-  - 大小写不敏感，支持部分匹配（"ball" 可匹配 "Ball Lightning"）
-  - 精确匹配优先，部分匹配在多候选时选 DPS 最高者
-  - 未找到匹配时 fallback 到默认逻辑（构筑默认 → 自动最高 DPS）
+- **`full_build_analysis()`**：自动发现构筑中所有 DPS>0 的技能，逐个执行完整分析
+- **`full_analysis()`**：已废弃，等价于 `full_build_analysis()`（保留仅为向后兼容）
+- **`save_build(share_code)`**：保存分享码后自动触发全技能分析
+- **`from_current()`**：首次加载新构筑时自动触发全技能分析
 - **三级优先级**：用户指定 skill_name > 构筑 XML 默认 mainSocketGroup > 自动扫描最高 DPS
 - **API 签名变更**：
   - `what_if.full_analysis(lua, calcs, ..., skill_name=None)`
