@@ -434,14 +434,14 @@ SENSITIVITY_PROFILES = {
     "block_chance": {
         "mod_name": "BlockChance", "mod_type": "BASE",
         "label": "格挡概率",
-        "description": "攻击格挡概率（受 BlockChanceMax 上限限制）",
-        "search_max": 75, "unit": "%",
+        "description": "攻击格挡概率（受 BlockChanceMax 上限限制，POE2 上限 90%）",
+        "search_max": 90, "unit": "%",
     },
     "spell_block": {
         "mod_name": "SpellBlockChance", "mod_type": "BASE",
         "label": "法术格挡概率",
-        "description": "法术格挡概率（与攻击格挡独立）",
-        "search_max": 75, "unit": "%",
+        "description": "法术格挡概率（与攻击格挡独立，POE2 上限 90%）",
+        "search_max": 90, "unit": "%",
     },
 
     # === 减伤类 ===

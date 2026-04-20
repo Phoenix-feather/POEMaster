@@ -258,7 +258,7 @@
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Shock: 受伤+28%（范围 20%~50%） | Ailment | +28.0 |
+| Shock: 受伤+28% | Ailment | +28.0 |
 | Yoke of Suffering: 每种元素异常+24%，当前4种=+96%（最多5种=+120%） | Item | +96.0 |
 
 ### 敌人抗性乘区 (加权) = +11.9%
@@ -294,14 +294,14 @@
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 法术格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
+| 格挡概率 | BASE | 37.5% | +0.55%/单位 | BASE 0→38, 需要 +38 → EHP +20.5% |
 | 混沌抗性 | BASE | 68.0% | +0.30%/单位 | BASE 0→68, 需要 +68 → EHP +20.4% |
 | 生命上限 | INC | 75.5% | +0.27%/单位 | INC 5%→80%, 需要 +76 → EHP +20.0% |
 | 闪避值 | BASE | 1975.0 | +0.01%/单位 | BASE 142→2117, 需要 +1975 → EHP +20.8% |
 | 护甲固定值 | BASE | 4051.0 | +0.01%/单位 | BASE 0→4051, 需要 +4051 → EHP +20.5% |
 
-**无法达到目标**: 生命固定值, 护甲增加, 闪避增加, 物理减伤, 火焰抗性, 闪电抗性, 冰霜抗性, 全元素抗性
+**无法达到目标**: 冰霜抗性, 火焰抗性, 闪电抗性, 物理减伤, 护甲增加, 全元素抗性, 生命固定值, 闪避增加
 
 ### 3C. 恢复增强灵敏度
 
@@ -417,35 +417,35 @@
 
 ### DPS 影响天赋
 
-| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 |
-|---|------|------|-------------|-------------|------|
-| 1 | Heavy Frost | Notable | -28.9% | +0.0% | 输出 |
-| 2 | Thin Ice | Notable | -10.8% | +0.0% | 输出 |
-| 3 | Throatseeker | Notable | -10.5% | +0.0% | 输出 |
-| 4 | Dynamism | Notable | -8.6% | +0.0% | 输出 |
-| 5 | Gore Spike | Notable | -8.6% | +0.0% | 输出 |
-| 6 | Stormcharged | Notable | -8.0% | +0.0% | 输出 |
-| 7 | Sudden Escalation | Notable | -6.8% | +0.0% | 输出 |
-| 8 | Careful Assassin | Notable | -6.7% | +0.0% | 输出 |
-| 9 | For the Jugular | Notable | -5.8% | -0.3% | 兼顾 |
-| 10 | Evocational Practitioner | Notable | -5.3% | +0.0% | 输出 |
-| 11 | Potent Incantation | Notable | -4.5% | +0.0% | 输出 |
-| 12 | Acceleration | Notable | -4.3% | +0.0% | 输出 |
-| 13 | True Strike | Notable | -4.3% | +0.0% | 输出 |
-| 14 | All Natural | Notable | -3.7% | +0.0% | 输出 |
-| 15 | Breaking Point | Notable | -2.7% | +0.0% | 输出 |
-| 16 | Practiced Signs | Notable | -2.6% | +0.0% | 输出 |
-| 17 | The Spring Hare | Notable | -2.1% | +0.0% | 输出 |
+| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 | 效果 |
+|---|------|------|-------------|-------------|------|------|
+| 1 | Heavy Frost | Notable | -28.9% | +0.0% | 输出 | 20% increased Freeze Buildup; Hits ignore non-negative Elemental Resistances of Frozen Enemies |
+| 2 | Thin Ice | Notable | -10.8% | +0.0% | 输出 | 20% increased Freeze Buildup; 50% increased Damage with Hits against Frozen Enemies |
+| 3 | Throatseeker | Notable | -10.5% | +0.0% | 输出 | 60% increased Critical Damage Bonus; 20% reduced Critical Hit Chance |
+| 4 | Dynamism | Notable | -8.6% | +0.0% | 输出 | 40% increased Damage if you've Triggered a Skill Recently; Meta Skills gain 15% increased Energy |
+| 5 | Gore Spike | Notable | -8.6% | +0.0% | 输出 | 1% increased Critical Damage Bonus per 50 current Life |
+| 6 | Stormcharged | Notable | -8.0% | +0.0% | 输出 | 40% increased Elemental Damage if you've dealt a Critical Hit Recently; 15% increased Critical Hit Chance |
+| 7 | Sudden Escalation | Notable | -6.8% | +0.0% | 输出 | 16% increased Critical Hit Chance for Spells; 8% increased Cast Speed if you've dealt a Critical Hit Recently |
+| 8 | Careful Assassin | Notable | -6.7% | +0.0% | 输出 | 20% reduced Critical Damage Bonus; 50% increased Critical Hit Chance |
+| 9 | For the Jugular | Notable | -5.8% | -0.3% | 兼顾 | 25% increased Critical Damage Bonus; +10 to Intelligence |
+| 10 | Evocational Practitioner | Notable | -5.3% | +0.0% | 输出 | 25% increased Critical Hit Chance if you've Triggered a Skill Recently; Meta Skills gain 25% increased Energy if you've dealt a Critical Hit Recently |
+| 11 | Potent Incantation | Notable | -4.5% | +0.0% | 输出 | 30% increased Spell Damage; 5% reduced Cast Speed |
+| 12 | Acceleration | Notable | -4.3% | +0.0% | 输出 | 3% increased Movement Speed; 10% increased Skill Speed |
+| 13 | True Strike | Notable | -4.3% | +0.0% | 输出 | +10 to Dexterity; 20% increased Critical Hit Chance |
+| 14 | All Natural | Notable | -3.7% | +0.0% | 输出 | +5% to all Elemental Resistances; 30% increased Elemental Damage |
+| 15 | Breaking Point | Notable | -2.7% | +0.0% | 输出 | 10% increased Duration of Elemental Ailments on Enemies; 30% increased Magnitude of Non-Damaging Ailments you inflict |
+| 16 | Practiced Signs | Notable | -2.6% | +0.0% | 输出 | 6% increased Cast Speed |
+| 17 | The Spring Hare | Notable | -2.1% | +0.0% | 输出 | 20% chance for Damage of Enemies Hitting you to be Unlucky; 20% chance for Damage with Hits to be Lucky |
 
 ### 纯防御天赋
 
-| 天赋 | 移除后 EHP% |
-|------|-------------|
-| Melding | -5.7% |
-| Mind Over Matter | -13.4% |
-| Dampening Shield | -5.0% |
-| Pure Energy | -5.6% |
-| Heavy Buffer | -7.7% |
+| 天赋 | 移除后 EHP% | 效果 |
+|------|-------------|------|
+| Melding | -5.7% | 40% increased maximum Energy Shield; 10% reduced maximum Mana |
+| Mind Over Matter | -13.4% | All Damage is taken from Mana before Life; 50% less Mana Recovery Rate |
+| Dampening Shield | -5.0% | 28% increased maximum Energy Shield; Gain additional Ailment Threshold equal to 12% of maximum Energy Shield; Gain additional Stun Threshold equal to 12% of maximum Energy Shield |
+| Pure Energy | -5.6% | 30% increased maximum Energy Shield; +10 to Intelligence |
+| Heavy Buffer | -7.7% | 40% increased maximum Energy Shield; 5% of Damage taken bypasses Energy Shield |
 
 ### 无效天赋 (18 个)
 
@@ -634,7 +634,10 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Echoing Thunder, Energis
 |---|------|------|------|------|------|
 | 1 | Archmage（大法师） | 100 | +75.7% | +0.0% | 需精魄 100（缺 100）; Mana 转附加闪电伤害 |
 | 2 | Attrition（损耗） | 30 | +64.0% | +0.0% | 需精魄 30（缺 30）; 命中附带 Wither 叠层 |
-| 3 | Berserk（狂暴） | 30 | +21.5% | +0.0% | 需精魄 30（缺 30）; MORE Damage + 受伤增加 |
+
+**无 DPS 影响：**
+
+- Berserk（狂暴）
 
 ### 9C. 精魄辅助推荐
 
@@ -643,8 +646,6 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Echoing Thunder, Energis
 | 1 | Mysticism II | 30 | +8.6% | 需精魄 30（缺 30） ⚠️估算 | 动态扫描 |
 | 2 | Mysticism I | 15 | +6.4% | 需精魄 15（缺 15） ⚠️估算 | 动态扫描 |
 
-其余 19 个辅助无可模拟的 DPS 效果。
-
 ### 9D. 精魄预算
 
 | 项目 | 精魄 |
@@ -652,8 +653,8 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Echoing Thunder, Energis
 | 总精魄 | 277 |
 | 已用精魄 | 277 |
 | 可用精魄 | 0 |
-| 推荐光环消耗 | 160 |
-| 推荐后剩余 | -160 |
+| 推荐光环消耗 | 130 |
+| 推荐后剩余 | -130 |
 
 **注意**: 推荐光环的精魄总消耗超过可用精魄，需要根据优先级取舍。
 
@@ -663,6 +664,7 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Echoing Thunder, Energis
 
 - EC 使用构筑实际等级 Lv25（MORE=74%），非满级 Lv20
 - Charge Infusion 使用非默认 Charge 数量: PowerCharges=4
+- Berserk 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
 
 ### 9F. POB 未实现效果预估
 
@@ -697,7 +699,7 @@ Invocated Echoes, Sacrificial Blood, Blood Transfusion, Echoing Thunder, Energis
 
 **最短板**: Chaos（承伤仅为最强的 19%）
 
-**防御性价比最高**: 格挡概率，需要 +38% 即可提升 EHP +20%
+**防御性价比最高**: 法术格挡概率，需要 +38% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 

@@ -1066,23 +1066,25 @@ def format_report(data: dict, global_data: dict = None) -> str:
     if dps_talents:
         lines.append("### DPS 影响天赋")
         lines.append("")
-        lines.append("| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 |")
-        lines.append("|---|------|------|-------------|-------------|------|")
+        lines.append("| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 | 效果 |")
+        lines.append("|---|------|------|-------------|-------------|------|------|")
         for i, t in enumerate(dps_talents, 1):
+            desc = t.get('description', '') or ''
             lines.append(
                 f"| {i} | {t['name']} | {t['type']} | "
                 f"{t['dps_pct']:+.1f}% | {t.get('ehp_pct', 0):+.1f}% | "
-                f"{t['category']} |"
+                f"{t['category']} | {desc} |"
             )
         lines.append("")
 
     if def_talents:
         lines.append("### 纯防御天赋")
         lines.append("")
-        lines.append("| 天赋 | 移除后 EHP% |")
-        lines.append("|------|-------------|")
+        lines.append("| 天赋 | 移除后 EHP% | 效果 |")
+        lines.append("|------|-------------|------|")
         for t in def_talents:
-            lines.append(f"| {t['name']} | {t.get('ehp_pct', 0):+.1f}% |")
+            desc = t.get('description', '') or ''
+            lines.append(f"| {t['name']} | {t.get('ehp_pct', 0):+.1f}% | {desc} |")
         lines.append("")
 
     if zero_talents:

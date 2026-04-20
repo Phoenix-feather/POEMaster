@@ -905,6 +905,9 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
         # 不需要模拟注入。模拟仅用于推荐测试（_test_add_spirit_support）。
         if skill_config.get("skill_type") == "spirit_support":
             continue
+        # 跳过原生计算的主动技能：POB 已原生计算其效果，注入会导致双倍计算
+        if skill_config.get("skill_type") == "active_native":
+            continue
 
         effects = skill_config.get("effects", [])
         if not effects:

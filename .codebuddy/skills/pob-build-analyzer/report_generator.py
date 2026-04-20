@@ -1762,22 +1762,25 @@ function TalentScatter({ talents }) {
 // ── Defence Radar (SVG) ──
 function DefenceRadar({ baseline }) {
   if (!baseline) return null;
+  // Dynamic max: use 1.5× actual value (min 1) so radar scales to the build
+  // No hardcoded POE1-era caps
+  const dynMax = (v) => Math.max(Math.ceil((v || 0) * 1.5), 1);
   const metrics = [
-    { key: 'Life', max: 5000, value: baseline.Life || 0 },
-    { key: 'ES', max: 3000, value: baseline.EnergyShield || 0 },
-    { key: 'Evasion', max: 10000, value: baseline.MeleeEvasion || 0 },
-    { key: 'Armour', max: 20000, value: baseline.ArmourDefense || 0 },
-    { key: 'EHP', max: 15000, value: baseline.TotalEHP || 0 },
-    { key: 'Mana', max: 3000, value: baseline.Mana || 0 },
+    { key: 'Life', label: '生命', max: dynMax(baseline.Life), value: baseline.Life || 0 },
+    { key: 'ES', label: '护盾', max: dynMax(baseline.EnergyShield), value: baseline.EnergyShield || 0 },
+    { key: 'Evasion', label: '闪避', max: dynMax(baseline.MeleeEvasion), value: baseline.MeleeEvasion || 0 },
+    { key: 'Armour', label: '护甲', max: dynMax(baseline.ArmourDefense), value: baseline.ArmourDefense || 0 },
+    { key: 'EHP', label: '有效生命', max: dynMax(baseline.TotalEHP), value: baseline.TotalEHP || 0 },
+    { key: 'Mana', label: '魔力', max: dynMax(baseline.Mana), value: baseline.Mana || 0 },
   ];
   const n = metrics.length;
-  const cx = 140, cy = 130, r = 90;
+  const cx = 160, cy = 150, r = 90;
   const levels = [0.25, 0.5, 0.75, 1.0];
   const angle = (i) => (Math.PI * 2 * i / n) - Math.PI / 2;
 
   return h('div', { className: 'chart-box', style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
     h('div', { className: 'chart-title' }, '\ud83d\udce1 防御属性雷达图'),
-    h('svg', { width: 300, height: 280, viewBox: '0 0 300 280' },
+    h('svg', { width: 340, height: 320, viewBox: '0 0 340 320', style: { overflow: 'visible' } },
       // Grid
       levels.map(lv => {
         const pts = [];
@@ -1809,13 +1812,14 @@ function DefenceRadar({ baseline }) {
         const val = Math.min(m.value / m.max, 1);
         const px = cx + Math.cos(a) * r * val;
         const py = cy + Math.sin(a) * r * val;
-        const lx = cx + Math.cos(a) * (r + 22);
-        const ly = cy + Math.sin(a) * (r + 22);
+        const lx = cx + Math.cos(a) * (r + 28);
+        const ly = cy + Math.sin(a) * (r + 28);
         const anchor = Math.abs(Math.cos(a)) < 0.1 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
+        const labelText = (m.label || m.key) + ' (' + Math.round(m.value).toLocaleString() + ')';
         return h('g', { key: m.key },
           h('circle', { cx: px, cy: py, r: 4, fill: 'var(--accent)' }),
           h('text', { x: lx, y: ly + 4, textAnchor: anchor, fill: 'var(--text-secondary)', fontSize: 11 },
-            m.key, ' (', Math.round(m.value).toLocaleString(), ')')
+            labelText)
         );
       })
     )
@@ -1834,17 +1838,19 @@ function TalentValueTable({ talents }) {
   if (!talents) return null;
   return h(DetailSection, { title: `天赋价值 (${talents.length})`, defaultOpen: false },
     h('table', null,
-      h('thead', null, h('tr', null, h('th', null, '名称'), h('th', null, '类型'), h('th', null, 'DPS%'), h('th', null, 'EHP%'), h('th', null, '分类'))),
+      h('thead', null, h('tr', null, h('th', null, '名称'), h('th', null, '类型'), h('th', null, 'DPS%'), h('th', null, 'EHP%'), h('th', null, '分类'), h('th', null, '效果'))),
       h('tbody', null,
-        [...talents].sort((a, b) => a.dps_pct - b.dps_pct).map(t =>
-          h('tr', { key: t.id || t.name },
-            h('td', null, t.name),
-            h('td', null, t.type),
-            h('td', { style: { color: t.dps_pct >= 0 ? 'var(--green)' : 'var(--red)' } }, fmtSign(t.dps_pct)),
-            h('td', { style: { color: t.ehp_pct >= 0 ? 'var(--green)' : 'var(--red)' } }, fmtSign(t.ehp_pct)),
-            h('td', null, h('span', { style: { color: CATEGORY_COLORS[t.category] || 'var(--text-secondary)' } }, t.category))
-          )
-        )
+        [...talents].sort((a, b) => a.dps_pct - b.dps_pct).map(t => {
+          var desc = (t.description || '-').replace(/; /g, '\n');
+          return h('tr', { key: t.id || t.name },
+            h('td', { style: { fontWeight: 500, whiteSpace: 'nowrap' } }, t.name),
+            h('td', { style: { whiteSpace: 'nowrap' } }, t.type),
+            h('td', { style: { color: t.dps_pct >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' } }, fmtSign(t.dps_pct)),
+            h('td', { style: { color: t.ehp_pct >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' } }, fmtSign(t.ehp_pct)),
+            h('td', { style: { whiteSpace: 'nowrap' } }, h('span', { style: { color: CATEGORY_COLORS[t.category] || 'var(--text-secondary)' } }, t.category)),
+            h('td', { style: { color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'pre-line', lineHeight: 1.4 } }, desc)
+          );
+        })
       )
     )
   );
@@ -1874,30 +1880,32 @@ function TalentExplorationTable({ talents }) {
   // 分离输出和生存节点
   var offence = talents.filter(function(t) {
     return t.category === '\u8f93\u51fa' || t.category === '\u517c\u987e';
-  }).sort(function(a, b) { return b.dps_pct - a.dps_pct; }).slice(0, 10);
+  }).sort(function(a, b) { return b.dps_pct - a.dps_pct; }).slice(0, 20);
 
   var defence = talents.filter(function(t) {
     return t.category === '\u751f\u5b58' || t.category === '\u517c\u987e';
-  }).sort(function(a, b) { return b.ehp_pct - a.ehp_pct; }).slice(0, 10);
+  }).sort(function(a, b) { return b.ehp_pct - a.ehp_pct; }).slice(0, 20);
 
   // 去重：已在输出榜的兼顾节点不重复出现在生存榜
   var offenceIds = new Set(offence.map(function(t) { return t.id; }));
   var defenceFiltered = defence.filter(function(t) {
     return !(t.category === '\u517c\u987e' && offenceIds.has(t.id));
-  }).slice(0, 10);
+  }).slice(0, 20);
 
   function makeTable(title, items, sortKey) {
     if (items.length === 0) return null;
     return h(DetailSection, { title: title, defaultOpen: false },
       h('table', null,
-        h('thead', null, h('tr', null, h('th', null, '\u540d\u79f0'), h('th', null, '\u7c7b\u578b'), h('th', null, 'DPS%'), h('th', null, 'EHP%'))),
+        h('thead', null, h('tr', null, h('th', null, '\u540d\u79f0'), h('th', null, '\u7c7b\u578b'), h('th', null, 'DPS%'), h('th', null, 'EHP%'), h('th', null, '\u6548\u679c'))),
         h('tbody', null,
           items.map(function(t) {
+            var desc = (t.description || '-').replace(/; /g, '\n');
             return h('tr', { key: t.id || t.name },
-              h('td', null, t.name),
-              h('td', { style: { color: 'var(--text-muted)', fontSize: 11 } }, t.type),
-              h('td', { style: { color: 'var(--green)' } }, fmtSign(t.dps_pct)),
-              h('td', { style: { color: t.ehp_pct >= 0 ? 'var(--green)' : 'var(--red)' } }, fmtSign(t.ehp_pct))
+              h('td', { style: { fontWeight: 500, whiteSpace: 'nowrap' } }, t.name),
+              h('td', { style: { color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap' } }, t.type),
+              h('td', { style: { color: 'var(--green)', whiteSpace: 'nowrap' } }, fmtSign(t.dps_pct)),
+              h('td', { style: { color: t.ehp_pct >= 0 ? 'var(--green)' : 'var(--red)', whiteSpace: 'nowrap' } }, fmtSign(t.ehp_pct)),
+              h('td', { style: { color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'pre-line', lineHeight: 1.4 } }, desc)
             );
           })
         )
@@ -1907,9 +1915,9 @@ function TalentExplorationTable({ talents }) {
 
   return h('div', null,
     h('div', { style: { color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 } },
-      '\u603b\u5019\u9009 ' + talents.length + ' \u4e2a\uff0c\u5206\u522b\u5c55\u793a\u8fdb\u653b/\u9632\u5fa1 TOP 10'),
-    makeTable('\u8f93\u51fa TOP 10', offence, 'dps_pct'),
-    makeTable('\u751f\u5b58 TOP 10', defenceFiltered, 'ehp_pct')
+      '\u603b\u5019\u9009 ' + talents.length + ' \u4e2a\uff0c\u5206\u522b\u5c55\u793a\u8fdb\u653b/\u9632\u5fa1 TOP 20'),
+    makeTable('\u8f93\u51fa TOP 20', offence, 'dps_pct'),
+    makeTable('\u751f\u5b58 TOP 20', defenceFiltered, 'ehp_pct')
   );
 }
 

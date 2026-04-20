@@ -281,9 +281,34 @@ def _test_spirit_support_recommendations(lua, calcs, baseline: dict,
                 len(merged_supports), len(filtered_supports), len(aura_groups))
 
     # 测试所有候选（在干净 baseline 环境中）
+    # 优化：先对第一个光环组做探测，如果 DPS 无变化则跳过该 support 的所有光环组
     spirit_support_tests = []
+    probe_aura = aura_groups[0] if aura_groups else None
+    skipped_supports = 0
+
     for ss in filtered_supports:
-        for aura_si in aura_groups:
+        # 快速探测：只测第一个光环组
+        if probe_aura:
+            probe_result = _test_add_spirit_support(
+                lua, calcs, ss, probe_aura["group_idx"], baseline, skill_flags)
+            if abs(probe_result.get("dps_pct", 0)) < 0.01:
+                # 对第一个光环组无影响，跳过所有光环组
+                logger.debug("精魄辅助 '%s' 对 %s 无影响，跳过",
+                             ss.get("name", "?"), probe_aura["main_skill_name"])
+                skipped_supports += 1
+                continue
+            # 探测有效，加入探测结果
+            actual_spirit = probe_result.get("spirit", 0)
+            if actual_spirit > available_spirit:
+                shortfall = actual_spirit - available_spirit
+                probe_result["spirit_shortfall"] = shortfall
+                probe_result["spirit_note"] = (
+                    f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）")
+            probe_result["source"] = ss.get("source", "unknown")
+            spirit_support_tests.append(probe_result)
+
+        # 对其余光环组做完整测试（跳过已测的第一个）
+        for aura_si in aura_groups[1 if probe_aura else 0:]:
             result = _test_add_spirit_support(
                 lua, calcs, ss, aura_si["group_idx"], baseline, skill_flags)
             # 标注精魄需求
@@ -296,7 +321,8 @@ def _test_spirit_support_recommendations(lua, calcs, baseline: dict,
             result["source"] = ss.get("source", "unknown")
             spirit_support_tests.append(result)
 
-    logger.info("精魄辅助推荐完成: %d 个测试结果", len(spirit_support_tests))
+    logger.info("精魄辅助推荐完成: %d 个测试结果 (跳过 %d 个无效候选)",
+                len(spirit_support_tests), skipped_supports)
     return spirit_support_tests
 
 
@@ -631,7 +657,7 @@ def _extract_build_modifiers(dps_bd: dict,
         {modifier_key: {"total": float, "sources": [source_dict, ...],
                         "affects": str, "formula_name": str}}
     """
-    _BASE_CATEGORIES = {"Tree", "Item", "Jewel"}
+    _BASE_CATEGORIES = {"Tree", "Item", "Jewel", "Ailment"}
     _EXCLUDED_CATEGORIES = {"Triggered"}  # 仅对触发技能生效的 mod，不算构筑通用修饰符
     _spirit_ids = spirit_support_ids or set()
 

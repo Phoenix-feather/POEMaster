@@ -75,7 +75,7 @@ def _classify_source(source: str, jewel_node_ids: set = None) -> str:
     return "Other"
 
 
-def _source_label_fallback(source: str) -> str:
+def _source_label_fallback(source: str, node_names: dict = None) -> str:
     """当 Lua 端未返回 label 时的 fallback 转换。"""
     if not source:
         return "未知"
@@ -90,6 +90,9 @@ def _source_label_fallback(source: str) -> str:
     prefix = source.split(":")[0] if ":" in source else source
     rest = source[len(prefix)+1:] if ":" in source else ""
     if prefix == "Tree":
+        # 优先使用天赋名称映射
+        if node_names and rest in node_names:
+            return node_names[rest]
         return f"天赋#{rest}"
     if prefix == "Item":
         name = rest.split(":", 1)[-1] if ":" in rest else rest
@@ -682,7 +685,8 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             if data and data.elementalAilmentTypeList then
                 for _, a in ipairs(data.elementalAilmentTypeList) do elemAilList[#elemAilList+1] = a end
             else
-                elemAilList = {"Ignite", "Chill", "Freeze", "Shock"}
+                -- POE2 fallback: 包含 Electrocuted（POB 可能不把它放在 elementalAilmentTypeList 中）
+                elemAilList = {"Ignite", "Chill", "Freeze", "Shock", "Electrocuted"}
             end
             -- POE2 扩展：Electrocuted 不在 elementalAilmentTypeList 中但属于元素异常
             -- 通过检测 modDB 中是否有 Condition:Electrocuted 定义来判断 POB 是否支持
@@ -1067,6 +1071,36 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
 
     result = lua.execute(lua_script)
 
+    # 获取天赋节点名称映射（用于 DoT 拆解的天赋来源可读化）
+    node_names = {}
+    try:
+        nn_result = lua.execute('''
+            local build = _spike_build
+            local ns = {}
+            if build and build.spec then
+                for id, node in pairs(build.spec.allocNodes or {}) do
+                    ns[tostring(id)] = node.dn or ("Node "..tostring(id))
+                end
+                if build.spec.tree and build.spec.tree.nodes then
+                    for id, node in pairs(build.spec.tree.nodes) do
+                        if not ns[tostring(id)] then
+                            ns[tostring(id)] = node.dn or ("Node "..tostring(id))
+                        end
+                    end
+                end
+            end
+            local parts = {}
+            for k, v in pairs(ns) do parts[#parts+1] = k.."="..v end
+            return table.concat(parts, "\\1")
+        ''')
+        if nn_result:
+            for part in str(nn_result).split('\1'):
+                eq = part.find('=')
+                if eq > 0:
+                    node_names[part[:eq]] = part[eq+1:]
+    except Exception:
+        pass
+
     active_types = []
     jewel_node_ids = set()  # 珠宝槽位节点 ID 集合
     formula_items = []
@@ -1262,7 +1296,7 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         elif section == "DOT_BREAKDOWN":
             # 格式: DOT_BREAKDOWN|ailment|dps|min|max|effectMod|rateMod|activeAilments|effMult|duration|chance|effectIncTab|effectMoreTab|dotIncTab|dotMoreTab
             parts = line.split('|', 14)
-            _parse_dot_breakdown(parts, formula_items, jewel_node_ids)
+            _parse_dot_breakdown(parts, formula_items, jewel_node_ids, node_names)
 
         elif section == "COMBINED_DPS":
             # 格式: COMBINED_DPS|totalDPS|dotDPS|impaleDPS|mirageDPS|cullMult|resDpsMult|combinedDPS|bleedDPS|poisonDPS|igniteDPS
@@ -2245,7 +2279,12 @@ def _eff_source_effect_label(mod_name: str, value: float, source: str, dt: str,
     # Shock 效果
     if source == "Shock":
         eff_pct = abs(value)
-        range_info = f"（范围 20%~50%）" if eff_pct < 50 else "（最大值）"
+        if eff_pct >= 100:
+            range_info = "（最大值）"
+        elif eff_pct <= 20:
+            range_info = "（最小值）"
+        else:
+            range_info = ""
         return f"Shock: 受伤+{eff_pct:.0f}%{range_info}"
 
     # 通用检测："per elemental ailment" 类型效果
@@ -2685,7 +2724,8 @@ def _parse_dps_mult(parts: list, formula_items: list):
 
 
 def _parse_dot_breakdown(parts: list, formula_items: list,
-                         jewel_node_ids: set = None):
+                         jewel_node_ids: set = None,
+                         node_names: dict = None):
     """解析 DOT_BREAKDOWN 行（DoT DPS 拆解）。
 
     格式: DOT_BREAKDOWN|ailment|dps|min|max|effectMod|rateMod|activeAilments|effMult|duration|chance|effectIncTab|effectMoreTab|dotIncTab|dotMoreTab
@@ -2736,9 +2776,9 @@ def _parse_dot_breakdown(parts: list, formula_items: list,
                 except ValueError:
                     continue
                 category = _classify_source(p[1], jewel_node_ids)
-                label = (_source_label_fallback(p[1]) if category == "Sim"
+                label = (_source_label_fallback(p[1], node_names) if category == "Sim"
                          else (_eff_source_label(p[1], "") if p[1].startswith(("Shock", "Chill", "Item:", "Config"))
-                         else _source_label_fallback(p[1])))
+                         else _source_label_fallback(p[1], node_names)))
                 effect_sources.append({
                     "source": p[1],
                     "label": label,
@@ -2756,8 +2796,8 @@ def _parse_dot_breakdown(parts: list, formula_items: list,
                 except ValueError:
                     continue
                 category = _classify_source(p[1], jewel_node_ids)
-                label = (_source_label_fallback(p[1]) if category == "Sim"
-                         else _source_label_fallback(p[1]))
+                label = (_source_label_fallback(p[1], node_names) if category == "Sim"
+                         else _source_label_fallback(p[1], node_names))
                 effect_sources.append({
                     "source": p[1],
                     "label": label,
@@ -2777,8 +2817,8 @@ def _parse_dot_breakdown(parts: list, formula_items: list,
                 except ValueError:
                     continue
                 category = _classify_source(p[1], jewel_node_ids)
-                label = (_source_label_fallback(p[1]) if category == "Sim"
-                         else _source_label_fallback(p[1]))
+                label = (_source_label_fallback(p[1], node_names) if category == "Sim"
+                         else _source_label_fallback(p[1], node_names))
                 dot_sources.append({
                     "source": p[1],
                     "label": label,
@@ -2796,8 +2836,8 @@ def _parse_dot_breakdown(parts: list, formula_items: list,
                 except ValueError:
                     continue
                 category = _classify_source(p[1], jewel_node_ids)
-                label = (_source_label_fallback(p[1]) if category == "Sim"
-                         else _source_label_fallback(p[1]))
+                label = (_source_label_fallback(p[1], node_names) if category == "Sim"
+                         else _source_label_fallback(p[1], node_names))
                 dot_sources.append({
                     "source": p[1],
                     "label": label,

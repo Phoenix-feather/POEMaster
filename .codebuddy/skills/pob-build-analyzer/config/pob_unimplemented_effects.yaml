@@ -443,18 +443,11 @@ skills:
     detect:
       type: "skill_id"
       skill_id: "BerserkPlayer"
-    skill_type: "active"
+    # POB 原生计算 Berserk（Rage 增强效果），已装备时禁止注入避免双倍计算
+    # 估算值 +20% MORE 不准确，实际效果取决于构筑 Rage 层数和技能等级
+    skill_type: "active_native"
     condition: "增强 Rage 效果 +59%（等级20），代价每分钟每点 Rage 失去 6% 生命"
-    effects:
-      # stats[20]: skill_base_rage_effect_+%_to_apply = 59
-      # Rage 效果包括：+1-3% INC 伤害 per Rage, +1-2% INC 攻击速度 per Rage 等
-      # 简化模拟：假设构筑有 10+ Rage，Berserk 增强后的净效果约 +20% MORE 伤害
-      - type: "mod"
-        mod_name: "Damage"
-        mod_type: "MORE"
-        value: 20
-        source: "Berserk_sim"
-        description: "Rage 增强后 +20% MORE 伤害（估算，等级20）"
+    effects: []
   
   # 辅助宝石 MORE 伤害效果（共 115 个，仅列出重要的）：
   # - support_ablation_offering_skill_damage_+%_final

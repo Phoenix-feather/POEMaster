@@ -89,6 +89,9 @@ def detect_unimplemented_skills(lua, build=None) -> list[dict]:
         # （_test_add_spirit_support 中对未装备辅助的效果预估）。
         if skill_config.get("skill_type") == "spirit_support":
             continue
+        # 跳过原生计算的主动技能：POB 已原生计算其效果，注入会导致双倍计算
+        if skill_config.get("skill_type") == "active_native":
+            continue
 
         detect = skill_config.get("detect", {})
         detect_type = detect.get("type", "gem_name")

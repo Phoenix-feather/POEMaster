@@ -23,7 +23,8 @@ def _get_notable_nodes(lua) -> list[dict]:
         local nodes = {}
         for id, node in pairs(build.spec.allocNodes) do
             if node.type == "Notable" or node.type == "Keystone" then
-                nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?")
+                local desc = node.sd and table.concat(node.sd, "; ") or ""
+                nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?") .. "|" .. desc
             end
         end
         return table.concat(nodes, "\\n")
@@ -31,12 +32,13 @@ def _get_notable_nodes(lua) -> list[dict]:
     nodes = []
     if result:
         for line in str(result).strip().split('\n'):
-            parts = line.split('|', 2)
-            if len(parts) == 3:
+            parts = line.split('|', 3)
+            if len(parts) >= 3:
                 nodes.append({
                     'id': int(parts[0]),
                     'name': parts[1],
                     'type': parts[2],
+                    'description': parts[3] if len(parts) > 3 else '',
                 })
     return nodes
 
@@ -49,8 +51,9 @@ def _get_unallocated_nodes(lua, include_normal: bool = False) -> list[dict]:
         include_normal: 是否包含 Normal 类型的小天赋节点
 
     Returns:
-        [{id, name, type, mod_key}, ...]
+        [{id, name, type, mod_key, description}, ...]
         mod_key: 节点修饰语的序列化指纹，相同 mod_key 的节点效果相同
+        description: 天赋效果描述（来自 node.sd）
     """
     type_filter = ""
     if include_normal:
@@ -66,7 +69,8 @@ def _get_unallocated_nodes(lua, include_normal: bool = False) -> list[dict]:
                 {type_filter}
                     -- 排除升华节点（不同升华的节点不应混入）
                     if not node.ascendancyName or node.ascendancyName == build.spec.curAscendClassName then
-                        nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?") .. "|" .. (node.modKey or "")
+                        local desc = node.sd and table.concat(node.sd, "; ") or ""
+                        nodes[#nodes+1] = tostring(id) .. "|" .. (node.dn or "?") .. "|" .. (node.type or "?") .. "|" .. (node.modKey or "") .. "|" .. desc
                     end
                 end
             end
@@ -78,14 +82,15 @@ def _get_unallocated_nodes(lua, include_normal: bool = False) -> list[dict]:
         for line in str(result).strip().split('\n'):
             if not line:
                 continue
-            parts = line.split('|', 3)
-            if len(parts) == 4:
+            parts = line.split('|', 4)
+            if len(parts) >= 4:
                 try:
                     nodes.append({
                         'id': int(parts[0]),
                         'name': parts[1],
                         'type': parts[2],
                         'mod_key': parts[3],
+                        'description': parts[4] if len(parts) > 4 else '',
                     })
                 except ValueError:
                     pass
@@ -145,6 +150,7 @@ def passive_node_analysis(lua, calcs, baseline: dict = None,
             "ehp_before": base_ehp, "ehp_after": ehp_after,
             "ehp_delta": ehp_delta, "ehp_pct": ehp_pct,
             "category": category,
+            "description": node.get('description', ''),
         })
 
     results.sort(key=lambda x: abs(x["dps_pct"]), reverse=True)
@@ -237,7 +243,7 @@ for nid, node in pairs(nodes) do
             lines[#lines+1] = nid.."\\t"..node.dn.."\\t"..node.type.."\\t"
                 ..string.format("%.6f", dpsAfter).."\\t"..string.format("%.6f", dpsDelta).."\\t"..string.format("%.4f", dpsPct).."\\t"
                 ..string.format("%.6f", ehpAfter).."\\t"..string.format("%.6f", ehpDelta).."\\t"..string.format("%.4f", ehpPct).."\\t"
-                ..cat.."\\t"..mk
+                ..cat.."\\t"..mk.."\\t"..(node.sd and table.concat(node.sd, "; ") or "")
         end
     end
 end
@@ -277,6 +283,7 @@ return tostring(nodeCount).."\\n"..tostring(cacheHits).."\\n"..tostring(uniqueKe
                 "ehp_pct": round(float(parts[8]), 2),
                 "category": _CAT_MAP.get(parts[9], parts[9]),
                 "mod_key": parts[10],
+                "description": parts[11] if len(parts) > 11 else '',
             })
         except (ValueError, IndexError):
             continue
