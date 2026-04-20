@@ -1221,9 +1221,12 @@ function FormulaBreakdown({ data }) {
     var isDotDPS = it.key === 'Ignite_DPS' || it.key === 'Bleed_DPS' || it.key === 'Poison_DPS';
     if (isDotDPS) {
       displayStr = fmt(it.total_value, 0) + ' DPS';
-    } else if (isMore || it.key === 'Enemy_DamageTaken_mult') {
-      var pct = (it.total_value - 1) * 100;
-      displayStr = (pct >= 0 ? '+' : '') + fmt(pct, 1) + '%';
+    } else if (isMore) {
+      // MORE 乘法项：显示乘数
+      displayStr = '\u00d7' + fmt(it.total_value, 2);
+    } else if (it.key === 'Enemy_DamageTaken_mult') {
+      // 敌人受伤增加：显示乘数
+      displayStr = '\u00d7' + fmt(it.total_value, 2);
     } else if (it.key === 'EffMult_weighted') {
       // EffMult_weighted total_value 已是增益百分比（如 16.0 表示 +16%）
       displayStr = '+' + fmt(it.total_value, 1) + '%';
@@ -1242,7 +1245,7 @@ function FormulaBreakdown({ data }) {
       var topSrcs = (it.sources || []).filter(function(s) { return s.category === c.key; });
       topSrcs.sort(function(a, b) { return Math.abs(b.value || 0) - Math.abs(a.value || 0); });
       var names = topSrcs.slice(0, 3).map(function(s) { return s.label || s.source; });
-      if (names.length === 0) return h('span', { key: c.key, style: { fontSize: 11, color: c.color } }, c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ' ' + fmt(c.value, 0)));
+      if (names.length === 0) return h('span', { key: c.key, style: { fontSize: 11, color: c.color } }, c.key + (isMore ? ' \u00d7' + fmt(c.value, 2) : ' ' + fmt(c.value, 0)));
       var rest = topSrcs.length - 3;
       var label = names.join(', ') + (rest > 0 ? ' +' + rest : '');
       return h('span', { key: c.key, style: { fontSize: 11, color: c.color, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: label }, label);
@@ -1256,7 +1259,7 @@ function FormulaBreakdown({ data }) {
         ),
         h('div', { style: { flex: 1, height: 14, display: 'flex', borderRadius: 3, overflow: 'hidden' } },
           catPcts.map(function(c, ci) {
-            return h('div', { key: ci, style: { width: c.pct + '%', background: c.color, opacity: 0.7 }, title: c.key + (isMore ? ' +' + fmt((c.value - 1) * 100, 0) + '%' : ': ' + fmt(c.value, 1)) });
+            return h('div', { key: ci, style: { width: c.pct + '%', background: c.color, opacity: 0.7 }, title: c.key + (isMore ? ' \u00d7' + fmt(c.value, 2) : ': ' + fmt(c.value, 1)) });
           })
         ),
         h('div', { style: { display: 'flex', gap: 8, minWidth: 180, justifyContent: 'flex-end', flexWrap: 'wrap' } }, catLegend)
@@ -1303,7 +1306,7 @@ function FormulaBreakdown({ data }) {
       var mult = 1 + total / 100;
       summary = '\u00d7' + fmt(mult, 2) + ' (+' + Math.round(total) + '%)';
     } else if (gType === 'multiplicative') {
-      // MORE/EffMult/DamageTaken: 乘法叠加
+      // MORE/EffMult/DamageTaken: 乘法叠加，只显示乘数
       var mult = 1;
       gItems.forEach(function(it) {
         if (it.key.endsWith('_MORE') || it.key === 'Enemy_DamageTaken_mult') {
@@ -1314,25 +1317,21 @@ function FormulaBreakdown({ data }) {
           mult *= (1 + it.total_value / 100); // Lucky 的 total_value 是百分比
         }
       });
-      var pct = (mult - 1) * 100;
-      summary = '\u00d7' + fmt(mult, 2) + ' (' + (pct >= 0 ? '+' : '') + fmt(pct, 0) + '%)';
+      summary = '\u00d7' + fmt(mult, 2);
     } else if (gType === 'enemy') {
-      // 敌人乘区：受伤增加 × takenMult，抗性穿透增益 +X%
+      // 敌人乘区：只显示总体乘数
       var effItem = gItems.find(function(it) { return it.key === 'EffMult_weighted'; });
       var dtItem = gItems.find(function(it) { return it.key === 'Enemy_DamageTaken_mult'; });
       var parts = [];
       if (dtItem) {
-        var dtPct = (dtItem.total_value - 1) * 100;
-        parts.push('\u53d7\u4f24\u589e\u52a0 \u00d7' + fmt(dtItem.total_value, 2) + ' (+' + Math.round(dtPct) + '%)');
+        parts.push('\u53d7\u4f24\u589e\u52a0 \u00d7' + fmt(dtItem.total_value, 2));
       }
       if (effItem) {
-        parts.push('\u6297\u6027\u7a7f\u900f +' + fmt(effItem.total_value, 1) + '%');
+        parts.push('\u6297\u6027\u7a7f\u900f \u00d7' + fmt(1 + effItem.total_value / 100, 2));
       }
-      // 总体 = takenMult × (1 + gain/100)
       if (dtItem && effItem) {
         var totalEff = dtItem.total_value * (1 + effItem.total_value / 100);
-        var totalPct = (totalEff - 1) * 100;
-        parts.unshift('\u603b\u4f53 \u00d7' + fmt(totalEff, 2) + ' (' + (totalPct >= 0 ? '+' : '') + fmt(totalPct, 1) + '%)');
+        parts.unshift('\u603b\u4f53 \u00d7' + fmt(totalEff, 2));
       }
       summary = parts.join(' | ') || gItems.length + '\u9879';
     } else if (g.id === 'lucky') {
@@ -1345,8 +1344,6 @@ function FormulaBreakdown({ data }) {
       summary = fmt(total, 0) + ' DPS';
     } else {
       // mixed (Crit/Speed): 直接读 POB 实际输出值
-      // 不手动从 BASE/INC/MORE 推算——POB 内部有大量修正
-      // （AccuracyHitChance、Lucky、ActionSpeedMod、baseCritOverride 等）
       if (g.id === 'crit') {
         var cc = data.crit_chance || 0;
         var cm = data.crit_multiplier || 1;
@@ -1356,9 +1353,85 @@ function FormulaBreakdown({ data }) {
         var spd = data.speed || 0;
         summary = '\u00d7' + fmt(spd, 2) + '/s';
       } else {
-        // 通用 mixed（目前无此分组，预留）
         summary = gItems.length + '\u9879';
       }
+    }
+
+    // ── 构建分组级别的计算过程说明 ──
+    var calcProcess = '';
+    if (gType === 'multiplicative') {
+      // MORE 乘区：遍历每个 item 的 sources，构建 乘项名(×乘数) 链
+      var chainParts = [];
+      gItems.forEach(function(it) {
+        var srcs = (it.sources || []).slice();
+        srcs.sort(function(a, b) { return Math.abs(b.value || 0) - Math.abs(a.value || 0); });
+        srcs.forEach(function(s) {
+          var name = (s.label || s.source || '?').replace(/\s*\(模拟\)\s*/, '');
+          var multVal = it.key.endsWith('_MORE') ? (1 + (s.value || 0) / 100) : (1 + (s.value || 0) / 100);
+          chainParts.push(name + '(\u00d7' + fmt(multVal, 2) + ')');
+        });
+      });
+      if (chainParts.length > 1) {
+        var mult = 1;
+        gItems.forEach(function(it) {
+          if (it.key.endsWith('_MORE') || it.key === 'Enemy_DamageTaken_mult') { mult *= it.total_value; }
+          else { mult *= (1 + it.total_value / 100); }
+        });
+        calcProcess = chainParts.join(' \u00d7 ') + ' = \u00d7' + fmt(mult, 2);
+      }
+    } else if (gType === 'enemy') {
+      // 敌人乘区：受伤增加来源 + 抗性穿透来源
+      var dtItem = gItems.find(function(it) { return it.key === 'Enemy_DamageTaken_mult'; });
+      var effItem = gItems.find(function(it) { return it.key === 'EffMult_weighted'; });
+      var parts = [];
+      if (dtItem) {
+        var dtSrcs = (dtItem.sources || []).slice();
+        dtSrcs.sort(function(a, b) { return Math.abs(b.value || 0) - Math.abs(a.value || 0); });
+        var dtParts = dtSrcs.map(function(s) {
+          var name = (s.label || s.source || '?').split(':')[0];
+          return name + '(+' + fmt(s.value || 0, 0) + '%)';
+        });
+        if (dtParts.length > 1) parts.push(dtParts.join(' + ') + ' \u2192 \u53d7\u4f24\u00d7' + fmt(dtItem.total_value, 2));
+      }
+      if (effItem) {
+        var effSrcs = (effItem.sources || []).slice();
+        var effParts = effSrcs.map(function(s) {
+          var elem = s.element || '?';
+          return elem + '(+' + fmt(s.value || 0, 1) + '%)';
+        });
+        if (effParts.length > 0) parts.push('\u7a7f\u900f ' + effParts.join('  ') + ' \u2192 \u00d7' + fmt(1 + effItem.total_value / 100, 2));
+      }
+      if (dtItem && effItem) {
+        var totalEff = dtItem.total_value * (1 + effItem.total_value / 100);
+        parts.push('\u7efc\u5408: \u53d7\u4f24\u00d7' + fmt(dtItem.total_value, 2) + ' \u00d7 \u7a7f\u900f\u00d7' + fmt(1 + effItem.total_value / 100, 2) + ' = \u00d7' + fmt(totalEff, 2));
+      }
+      calcProcess = parts.join('  |  ');
+    } else if (g.id === 'crit') {
+      // 暴击乘区：cc = BASE × (1+INC/100) × MORE, cm = 1 + (BASE/100) × (1+INC/100)
+      var ccBase = 0, ccInc = 0, ccMore = 1, cmBase = 0, cmInc = 0;
+      gItems.forEach(function(it) {
+        if (it.key === 'CritChance_BASE') ccBase = it.total_value;
+        else if (it.key === 'CritChance_INC') ccInc = it.total_value;
+        else if (it.key === 'CritChance_MORE') ccMore = it.total_value;
+        else if (it.key === 'CritMultiplier_BASE') cmBase = it.total_value;
+        else if (it.key === 'CritMultiplier_INC') cmInc = it.total_value;
+      });
+      var cc = data.crit_chance || 0;
+      var cm = data.crit_multiplier || 1;
+      var parts = [];
+      parts.push('cc = ' + fmt(ccBase, 1) + '% \u00d7 (1+' + fmt(ccInc, 0) + '%/100) \u00d7 ' + fmt(ccMore, 2) + ' = ' + fmt(cc, 1) + '%');
+      parts.push('cm = 1 + ' + fmt(cmBase, 0) + '%/100 \u00d7 (1+' + fmt(cmInc, 0) + '%/100) = ' + fmt(cm, 2) + '\u00d7');
+      parts.push('\u66b4\u51fb\u4e58\u6570 = (1 - ' + fmt(cc, 1) + '%) + ' + fmt(cc, 1) + '% \u00d7 ' + fmt(cm, 2) + ' = \u00d7' + fmt(1 - cc/100 + cc/100 * cm, 2));
+      calcProcess = parts.join('  |  ');
+    } else if (g.id === 'speed') {
+      // 速度乘区：speed = BASE × (1+INC/100)
+      var spdBase = 0, spdInc = 0;
+      gItems.forEach(function(it) {
+        if (it.key === 'Speed_BASE') spdBase = it.total_value;
+        else if (it.key === 'Speed_INC') spdInc = it.total_value;
+      });
+      var spd = data.speed || 0;
+      calcProcess = '\u65bd\u6cd5\u901f\u5ea6 = ' + fmt(spdBase, 2) + ' \u00d7 (1+' + fmt(spdInc, 0) + '%/100) = ' + fmt(spd, 2) + '/s';
     }
 
     return h('details', { key: g.id, style: { marginBottom: 2 } },
@@ -1368,6 +1441,11 @@ function FormulaBreakdown({ data }) {
         h('span', { style: { fontSize: 13, color: 'var(--accent)', fontFamily: 'monospace', fontWeight: 600 } }, summary),
         h('span', { style: { fontSize: 11, color: 'var(--text-muted)' } }, gItems.length + ' \u4e2a\u5b50\u9879')
       ),
+      // 展开后：计算过程说明（仅乘法/敌人乘区）
+      calcProcess ? h('div', { style: { padding: '6px 10px 6px 38px', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', lineHeight: 1.6, background: 'rgba(255,255,255,0.02)', borderRadius: 4, marginBottom: 4, borderLeft: '3px solid var(--border)' } },
+        h('span', { style: { fontWeight: 600, color: 'var(--text-secondary)' } }, '\u8ba1\u7b97\u8fc7\u7a0b: '),
+        calcProcess
+      ) : null,
       h('div', { style: { paddingLeft: 24, paddingRight: 4 } },
         gItems.map(renderItem)
       )
