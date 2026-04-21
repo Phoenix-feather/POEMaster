@@ -655,10 +655,12 @@ def load_tree(lua, build_info: dict) -> int:
 
         _spike_build.spec.nodes = nodeMap
 
-        local classInternalId = ''' + str(build_info.get('classInternalId', '10')) + '''
-        local newClassId = classIntegerIdMap[classInternalId]
-        if newClassId then
-            _spike_build.spec.curClassId = newClassId
+        local classInternalId = "''' + str(build_info.get('classInternalId', '') or '') + '''"
+        if classInternalId ~= "" then
+            local newClassId = classIntegerIdMap[classInternalId]
+            if newClassId then
+                _spike_build.spec.curClassId = newClassId
+            end
         end
 
         local count = 0

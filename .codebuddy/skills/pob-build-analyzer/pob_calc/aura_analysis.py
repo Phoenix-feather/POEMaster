@@ -1108,10 +1108,8 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
 
                     -- 检查精魄消耗（从 levels 中获取 spiritReservationFlat）
                     local lvl = grantedEffect.levels and grantedEffect.levels[gem.level]
-                    if lvl then
-                        if lvl.spiritReservationFlat then
-                            gSpirit = lvl.spiritReservationFlat
-                        end
+                    if lvl and type(lvl.spiritReservationFlat) == "number" then
+                        gSpirit = lvl.spiritReservationFlat
                     end
 
                     -- 累加总精魄消耗
@@ -1228,7 +1226,7 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                     spirit_supports.append({
                         "name": sp[0],
                         "skill_id": sp[1],
-                        "spirit": float(sp[2]),
+                        "spirit": float(sp[2]) if sp[2] not in ('true', 'false', 'nil', '') else 0,
                     })
 
         skills_info.append({

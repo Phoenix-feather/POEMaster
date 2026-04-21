@@ -1,0 +1,127 @@
+{
+  "build_id": "Witch_BloodMage_Lv98_4202f6f0",
+  "class_name": "Witch",
+  "ascendancy": "Blood Mage",
+  "level": 98,
+  "hash": "4202f6f0",
+  "created_at": "2026-04-20T12:49:27+00:00",
+  "last_used": "2026-04-20T13:11:31+00:00",
+  "main_socket_group": 1,
+  "skills": [
+    {
+      "group": 1,
+      "gems": [
+        "Flicker Strike",
+        "Rakiata's Flow",
+        "Heightened Charges",
+        "Inevitable Critical",
+        "Overextend",
+        "Garukhan's Resolve"
+      ]
+    },
+    {
+      "group": 2,
+      "gems": [
+        "Tempest Flurry",
+        "Rapid Attacks III",
+        "Crescendo II",
+        "Rage III",
+        "Rigwald's Ferocity",
+        "Lifetap"
+      ]
+    },
+    {
+      "group": 3,
+      "gems": [
+        "Wind Dancer",
+        "Blind II",
+        "Maim",
+        "Close Combat II",
+        "Magnified Area II",
+        "Cooldown Recovery II"
+      ]
+    },
+    {
+      "group": 4,
+      "gems": [
+        "Falling Thunder",
+        "Nova Projectiles",
+        "Embitter",
+        "Heightened Charges",
+        "Inevitable Critical",
+        "Atalui's Bloodletting"
+      ]
+    },
+    {
+      "group": 5,
+      "gems": [
+        "Herald of Thunder",
+        "Piety's Mercy",
+        "Armour Explosion",
+        "Elemental Armament II",
+        "Longshot II",
+        "Overreach"
+      ]
+    },
+    {
+      "group": 6,
+      "gems": [
+        "Charged Staff",
+        "Prolonged Duration II",
+        "Innervate",
+        "Heightened Charges",
+        "Overcharge",
+        "Commiserate"
+      ]
+    },
+    {
+      "group": 7,
+      "gems": [
+        "Companion: Rabid Dog",
+        "Dialla's Desire",
+        "Brutus' Brain",
+        "Minion Mastery",
+        "Magnified Area II"
+      ]
+    },
+    {
+      "group": 8,
+      "gems": [
+        "Quarterstaff Strike",
+        "Elemental Armament II",
+        "Ancestral Call II",
+        "Close Combat II"
+      ]
+    },
+    {
+      "group": 9,
+      "gems": [
+        "Mana Remnants",
+        "Remnant Potency III",
+        "Harmonic Remnants II",
+        "Uhtred's Augury"
+      ]
+    },
+    {
+      "group": 10,
+      "gems": [
+        "Life Remnants",
+        "Harmonic Remnants II",
+        "Remnant Potency III"
+      ]
+    },
+    {
+      "group": 11,
+      "gems": [
+        "Charge Regulation",
+        "Uhtred's Exodus"
+      ]
+    },
+    {
+      "group": 12,
+      "gems": [
+        "Life Remnants"
+      ]
+    }
+  ]
+}

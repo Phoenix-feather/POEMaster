@@ -9,40 +9,40 @@
     "spirit_ws2": -278.0
   },
   "skills": {
-    "Comet (Cast on Critical)": {
-      "dps_ws1": 595483.2233537,
-      "dps_ws2": 111486.48042193,
-      "delta_pct": -81.3
-    },
-    "Comet (Elemental Invocation)": {
-      "dps_ws1": 595483.2233537,
-      "dps_ws2": 111486.48042193,
-      "delta_pct": -81.3
+    "Frost Wall": {
+      "dps_ws1": 45547.470643166,
+      "dps_ws2": 10564.802221099,
+      "delta_pct": -76.8
     },
     "Spark": {
-      "dps_ws1": 455417.70658271,
-      "dps_ws2": 99338.511233755,
-      "delta_pct": -78.2
+      "dps_ws1": 509794.47258514,
+      "dps_ws2": 113373.91390373,
+      "delta_pct": -77.8
+    },
+    "Comet (Elemental Invocation)": {
+      "dps_ws1": 655559.39645403,
+      "dps_ws2": 125729.61223725,
+      "delta_pct": -80.8
     },
     "Power Siphon": {
-      "dps_ws1": 189685.67596239,
-      "dps_ws2": 20395.204263674,
-      "delta_pct": -89.2
+      "dps_ws1": 213463.54404712,
+      "dps_ws2": 23710.263237915,
+      "delta_pct": -88.9
+    },
+    "Comet (Cast on Critical)": {
+      "dps_ws1": 655559.39645403,
+      "dps_ws2": 125729.61223725,
+      "delta_pct": -80.8
     },
     "Frost Bomb": {
-      "dps_ws1": 86971.065153319,
-      "dps_ws2": 17947.090057417,
-      "delta_pct": -79.4
-    },
-    "Frost Wall": {
-      "dps_ws1": 40739.082646335,
-      "dps_ws2": 9280.5854009049,
-      "delta_pct": -77.2
+      "dps_ws1": 97235.491299116,
+      "dps_ws2": 20430.87007337,
+      "delta_pct": -79.0
     },
     "Living Bomb": {
-      "dps_ws1": 131895.00308825,
-      "dps_ws2": 22043.698036374,
-      "delta_pct": -83.3
+      "dps_ws1": 145340.41759424,
+      "dps_ws2": 24911.930717448,
+      "delta_pct": -82.9
     }
   },
   "ws1_only_skills": [],

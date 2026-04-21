@@ -6,7 +6,7 @@
 
 | 维度 | 关键指标 |
 |------|---------|
-| 进攻 | TotalDPS **20,395** |
+| 进攻 | TotalDPS **23,710** |
 | 防御 | TotalEHP **9,834**（最短板: Chaos） |
 | 资源 | Spirit 占用 **195%** |
 | 恢复 | 生命恢复 **284/s** |
@@ -17,7 +17,7 @@
 1. ⚠️ **混沌抗性/防御是最短板**（承伤仅 4,439，为最强的 24%）
 2. ⚠️ 混沌抗性差 **75%** 未满
 3. 🔴 精魄预算非常紧张（195% 占用）
-4. ⚠️ 23 个已分配天赋对 DPS 和 EHP 均无可测量影响
+4. ⚠️ 22 个已分配天赋对 DPS 和 EHP 均无可测量影响
 5. 💡 **crit_chance_base** 对 DPS 影响最大（每 1% 提升 3.74% DPS）
 
 ### 优化方向 Top 3
@@ -33,7 +33,7 @@
 | 修饰符 | 总量 | 天赋 | 装备 | 珠宝 |
 |--------|------|------|------|------|
 | 施法速度 INC | 86% | +35% | +51% | — |
-| 伤害 INC | 152% | +112% | — | — |
+| 伤害 INC | 202% | +162% | — | — |
 | 元素伤害 INC | 101% | +72% | +29% | — |
 | 暴击率 INC | 66% | +66% | — | — |
 | 暴击伤害 INC | 205% | +205% | — | — |
@@ -54,8 +54,8 @@
 |------|------|
 | 主技能 | Power Siphon |
 | 技能类型 | 法术 |
-| TotalDPS | **20,395** |
-| AverageHit | 6,127 |
+| TotalDPS | **23,710** |
+| AverageHit | 7,123 |
 | Speed | 3.33/s |
 | CritChance | 31.4% |
 | CritMultiplier | 4.05x |
@@ -74,12 +74,13 @@
 |------|------|-----|
 | 技能基础 | Skill | +51.5 (38-65) |
 
-### 通用伤害 INC (Physical,Lightning,Cold) = 146%
+### 通用伤害 INC (Physical,Lightning,Cold) = 196%
 
-**类别汇总**: Tree: +106.0 | Skill: +40.0
+**类别汇总**: Tree: +156.0 | Skill: +40.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
+| Thin Ice | Tree | +50.0 |
 | Mysticism II | Skill | +40.0 |
 | Crashing Wave | Tree | +36.0 |
 | Potent Incantation | Tree | +30.0 |
@@ -260,19 +261,19 @@
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Shock: 受伤+29%（范围 20%~50%） | Ailment | +29.0 |
+| Shock: 受伤+29% | Ailment | +29.0 |
 
-### 敌人抗性乘区 (加权) = x0.6806
+### 敌人抗性乘区 (加权) = +0.0%
 
-**公式**: `= 1.2900 × 0.5000  (抗性 50% - 穿透 0% = 有效 50%)`
+**公式**: `+0.0%  (抗性 50% - 穿透 0% = 有效 50%)`
 
-**类别汇总**: Enemy: +31.9
+**类别汇总**: Penetration: +0.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| 闪电 x0.6450 (占64.6%) | Enemy | +0.6 |
-| 冰霜 x0.6450 (占29.9%) | Enemy | +0.6 |
-| 物理 x1.2900 (占5.5%) | Enemy | +1.3 |
+| 闪电 +0.0% (占64.1%) | Enemy | +0.0 |
+| 冰霜 +0.0% (占29.5%) | Enemy | +0.0 |
+| 物理 +0.0% (占6.4%) | Enemy | +0.0 |
 
 ## 3. 灵敏度分析
 
@@ -281,15 +282,15 @@
 | # | 维度 | 类型 | 所需值 | 单位 | 效果/单位 | 当前值 | 公式 |
 |---|------|------|--------|------|----------|--------|------|
 | 1 | crit_chance_base | BASE | +5.5% | % | 3.74%/% | 0 | baseCrit 0.0%→5.5%, 需要 +5.5% → DPS +20.6% |
-| 2 | crit_multi_base | BASE | +38.5% | % | 0.52%/% | 100 | CritBase 100→138, 需要 +38 → DPS +20.0% |
+| 2 | crit_multi_base | BASE | +38.5% | % | 0.52%/% | 100 | CritBase 100→138, 需要 +38 → DPS +19.9% |
 | 3 | cast_speed_inc | INC | +46.5% | % | 0.43%/% | 133 | INC 133%→180%, 需要 +46 → DPS +20.2% |
-| 4 | spell_damage_inc | INC | +62.0% | % | 0.32%/% | 247 | INC 247%→309%, 需要 +62 → DPS +20.1% |
-| 5 | crit_chance_inc | INC | +65.0% | % | 0.31%/% | 66 | INC 66%→131%, 需要 +65 → DPS +20.2% |
-| 6 | elemental_damage_inc | INC | +82.5% | % | 0.24%/% | 247 | INC 247%→330%, 需要 +82 → DPS +20.0% |
-| 7 | crit_multi_inc | INC | +117.0% | % | 0.17%/% | 205 | INC 205%→322%, 需要 +117 → DPS +20.2% |
-| 8 | lightning_damage_inc | INC | +119.5% | % | 0.17%/% | 247 | INC 247%→366%, 需要 +120 → DPS +20.0% |
-| 9 | physical_damage_inc | INC | +233.0% | % | 0.09%/% | 146 | INC 146%→379%, 需要 +233 → DPS +20.0% |
-| 10 | cold_damage_inc | INC | +266.0% | % | 0.08%/% | 257 | INC 257%→523%, 需要 +266 → DPS +20.0% |
+| 4 | crit_chance_inc | INC | +65.0% | % | 0.31%/% | 66 | INC 66%→131%, 需要 +65 → DPS +20.2% |
+| 5 | spell_damage_inc | INC | +71.0% | % | 0.28%/% | 297 | INC 297%→368%, 需要 +71 → DPS +20.0% |
+| 6 | elemental_damage_inc | INC | +96.0% | % | 0.21%/% | 297 | INC 297%→393%, 需要 +96 → DPS +20.0% |
+| 7 | crit_multi_inc | INC | +117.0% | % | 0.17%/% | 205 | INC 205%→322%, 需要 +117 → DPS +20.1% |
+| 8 | lightning_damage_inc | INC | +139.0% | % | 0.14%/% | 297 | INC 297%→436%, 需要 +139 → DPS +20.0% |
+| 9 | physical_damage_inc | INC | +264.5% | % | 0.08%/% | 196 | INC 196%→460%, 需要 +264 → DPS +20.0% |
+| 10 | cold_damage_inc | INC | +309.5% | % | 0.06%/% | 307 | INC 307%→616%, 需要 +310 → DPS +20.0% |
 
 **无影响维度**: fire_damage_inc, chaos_damage_inc, lightning_pen, fire_pen, cold_pen, elemental_pen, chaos_pen, projectile_count, aoe_inc, duration_inc
 
@@ -297,13 +298,13 @@
 
 | 维度 | 类型 | 所需值 | 每单位 EHP 提升 | 公式 |
 |------|------|--------|---------------|------|
-| 格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
 | 法术格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
+| 格挡概率 | BASE | 31.5% | +0.65%/单位 | BASE 0→32, 需要 +32 → EHP +20.5% |
 | 生命上限 | INC | 45.0% | +0.45%/单位 | INC 5%→50%, 需要 +45 → EHP +20.2% |
 | 混沌抗性 | BASE | 68.5% | +0.29%/单位 | BASE 0→68, 需要 +68 → EHP +19.8% |
 | 闪避值 | BASE | 1719.0 | +0.01%/单位 | BASE 7→1726, 需要 +1719 → EHP +20.6% |
 
-**无法达到目标**: 物理减伤, 全元素抗性, 火焰抗性, 护甲增加, 护甲固定值, 闪避增加, 冰霜抗性, 生命固定值, 闪电抗性
+**无法达到目标**: 护甲固定值, 火焰抗性, 闪电抗性, 冰霜抗性, 生命固定值, 闪避增加, 全元素抗性, 护甲增加, 物理减伤
 
 ### 3C. 恢复增强灵敏度
 
@@ -419,60 +420,61 @@
 
 ### DPS 影响天赋
 
-| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 |
-|---|------|------|-------------|-------------|------|
-| 1 | I am the Blizzard... | Notable | -26.9% | +0.0% | 输出 |
-| 2 | I am the Thunder... | Notable | -26.1% | +0.0% | 输出 |
-| 3 | Crashing Wave | Notable | -11.6% | +0.0% | 输出 |
-| 4 | Sudden Escalation | Notable | -8.2% | +0.0% | 输出 |
-| 5 | Potent Incantation | Notable | -7.8% | +0.0% | 输出 |
-| 6 | All Natural | Notable | -7.3% | +0.0% | 输出 |
-| 7 | True Strike | Notable | -6.2% | +0.0% | 输出 |
-| 8 | Throatseeker | Notable | -5.3% | +0.0% | 输出 |
-| 9 | Breaking Point | Notable | -4.7% | +0.0% | 输出 |
-| 10 | For the Jugular | Notable | -4.3% | -0.4% | 兼顾 |
-| 11 | Acceleration | Notable | -4.3% | +0.0% | 输出 |
-| 12 | Flow Like Water | Notable | -3.4% | -0.2% | 兼顾 |
-| 13 | The Spring Hare | Notable | -2.1% | +0.0% | 输出 |
+| # | 天赋 | 类型 | 移除后 DPS% | 移除后 EHP% | 分类 | 效果 |
+|---|------|------|-------------|-------------|------|------|
+| 1 | I am the Blizzard... | Notable | -26.4% | +0.0% | 输出 | Gain 10% of Damage as Extra Cold Damage; On Freezing Enemies create Chilled Ground |
+| 2 | I am the Thunder... | Notable | -25.7% | +0.0% | 输出 | Gain 10% of Damage as Extra Lightning Damage; 25% chance on Shocking Enemies to created Shocked Ground |
+| 3 | Thin Ice | Notable | -14.0% | +0.0% | 输出 | 20% increased Freeze Buildup; 50% increased Damage with Hits against Frozen Enemies |
+| 4 | Crashing Wave | Notable | -10.1% | +0.0% | 输出 | 36% increased Damage if you've dealt a Critical Hit in the past 8 seconds |
+| 5 | Sudden Escalation | Notable | -8.2% | +0.0% | 输出 | 16% increased Critical Hit Chance for Spells; 8% increased Cast Speed if you've dealt a Critical Hit Recently |
+| 6 | Potent Incantation | Notable | -6.4% | +0.0% | 输出 | 30% increased Spell Damage; 5% reduced Cast Speed |
+| 7 | All Natural | Notable | -6.3% | +0.0% | 输出 | +5% to all Elemental Resistances; 30% increased Elemental Damage |
+| 8 | True Strike | Notable | -6.2% | +0.0% | 输出 | +10 to Dexterity; 20% increased Critical Hit Chance |
+| 9 | Throatseeker | Notable | -5.3% | +0.0% | 输出 | 60% increased Critical Damage Bonus; 20% reduced Critical Hit Chance |
+| 10 | Breaking Point | Notable | -4.7% | +0.0% | 输出 | 10% increased Duration of Elemental Ailments on Enemies; 30% increased Magnitude of Non-Damaging Ailments you inflict |
+| 11 | Acceleration | Notable | -4.3% | +0.0% | 输出 | 3% increased Movement Speed; 10% increased Skill Speed |
+| 12 | For the Jugular | Notable | -4.3% | -0.4% | 兼顾 | 25% increased Critical Damage Bonus; +10 to Intelligence |
+| 13 | Flow Like Water | Notable | -3.4% | -0.2% | 兼顾 | 8% increased Attack and Cast Speed; +5 to Dexterity and Intelligence |
+| 14 | The Spring Hare | Notable | -2.1% | +0.0% | 输出 | 20% chance for Damage of Enemies Hitting you to be Unlucky; 20% chance for Damage with Hits to be Lucky |
 
 ### 纯防御天赋
 
-| 天赋 | 移除后 EHP% |
-|------|-------------|
-| Melding | -2.3% |
-| Mind Over Matter | -29.2% |
-| Heavy Buffer | -5.4% |
+| 天赋 | 移除后 EHP% | 效果 |
+|------|-------------|------|
+| Melding | -2.3% | 40% increased maximum Energy Shield; 10% reduced maximum Mana |
+| Mind Over Matter | -29.2% | All Damage is taken from Mana before Life; 50% less Mana Recovery Rate |
+| Heavy Buffer | -5.4% | 40% increased maximum Energy Shield; 5% of Damage taken bypasses Energy Shield |
 
-### 无效天赋 (23 个)
+### 无效天赋 (22 个)
 
-Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critical Exploit, Thin Ice, Energise, Heavy Frost, Dynamism, Marked Agility, Shimmering, Efficient Inscriptions, The Power Within, Overflowing Power, Evocational Practitioner, Moment of Truth, Deadly Force, Careful Assassin, Infusion of Power, Marked for Sickness, Stormwalker, Frostwalker, The Soul Springs Eternal
+Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critical Exploit, Energise, Heavy Frost, Dynamism, Marked Agility, Shimmering, Efficient Inscriptions, The Power Within, Overflowing Power, Evocational Practitioner, Moment of Truth, Deadly Force, Careful Assassin, Infusion of Power, Marked for Sickness, Stormwalker, Frostwalker, The Soul Springs Eternal
 
 ## 7. 未分配天赋探索
 
 | # | 天赋 | 类型 | DPS% | EHP% | 分类 |
 |---|------|------|------|------|------|
-| 1 | Avatar of Fire | Keystone | +98.2% | +0.0% | 输出 |
-| 2 | Unquenchable Iron | Notable | +47.6% | +0.0% | 输出 |
-| 3 | Chakra of Elements | Notable | +42.2% | +0.0% | 输出 |
-| 4 | Burning Strikes | Notable | +32.0% | +0.0% | 输出 |
-| 5 | Wild Storm | Notable | +21.1% | +0.0% | 输出 |
-| 6 | Volcanic Skin | Notable | +20.9% | +0.0% | 输出 |
-| 7 | Stormbreaker | Notable | +19.5% | +0.0% | 输出 |
-| 8 | Harness the Elements | Notable | +19.5% | +0.0% | 输出 |
-| 9 | Power of the Storm | Notable | +16.2% | +0.0% | 输出 |
-| 10 | Stormcharged | Notable | +14.8% | +0.0% | 输出 |
+| 1 | Avatar of Fire | Keystone | +95.1% | +0.0% | 输出 |
+| 2 | Unquenchable Iron | Notable | +46.9% | +0.0% | 输出 |
+| 3 | Chakra of Elements | Notable | +41.5% | +0.0% | 输出 |
+| 4 | Burning Strikes | Notable | +31.5% | +0.0% | 输出 |
+| 5 | Stormbreaker | Notable | +22.6% | +0.0% | 输出 |
+| 6 | Harness the Elements | Notable | +22.6% | +0.0% | 输出 |
+| 7 | Wild Storm | Notable | +20.7% | +0.0% | 输出 |
+| 8 | Volcanic Skin | Notable | +20.5% | +0.0% | 输出 |
+| 9 | Essence of the Mountain | Notable | +14.2% | +0.0% | 输出 |
+| 10 | Power of the Storm | Notable | +14.1% | +0.0% | 输出 |
 
-*（另有 652 个候选天赋未显示）*
+*（另有 174 个候选天赋未显示）*
 
 ## 8. 珠宝诊断
 
 ### Heart of the Well (Diamond, UNIQUE)
 
-- **DPS 贡献**: +32.0% | **EHP 贡献**: -0.0% | **状态**: ok | **槽位**: Jewel 32763
+- **DPS 贡献**: +31.5% | **EHP 贡献**: -0.0% | **状态**: ok | **槽位**: Jewel 32763
 
 | Mod | 类型 | 值 | DPS% | EHP% |
 |-----|------|-----|------|------|
-| DamageGainAsLightning | BASE | 12 | +32.0% | -0.0% |
+| DamageGainAsLightning | BASE | 12 | +31.5% | -0.0% |
 | ManaOnKill | BASE | 1 | -0.0% | -0.0% |
 | HybridManaAndLifeCost_Life | BASE | 3 | -0.0% | -0.0% |
 | InstantEnergyShieldLeech | BASE | 15 | -0.0% | -0.0% |
@@ -481,22 +483,22 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 ### Rapture Shard (Sapphire, RARE)
 
-- **DPS 贡献**: +3.6% | **EHP 贡献**: +2.1% | **状态**: ok | **槽位**: Jewel 61834
+- **DPS 贡献**: +3.1% | **EHP 贡献**: +2.1% | **状态**: ok | **槽位**: Jewel 61834
 
 | Mod | 类型 | 值 | DPS% | EHP% |
 |-----|------|-----|------|------|
 | EnergyShield | INC | 17 | -0.0% | +2.1% |
-| ElementalDamage | INC | 15 | +3.6% | -0.0% |
+| ElementalDamage | INC | 15 | +3.1% | -0.0% |
 | CurseActivation | INC | 14 | -0.0% | -0.0% |
 
 ### Chimeric Spark (Sapphire, RARE)
 
-- **DPS 贡献**: +3.4% | **EHP 贡献**: +1.9% | **状态**: ok | **槽位**: Jewel 7960
+- **DPS 贡献**: +2.9% | **EHP 贡献**: +1.9% | **状态**: ok | **槽位**: Jewel 7960
 
 | Mod | 类型 | 值 | DPS% | EHP% |
 |-----|------|-----|------|------|
 | EnergyShield | INC | 15 | -0.0% | +1.9% |
-| ElementalDamage | INC | 14 | +3.4% | -0.0% |
+| ElementalDamage | INC | 14 | +2.9% | -0.0% |
 | CurseActivation | INC | 15 | -0.0% | -0.0% |
 
 ### Megalomaniac (Diamond, UNIQUE)
@@ -525,7 +527,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 | # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 |
 |---|------|------------|----------|-----|------|
-| 1 | Trinity | +43.1% | +53.6% (辅助+10.6%) (条件: Total Resonance Count=150) | +0.0% | 100 |
+| 1 | Trinity | +42.6% | +53.0% (辅助+10.4%) (条件: Total Resonance Count=150) | +0.0% | 100 |
 
 <details>
 <summary><b>Trinity 详细数据</b></summary>
@@ -535,14 +537,14 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 | 端点 | 裸光环 | 真实 | 辅助增益 | Speed INC |
 |------|--------|------|----------|-----------|
 | Total Resonance Count=0 | +0.0% | +0.0% | — | 111% |
-| Total Resonance Count=300 | +51.7% | +64.2% | +12.4% | 111%→133% |
+| Total Resonance Count=300 | +51.2% | +63.5% | +12.2% | 111%→133% |
 
 ### 辅助贡献
 
 - **Dialla's Desire**: +1 level, +10% quality
 - **Uhtred's Omen**: +3 level (条件: 1个其他辅助)
-- 总辅助贡献: **+10.6%** DPS（Total Resonance Count=150时）
-- 端点差异: Total Resonance Count=0时+0.0%，Total Resonance Count=300时+12.4%
+- 总辅助贡献: **+10.4%** DPS（Total Resonance Count=150时）
+- 端点差异: Total Resonance Count=0时+0.0%，Total Resonance Count=300时+12.2%
 
 ### 基础数值
 
@@ -564,7 +566,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 </details>
 
-| 3 | Elemental Conflux | +12.9% | +12.9% ⚠️模拟 | +0.0% | 60 |
+| 3 | Elemental Conflux | +12.6% | +12.6% ⚠️模拟 | +0.0% | 60 |
 
 <details>
 <summary><b>Elemental Conflux 详细数据</b></summary>
@@ -592,8 +594,8 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 **⚠️模拟值说明：**
 
 - **Charge Infusion** (Lv21): 需启用 Charge 配置才能生效，已模拟 F=3/P=7/E=3
-- **Elemental Conflux** (Lv21): 分别注入 70% MORE 到火/冰/电取平均。伤害构成：火 0.0% / 冰 31.6% / 电 68.4%
-  三次模拟 DPS：火 6691 / 冰 7511 / 电 8457
+- **Elemental Conflux** (Lv21): 分别注入 70% MORE 到火/冰/电取平均。伤害构成：火 0.0% / 冰 31.5% / 电 68.5%
+  三次模拟 DPS：火 7827 / 冰 8761 / 电 9851
 
 **模拟方法说明：**
 
@@ -615,18 +617,19 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 | # | 光环 | 精魄 | DPS% | EHP% | 说明 |
 |---|------|------|------|------|------|
-| 1 | Archmage（大法师） | 100 | +151.9% | +0.0% | 需精魄 100（缺 100）; Mana 转附加闪电伤害 |
-| 2 | Attrition（损耗） | 30 | +62.7% | +0.0% | 需精魄 30（缺 30）; 命中附带 Wither 叠层 |
-| 3 | Berserk（狂暴） | 30 | +21.0% | +0.0% | 需精魄 30（缺 30）; MORE Damage + 受伤增加 |
+| 1 | Archmage（大法师） | 100 | +149.0% | +0.0% | 需精魄 100（缺 100）; Mana 转附加闪电伤害 |
+| 2 | Attrition（损耗） | 30 | +62.6% | +0.0% | 需精魄 30（缺 30）; 命中附带 Wither 叠层 |
+
+**无 DPS 影响：**
+
+- Berserk（狂暴）
 
 ### 9C. 精魄辅助推荐
 
 | # | 精魄辅助 | 精魄 | DPS% | 条件 | 来源 |
 |---|----------|------|------|------|------|
-| 1 | Mysticism II | 30 | +13.0% | 需精魄 30（缺 30） ⚠️估算 | 动态扫描 |
-| 2 | Mysticism I | 15 | +9.7% | 需精魄 15（缺 15） ⚠️估算 | 动态扫描 |
-
-其余 19 个辅助无可模拟的 DPS 效果。
+| 1 | Mysticism II | 30 | +11.2% | 需精魄 30（缺 30） ⚠️估算 | 动态扫描 |
+| 2 | Mysticism I | 15 | +8.4% | 需精魄 15（缺 15） ⚠️估算 | 动态扫描 |
 
 ### 9D. 精魄预算
 
@@ -635,8 +638,8 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 | 总精魄 | 292 |
 | 已用精魄 | 292 |
 | 可用精魄 | 0 |
-| 推荐光环消耗 | 160 |
-| 推荐后剩余 | -160 |
+| 推荐光环消耗 | 130 |
+| 推荐后剩余 | -130 |
 
 **注意**: 推荐光环的精魄总消耗超过可用精魄，需要根据优先级取舍。
 
@@ -646,6 +649,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 - EC 使用构筑实际等级 Lv21（MORE=70%），非满级 Lv20
 - Charge Infusion 使用非默认 Charge 数量: PowerCharges=7
+- Berserk 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
 
 ### 9F. POB 未实现效果预估
 
@@ -653,15 +657,15 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 | 技能 | 效果描述 | DPS 预估 |
 |------|----------|----------|
-| **Unbound Avatar** | 40% MORE 元素伤害（Unbound 状态） | **+31.2%** |
-| **Pinnacle of Power** | 7 × (15% + 20×0.1%) = 119% MORE 元素伤害（PowerChargesMax） | **+93.0%** |
+| **Unbound Avatar** | 40% MORE 元素伤害（Unbound 状态） | **+30.9%** |
+| **Pinnacle of Power** | 7 × (15% + 20×0.1%) = 119% MORE 元素伤害（PowerChargesMax） | **+92.0%** |
 
 **注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，
 实际游戏效果可能因条件触发方式不同而有差异。
 
 ## 10. 总结与建议
 
-当前 **Power Siphon** TotalDPS = **20,395**，AverageHit = 6,127，Speed = 3.33/s，CritChance = 31.4%，CritMultiplier = 4.05x。
+当前 **Power Siphon** TotalDPS = **23,710**，AverageHit = 7,123，Speed = 3.33/s，CritChance = 31.4%，CritMultiplier = 4.05x。
 
 ### ⚔️ 进攻面
 
@@ -670,10 +674,10 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 | # | 维度 | 类型 | 当前值 | 所需值 | 公式 |
 |---|------|------|--------|--------|------|
 | 1 | crit_chance_base | BASE | 0 | +6% | baseCrit 0.0%→5.5%, 需要 +5.5% → DPS +20.6% |
-| 2 | crit_multi_base | BASE | 100 | +38% | CritBase 100→138, 需要 +38 → DPS +20.0% |
+| 2 | crit_multi_base | BASE | 100 | +38% | CritBase 100→138, 需要 +38 → DPS +19.9% |
 | 3 | cast_speed_inc | INC | 133 | +46% | INC 133%→180%, 需要 +46 → DPS +20.2% |
-| 4 | spell_damage_inc | INC | 247 | +62% | INC 247%→309%, 需要 +62 → DPS +20.1% |
-| 5 | crit_chance_inc | INC | 66 | +65% | INC 66%→131%, 需要 +65 → DPS +20.2% |
+| 4 | crit_chance_inc | INC | 66 | +65% | INC 66%→131%, 需要 +65 → DPS +20.2% |
+| 5 | spell_damage_inc | INC | 297 | +71% | INC 297%→368%, 需要 +71 → DPS +20.0% |
 
 *穿透维度均无影响（敌人抗性已为负值），面对高抗 Boss 时会成为有效优化方向。*
 
@@ -681,7 +685,7 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 **最短板**: Chaos（承伤仅为最强的 24%）
 
-**防御性价比最高**: 格挡概率，需要 +32% 即可提升 EHP +20%
+**防御性价比最高**: 法术格挡概率，需要 +32% 即可提升 EHP +20%
 
 ### 💧 资源与恢复
 
@@ -697,15 +701,15 @@ Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critic
 
 **推荐点出 Top 5**：
 
-1. **Avatar of Fire**: DPS +98.2%
-2. **Unquenchable Iron**: DPS +47.6%
-3. **Chakra of Elements**: DPS +42.2%
-4. **Burning Strikes**: DPS +32.0%
-5. **Wild Storm**: DPS +21.1%
+1. **Avatar of Fire**: DPS +95.1%
+2. **Unquenchable Iron**: DPS +46.9%
+3. **Chakra of Elements**: DPS +41.5%
+4. **Burning Strikes**: DPS +31.5%
+5. **Stormbreaker**: DPS +22.6%
 
-**⚠️ 23 个无效天赋**: Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critical Exploit, Thin Ice, Energise, Heavy Frost 等 23 个
+**⚠️ 22 个无效天赋**: Invocated Echoes, ...and I Shall Rage, Impending Doom, Blood Transfusion, Critical Exploit, Energise, Heavy Frost, Dynamism 等 22 个
 
 ### 💎 珠宝
 
-**最佳**: Heart of the Well (DPS +32.0%, EHP -0.0%)
+**最佳**: Heart of the Well (DPS +31.5%, EHP -0.0%)
 **可替换**: Controlled Metamorphosis
