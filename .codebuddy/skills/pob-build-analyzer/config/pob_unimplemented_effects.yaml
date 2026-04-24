@@ -211,17 +211,28 @@ skills:
     detect:
       type: "gem_name"
       name: "Elemental Conflux"
-    skill_type: "aura"
+    skill_type: "active"
+    condition: "每8秒随机选择火/冰/电，给该元素 MORE 伤害（时间加权平均≈1/3覆盖率）"
+    # POB 未映射 skill_elemental_conflux_active_element_damage_+%_final stat
+    # SkillStatMap.lua 中没有此 stat 的映射，POB 添加 EC 后不会生成伤害 mod
+    # 等级20: +59% MORE 某元素伤害
+    # 来源：act_int.lua:5387 stats[20]=59, qualityStats=0.5%/q
+    #
+    # 期望值计算（精确）：
+    #   EC 每次随机选一个元素 +59% MORE，8秒一轮
+    #   时间加权平均 = 59% × (各元素DPS占比之和) / 3
+    #   近似等价于 59%/3 ≈ 19.7% MORE ElementalDamage
+    #   但由于元素分布不均，实际值可能偏低（如 Cold=0% 时浪费了 1/3 轮转）
+    #
+    # Sim 用 20% MORE ElementalDamage 作为简化（≈59%×1/3向上取整）
     effects:
       - type: "mod"
         mod_name: "ElementalDamage"
         mod_type: "MORE"
-        value: null  # 动态从宝石等级读取
+        value: 20
         source: "EC_sim"
-        description: "每8秒随机选择火/冰/电，给该元素 MORE 伤害"
-    # 特殊处理：需要在 what_if.py 中动态解析
-    stat_skill_id: "ElementalConfluxPlayer"
-    expect_factor: 0.333  # 期望 = MORE * 1/3
+        mod_flag: "Hit"
+        description: "元素伤害 MORE（期望 59%×1/3≈20%，等级20，简化模拟）"
 
   # ===================================================================
   # 充能球驱动技能
@@ -443,12 +454,53 @@ skills:
     detect:
       type: "skill_id"
       skill_id: "BerserkPlayer"
-    # POB 原生计算 Berserk（Rage 增强效果），已装备时禁止注入避免双倍计算
-    # 估算值 +20% MORE 不准确，实际效果取决于构筑 Rage 层数和技能等级
-    skill_type: "active_native"
-    condition: "增强 Rage 效果 +59%（等级20），代价每分钟每点 Rage 失去 6% 生命"
+    skill_type: "active"
+    condition: "增强 Rage 效果，需要构筑有 MaximumRage，代价每分钟每点 Rage 失去 6% 生命"
+    # Berserk 添加后 POB 自动处理：
+    #   - CanGainRage flag（CalcPerform.lua:662 入口条件）
+    #   - MaximumRage（从 Berserk 技能数据读取）
+    #   - RageEffect INC（从 Berserk buff 读取，perform 中应用）
+    #
+    # RageEffect 计算：
+    #   RageEffect = floor(RageStacks × (1 + INC/100))
+    #   Berserk Lv20: 74% INC RageEffect（来自 statMap + statInterpolation）
+    #   10 Rage: floor(10 × 1.74) = 17 → 17% MORE Attack Damage
+    #   20 Rage: floor(20 × 1.74) = 34 → 34% MORE Attack Damage
+    #
+    # Sim 配置：设置 multiplierRage（POB ConfigOptions 中 ifFlag=CanGainRage）
+    # 默认 10 Rage（保守估计，战斗中容易维持）
+    # 实际增幅取决于构筑 MaximumRage 和战斗情况
+    effects:
+      - type: "config"
+        var: "multiplierRage"
+        value: 10
+        source: "Berserk_sim"
+        description: "设置 Rage 层数（ConfigOptions 中 ifFlag=CanGainRage）"
+      # POB 修复后（CalcPerform.lua Override 返回 0 bug），Berserk 技能添加后：
+      # - CanGainRage 自动设置 ✓
+      # - MaximumRage 从 Berserk 技能数据读取 ✓
+      # - RageEffect INC 从 Berserk buff 读取（perform 中应用）✓
+    config_ranges:
+      - var: "multiplierRage"
+        label: "Rage 层数"
+        min: 1
+        mid: 10
+        max: null  # 运行时从 output.MaximumRage 读取
+        condition_label: "Rage 1~满层"
+      # 只需设置 multiplierRage 配置来指定 Rage 层数
+
+  "Archmage":
+    detect:
+      type: "skill_id"
+      skill_id: "ArchmagePlayer"
+    skill_type: "active"
+    condition: "非引导法术消耗额外法力，造成额外闪电伤害（基于最大法力值）"
+    # Archmage 只对 Non-Channelling Spell 有效，对 Attack 技能无效
+    # 当前构筑 Flicker Strike 是 Attack，所以 Archmage 不会有效果
+    # POB 原生计算 Archmage 效果（通过 statMap 映射），无需 Sim 注入
+    # 但对 Attack 构筑，Archmage 添加后 POB 不会应用任何修正
     effects: []
-  
+
   # 辅助宝石 MORE 伤害效果（共 115 个，仅列出重要的）：
   # - support_ablation_offering_skill_damage_+%_final
   # - support_advancing_assault_melee_damage_+%_final_if_*

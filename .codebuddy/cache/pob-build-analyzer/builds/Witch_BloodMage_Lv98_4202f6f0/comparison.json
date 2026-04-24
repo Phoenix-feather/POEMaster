@@ -1,7 +1,7 @@
 {
   "defence": {
-    "ehp_ws1": 17424.27039908,
-    "ehp_ws2": 17330.08515368,
+    "ehp_ws1": 18180.449971298,
+    "ehp_ws2": 18082.153827699,
     "delta_pct": -0.5
   },
   "resource": {
@@ -9,25 +9,25 @@
     "spirit_ws2": 41.0
   },
   "skills": {
-    "Tempest Flurry": {
-      "dps_ws1": 20922.97985311,
-      "dps_ws2": 58813.112466664,
-      "delta_pct": 181.1
-    },
     "Falling Thunder": {
-      "dps_ws1": 65757.20907361,
-      "dps_ws2": 127347.56576454,
-      "delta_pct": 93.7
+      "dps_ws1": 98867.976262583,
+      "dps_ws2": 264116.85305202,
+      "delta_pct": 167.1
     },
     "Flicker Strike": {
-      "dps_ws1": 97212.771760519,
-      "dps_ws2": 423409.04000476,
-      "delta_pct": 335.5
+      "dps_ws1": 163671.48933294,
+      "dps_ws2": 764079.23425689,
+      "delta_pct": 366.8
+    },
+    "Tempest Flurry": {
+      "dps_ws1": 31458.630071277,
+      "dps_ws2": 119853.62247322,
+      "delta_pct": 281.0
     },
     "Quarterstaff Strike": {
-      "dps_ws1": 65452.11184178,
-      "dps_ws2": 129963.14281256,
-      "delta_pct": 98.6
+      "dps_ws1": 102027.16942666,
+      "dps_ws2": 273711.7813276,
+      "delta_pct": 168.3
     }
   },
   "ws1_only_skills": [],

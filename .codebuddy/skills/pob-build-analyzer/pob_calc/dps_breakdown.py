@@ -378,10 +378,16 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         local enemyDB = env.enemyDB
 
         -- === 1. 识别活跃伤害类型 ===
+        -- 检测逻辑：HitAverage > 0（标准 hit 型技能）
+        --          或 StoredCombinedAvg > 0（"每次使用"型技能如 Flicker Strike）
+        --          或 {dt}Damage > 0（DoT/流血等）
         local dmgTypes = {"Physical", "Lightning", "Cold", "Fire", "Chaos"}
         local activeDT = {}
         for _, dt in ipairs(dmgTypes) do
-            if (output[dt.."HitAverage"] or 0) > 0 then
+            local hitAvg = output[dt.."HitAverage"] or 0
+            local storedAvg = output[dt.."StoredCombinedAvg"] or 0
+            local dotDmg = output[dt.."Damage"] or 0
+            if hitAvg > 0 or storedAvg > 0 or dotDmg > 0 then
                 activeDT[#activeDT+1] = dt
             end
         end
@@ -542,11 +548,12 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             -- MORE
             local sMore = skillModList:More(cfg, "Speed")
             lines[#lines+1] = "SPEED_MORE|Speed|" .. tostring(sMore) .. "|" .. tabStr("MORE", "Speed")
-            -- 额外信息：触发标记、最终速度、ActionSpeedMod
+            -- 额外信息：触发标记、最终速度、ActionSpeedMod、isAttack
             lines[#lines+1] = "SPEED_META|" .. tostring(isTrigger) .. "|" .. tostring(output.Speed)
                 .. "|" .. tostring(output.ActionSpeedMod or 1)
                 .. "|" .. tostring(baseCastTime)
                 .. "|" .. (output.Cooldown and tostring(output.Cooldown) or "0")
+                .. "|" .. tostring(isAttack)
         end
 
         -- === 5. CritChance ===
@@ -584,6 +591,10 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         end
 
         -- === 7. Lucky ===
+        -- 合并输出：所有元素的 Lucky 概率合并为一行（格式同 POB 桌面版）
+        local luckyDT = {}
+        local luckyVal = 0
+        local luckyTab = ""
         for _, dt in ipairs(activeDT) do
             local lc = 0
             if skillModList:Flag(cfg, "LuckyHits")
@@ -594,8 +605,17 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                 lc = skillModList:Sum("BASE", cfg, dt.."LuckyHitsChance", "LuckyHitsChance")
             end
             if lc > 0 then
-                lines[#lines+1] = "LUCKY|" .. dt .. "|" .. tostring(lc) .. "|" .. tabStr("BASE", dt.."LuckyHitsChance", "LuckyHitsChance")
+                luckyDT[#luckyDT+1] = dt
+                luckyVal = lc  -- 假设所有元素概率相同（POB 实际如此）
+                local dtTab = tabStr("BASE", dt.."LuckyHitsChance", "LuckyHitsChance")
+                if dtTab and dtTab ~= "" then
+                    if luckyTab ~= "" then luckyTab = luckyTab .. "\2" end
+                    luckyTab = luckyTab .. dt .. ":" .. dtTab
+                end
             end
+        end
+        if #luckyDT > 0 then
+            lines[#lines+1] = "LUCKY|" .. table.concat(luckyDT, ",") .. "|" .. tostring(luckyVal) .. "|" .. luckyTab
         end
 
         -- === 8. Conversion & Gain 表 ===
@@ -890,6 +910,15 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                 else
                     resist = enemyDB:Sum("BASE", nil, dt.."Resist")
                 end
+                -- 抗性反转（HitsInvertEleResChance）：CalcOffence 用 calcResistForType
+                -- 会将 resist 经过反转处理，但此处我们只读了原始值。
+                -- 需要匹配 CalcOffence 的逻辑：invertChance 应用后 resist = resist - 2*invertChance*resist
+                if isElem then
+                    local invertChance = math.max(math.min(skillModList:Sum("CHANCE", cfg, "HitsInvertEleResChance") or 0, 1), 0)
+                    if invertChance > 0 then
+                        resist = resist - 2 * invertChance * resist
+                    end
+                end
                 local effectiveResist = resist > 0 and math.max(resist - pen, 0) or resist
                 -- effMult: 抗性/穿透对伤害的影响
                 -- 有效抗性 > 0 时，伤害被减免为 (1 - effectiveResist/100)
@@ -897,12 +926,17 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                 local effMult = 1 - effectiveResist / 100
                 -- takenMult 已在 Enemy_Taken 区域单独处理，不应混入 effMult
                 if math.abs(effMult) > 0.001 or pen > 0 then
-                    -- 格式: EFF_MULT|dt|effMult|resist|pen|takenMult
+                    -- 格式: EFF_MULT|dt|effMult|resist|pen|takenMult|invertChance
+                    local invertChanceVal = 0
+                    if isElem then
+                        invertChanceVal = math.max(math.min(skillModList:Sum("CHANCE", cfg, "HitsInvertEleResChance") or 0, 1), 0)
+                    end
                     lines[#lines+1] = "EFF_MULT|" .. dt .. "|"
                         .. string.format("%.6f", effMult) .. "|"
                         .. string.format("%.1f", resist) .. "|"
                         .. string.format("%.1f", pen) .. "|"
-                        .. string.format("%.6f", takenMult)
+                        .. string.format("%.6f", takenMult) .. "|"
+                        .. string.format("%.2f", invertChanceVal)
                 end
             end
         end
@@ -1066,6 +1100,127 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             end
         end
 
+        -- === 11. 多 statSet 技能效果提取 ===
+        -- 检测技能是否有多个 statSets（如 Falling Thunder 的 Melee+Projectile）
+        -- 对于非活跃 statSet，提取其 statMap 中的 Damage MORE/INC 效果
+        -- 这些效果不在 mainSkill 的 skillModList 中，但属于技能本身的伤害缩放
+        do
+            local ge = ms.activeEffect.grantedEffect
+            local activeStatSetIdx = ms.activeEffect.statSet.index
+            if ge.statSets and #ge.statSets > 1 then
+                for ssIdx = 1, #ge.statSets do
+                    if ssIdx ~= activeStatSetIdx then
+                        local ss = ge.statSets[ssIdx]
+                        if ss.statMap then
+                            local ssLabel = ss.label or ("StatSet"..tostring(ssIdx))
+                            -- 计算 statMap 中每个 mod 的有效值
+                            local stats = calcLib.buildSkillInstanceStats(ms.activeEffect, ge, ss)
+                            for stat, statValue in pairs(stats) do
+                                local map = ss.statMap[stat]
+                                if map then
+                                    for _, modOrGroup in ipairs(map) do
+                                        local function processMod(mod)
+                                            -- 通用 mod 处理：支持所有 mod 类型（Damage MORE/INC, ProjectileCount BASE,
+                                            -- AreaOfEffect MORE, EnemyShockChance MORE, SplitCount BASE 等）
+                                            local modName = mod.name
+                                            local modType = mod.type
+                                            if not modName or not modType then
+                                                return
+                                            end
+                                            -- 跳过非数值型 mod（如 LIST, FLAG 等）
+                                            if modType == "LIST" or modType == "FLAG" then
+                                                return
+                                            end
+                                            -- 白名单：只提取与 DPS/数量直接相关的 mod
+                                            -- 跳过转换率、基础伤害、暴露、buff 定义等无关 mod
+                                            local allowedMods = {
+                                                Damage = true,
+                                                ProjectileCount = true,
+                                                AreaOfEffect = true,
+                                                EnemyShockChance = true,
+                                                EnemyIgniteChance = true,
+                                                SplitCount = true,
+                                                HeraldOfThunderHits = true,
+                                                DamageGainAsFire = true,
+                                                MovementSpeed = true,
+                                                radiusExtra = true,
+                                                EnemyHeavyStunBuildup = true,
+                                                Speed = true,
+                                                DPS = true,
+                                                CritChance = true,
+                                                CritMultiplier = true,
+                                                -- Multiplier 类型（最大阶段数等）
+                                                ["Multiplier:DetonatingArrowMaxStages"] = true,
+                                                ["Multiplier:BonestormMaxStages"] = true,
+                                                ["Multiplier:IncinerateMaxStages"] = true,
+                                                ["Multiplier:SuperchargedSlamMaxStages"] = true,
+                                            }
+                                            if not allowedMods[modName] then
+                                                return
+                                            end
+                                            local modFlags = mod.flags or 0
+                                            -- 计算有效值：statValue × multiplier效果
+                                            local effectiveValue = mod.value or (statValue * (mod.mult or 1) / (mod.div or 1) + (mod.base or 0))
+                                            -- 处理 Multiplier / MultiplierThreshold 标签
+                                            local multVar = nil
+                                            local multBase = 0
+                                            local multThreshold = nil
+                                            local isThreshold = false
+                                            for ti = 1, #mod do
+                                                local tag = mod[ti]
+                                                if type(tag) == "table" then
+                                                    if tag.type == "Multiplier" then
+                                                        multVar = tag.var
+                                                        multBase = tag.base or 0
+                                                    elseif tag.type == "MultiplierThreshold" then
+                                                        multVar = tag.var
+                                                        multThreshold = tag.threshold or 1
+                                                        isThreshold = true
+                                                    end
+                                                end
+                                            end
+                                            -- 应用 multiplier 逻辑
+                                            if multVar then
+                                                local multCount = env.player.modDB.multipliers[multVar] or output[multVar] or 0
+                                                if isThreshold then
+                                                    effectiveValue = multCount >= multThreshold and effectiveValue or 0
+                                                else
+                                                    effectiveValue = effectiveValue * math.max(0, multCount + multBase)
+                                                end
+                                            end
+                                            -- 格式: STATSET_EFFECT|statSetLabel|modType|modName|effectiveValue|rawStatValue|modFlags|source|multInfo
+                                            local multInfo = ""
+                                            if multVar then
+                                                if isThreshold then
+                                                    multInfo = "threshold:" .. multVar .. ">=" .. tostring(multThreshold)
+                                                else
+                                                    multInfo = "per:" .. multVar .. "+base=" .. tostring(multBase)
+                                                end
+                                            end
+                                            lines[#lines+1] = "STATSET_EFFECT|" .. ssLabel .. "|"
+                                                .. modType .. "|" .. modName .. "|"
+                                                .. string.format("%.2f", effectiveValue) .. "|"
+                                                .. string.format("%.2f", statValue) .. "|"
+                                                .. string.format("0x%x", modFlags) .. "|"
+                                                .. ge.modSource .. "|"
+                                                .. multInfo
+                                        end
+                                        if modOrGroup.name then
+                                            processMod(modOrGroup)
+                                        else
+                                            for _, mod in ipairs(modOrGroup) do
+                                                processMod(mod)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
         return table.concat(lines, "\n")
     '''
 
@@ -1141,7 +1296,7 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             _parse_speed_base(parts, formula_items)
 
         elif section == "SPEED_META":
-            # 格式: SPEED_META|isTrigger|finalSpeed|actionSpeedMod|baseCastTime|cooldown
+            # 格式: SPEED_META|isTrigger|finalSpeed|actionSpeedMod|baseCastTime|cooldown|isAttack
             meta_parts = line.split('|')
             if len(meta_parts) >= 6:
                 speed_meta["is_trigger"] = meta_parts[1] == "true"
@@ -1161,6 +1316,9 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                     speed_meta["cooldown"] = float(meta_parts[5])
                 except ValueError:
                     pass
+                # isAttack 标记（从 Lua cfg.flags 检测）
+                if len(meta_parts) >= 7:
+                    speed_meta["is_attack"] = meta_parts[6] == "true"
 
         elif section in ("DMG_INC_BY_MOD", "DMG_MORE_BY_MOD",
                          "SPEED_INC", "SPEED_MORE",
@@ -1237,9 +1395,40 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                                          "CritMultiplier MORE", "CritMultiplier_MORE",
                                          jewel_node_ids)
                 elif section == "LUCKY":
-                    _parse_tabulate_item(parts, "BASE", formula_items,
-                                         f"{dt} Lucky Hits", f"{dt}_Lucky",
-                                         jewel_node_ids)
+                    # 格式: LUCKY|Physical,Lightning,Fire|20|tabEntries
+                    # 合并输出，不再按元素拆分
+                    dt_list = parts[1] if len(parts) > 1 else ""
+                    lucky_value = 0
+                    try:
+                        lucky_value = float(parts[2]) if len(parts) > 2 else 0
+                    except (ValueError, IndexError):
+                        pass
+                    lucky_sources = []
+                    tab_data = parts[3] if len(parts) > 3 else ""
+                    if tab_data:
+                        for entry in tab_data.split('\2'):
+                            entry_parts = entry.split('\1', 4)
+                            if len(entry_parts) >= 3:
+                                src = entry_parts[1] or ""
+                                lbl = _source_label_fallback(src, node_names)
+                                cat = _classify_source(src, jewel_node_ids)
+                                try:
+                                    val = float(entry_parts[2])
+                                except (ValueError, IndexError):
+                                    val = 0
+                                lucky_sources.append({
+                                    "source": src, "label": lbl,
+                                    "category": cat, "value": val,
+                                    "mod_name": entry_parts[0] if entry_parts[0] else "LuckyHitsChance",
+                                })
+                    formula_items.append({
+                        "key": "LuckyHits",
+                        "formula_name": f"Lucky Hits ({dt_list})",
+                        "total_value": lucky_value,
+                        "display_value": f"{lucky_value:.0f}%",
+                        "category_summary": {},
+                        "sources": lucky_sources,
+                    })
 
         elif section == "CRIT_BASE":
             # 格式: CRIT_BASE|CritChance|ccB|baseCrit|actualCC|ccI|ccM|tabEntries
@@ -1302,6 +1491,10 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
             # 格式: COMBINED_DPS|totalDPS|dotDPS|impaleDPS|mirageDPS|cullMult|resDpsMult|combinedDPS|bleedDPS|poisonDPS|igniteDPS
             parts = line.split('|')
             _parse_combined_dps(parts, formula_items)
+
+        elif section == "STATSET_EFFECT":
+            # 格式: STATSET_EFFECT|statSetLabel|modType|modName|effectiveValue|rawStatValue|modFlags|source|multInfo
+            _parse_statset_effect(line.split('|'), formula_items)
 
     # 过滤掉没有来源的非 base-damage 空项（保留临时上下文条目）
     formula_items = [fi for fi in formula_items
@@ -1437,9 +1630,12 @@ def _compute_dps_flow_stages(formula_items: list, baseline: dict,
          ", ".join(f"{it['formula_name']}: ×{it['total_value']:.2f}" for it in dt_taken),
          "已内含在 AvgHit 中", "#ff7744", dt_taken)
     if eff:
-        _add("敌人抗性/穿透",
-         ", ".join(f"{it['formula_name']}: +{it['total_value']:.1f}%" for it in eff),
-         "已内含在 AvgHit 中", "#e05555", eff)
+        # 过滤掉增益为 0 的 EffMult 条目（如无穿透时的纯抗性条目）
+        eff_nonzero = [it for it in eff if it.get("total_value", 0) != 0]
+        if eff_nonzero:
+            _add("敌人抗性/穿透",
+             ", ".join(f"{it['formula_name']}: +{it['total_value']:.1f}%" for it in eff_nonzero),
+             "已内含在 AvgHit 中", "#e05555", eff_nonzero)
 
     # 8) DoT DPS（Ignite/Bleed/Poison）
     dot_items = [it for it in formula_items if it["key"].endswith("_DPS")
@@ -1464,7 +1660,13 @@ def _compute_dps_flow_stages(formula_items: list, baseline: dict,
     base_ct = sm.get("base_cast_time", 0)
     cd = sm.get("cooldown", 0)
     trigger_note = " (触发)" if is_trigger else ""
-    speed_label = f"施法速度{trigger_note}"
+    # 根据技能 flags 判断是攻击还是施法
+    # 优先从 speed_meta（Lua cfg.flags 检测）读取，回退到 baseline.skill_flags
+    is_attack = sm.get("is_attack", False)
+    if not is_attack and isinstance(baseline.get("skill_flags"), dict):
+        is_attack = baseline["skill_flags"].get("is_attack", False)
+    speed_type = "攻击速度" if is_attack else "施法速度"
+    speed_label = f"{speed_type}{trigger_note}"
 
     # 构成公式
     formula_parts = []
@@ -1809,6 +2011,9 @@ def _parse_speed_base(parts: list, formula_items: list):
         return
 
     label = parts[3] if len(parts) > 3 else "Base"
+    # 根据基础速度来源标签推断是攻击还是施法
+    is_attack_speed = "武器" in label or "攻击" in label
+    speed_formula_name = "攻击速度" if is_attack_speed else "施法速度"
     base_speed = round(base_speed, 2)
     sources = [{
         "source": "gem",
@@ -1820,7 +2025,7 @@ def _parse_speed_base(parts: list, formula_items: list):
 
     formula_items.append({
         "key": "Speed_BASE",
-        "formula_name": "施法速度",
+        "formula_name": speed_formula_name,
         "total_value": base_speed,
         "display_value": f"{base_speed:.2f}/s",
         "category_summary": {"Skill": base_speed},
@@ -1922,28 +2127,44 @@ def _parse_conv_gain(parts: list, formula_items: list,
 def _parse_eff_mult(parts: list, formula_items: list):
     """解析 EFF_MULT 行（各伤害类型的抗性/穿透乘区）。
 
-    格式: EFF_MULT|dt|effMult|resist|pen|takenMult
+    格式: EFF_MULT|dt|effMult|resist|pen|takenMult|invertChance
     takenMult 由 ENEMY_TAKEN 行提供，这里只展示抗性/穿透部分。
+    invertChance: 抗性反转概率（0~1），来自 HitsInvertEleResChance。
+    resist 已被 Lua 端反转处理，需恢复原始值用于展示。
     """
     if len(parts) < 6:
         return
     try:
         dt = parts[1]
         eff_mult = float(parts[2])
-        resist = float(parts[3])
+        resist = float(parts[3])  # 反转后的抗性值
         pen = float(parts[4])
         taken_mult = float(parts[5])
+        invert_chance = float(parts[6]) if len(parts) > 6 else 0.0
     except (ValueError, IndexError):
         return
 
+    # 恢复原始抗性值：resist_new = resist_orig * (1 - 2*invertChance)
+    original_resist = resist
+    if invert_chance > 0 and abs(1 - 2 * invert_chance) > 0.001:
+        original_resist = resist / (1 - 2 * invert_chance)
+
     resist_sources = []
-    if resist != 0:
+    if original_resist != 0:
         resist_sources.append({
             "source": "enemy",
             "label": f"敌人 {dt} 抗性",
             "category": "Enemy",
-            "value": resist,
+            "value": original_resist,
             "mod_name": f"{dt}Resist",
+        })
+    if invert_chance > 0:
+        resist_sources.append({
+            "source": "player",
+            "label": f"{dt} 抗性反转",
+            "category": "ResistInvert",
+            "value": invert_chance * 100,
+            "mod_name": "HitsInvertEleResChance",
         })
     if pen != 0:
         resist_sources.append({
@@ -1956,17 +2177,19 @@ def _parse_eff_mult(parts: list, formula_items: list):
 
     effective_resist = max(resist - pen, 0) if resist > 0 else resist
 
-    # 计算穿透/减抗带来的边际增益（相对于原始抗性）
-    # 原始抗性下伤害 = (1 - resist/100)，穿透后伤害 = effMult
-    # 增益 = effMult / (1 - resist/100) - 1
-    base_mult = (1 - resist / 100) if resist >= 0 else (1 - resist / 100)
+    # 计算增益：相对于原始抗性（无反转、无穿透时的基准）
+    base_mult = (1 - original_resist / 100)
     if abs(base_mult) > 0.001:
         gain_pct = (eff_mult / base_mult - 1) * 100
     else:
         gain_pct = 0.0
 
     formula_detail = f"+{gain_pct:.1f}%"
-    if effective_resist != 0:
+    if invert_chance > 0:
+        formula_detail += f"  (抗性反转 {invert_chance*100:.0f}%: {original_resist:.0f}% → {resist:.0f}%)"
+        if pen > 0 and resist <= 0:
+            formula_detail += f"  穿透无效（抗性≤0时穿透不生效）"
+    elif effective_resist != 0:
         formula_detail += f"  (抗性 {resist:.0f}% - 穿透 {pen:.0f}% = 有效 {effective_resist:.0f}%)"
     elif resist < 0:
         formula_detail += f"  (敌人负抗性 {resist:.0f}%)"
@@ -1980,6 +2203,7 @@ def _parse_eff_mult(parts: list, formula_items: list):
         "display_value": f"+{gain_pct:.1f}%",
         "_eff_mult_abs": eff_mult,  # 保留绝对值供加权计算用
         "_resist": resist,
+        "_invert_chance": invert_chance,
         "category_summary": cat_sum,
         "sources": resist_sources,
         "_no_sources_ok": True,
@@ -2532,11 +2756,17 @@ def _compute_weighted_eff_mult(formula_items: list, damage_composition: list):
         weighted_abs += eff_entries[dt].get("_eff_mult_abs", 1.0) * weight
 
     # 计算加权增益百分比：用加权绝对 effMult 除以加权基础乘区
-    # 加权基础乘区 = 各元素 (1 - resist/100) 按同样权重加权
+    # 加权基础乘区 = 各元素 (1 - originalResist/100) 按同样权重加权
+    # originalResist 是反转前的原始抗性值
     weighted_base = 0.0
     for dt, weight in weight_map.items():
         resist = eff_entries[dt].get("_resist", 0)
-        weighted_base += (1 - resist / 100) * weight
+        invert_chance = eff_entries[dt].get("_invert_chance", 0)
+        # 恢复原始抗性值：resist_new = resist_orig * (1 - 2*invertChance)
+        original_resist = resist
+        if invert_chance > 0 and abs(1 - 2 * invert_chance) > 0.001:
+            original_resist = resist / (1 - 2 * invert_chance)
+        weighted_base += (1 - original_resist / 100) * weight
     if abs(weighted_base) > 0.001:
         weighted_gain_pct = (weighted_abs / weighted_base - 1) * 100
     else:
@@ -2584,6 +2814,21 @@ def _compute_weighted_eff_mult(formula_items: list, damage_composition: list):
     rep_detail = ""
     if per_element_sources:
         rep_detail = per_element_sources[0].get("formula_detail", "")
+    # 检查是否有抗性反转
+    has_invert = any(s.get("category") == "ResistInvert" for s in mod_sources)
+    if has_invert:
+        invert_info_parts = []
+        pen_info_parts = []
+        for ms in mod_sources:
+            if ms.get("category") == "ResistInvert":
+                invert_info_parts.append(f"{ms.get('element', '')} {ms.get('value', 0):.0f}%")
+            elif ms.get("category") == "Penetration":
+                pen_info_parts.append(f"{ms.get('element', '')} +{ms.get('value', 0):.0f}%")
+        rep_detail = "抗性反转: " + ", ".join(invert_info_parts)
+        if pen_info_parts:
+            rep_detail += "  |  穿透: " + ", ".join(pen_info_parts) + " (无效: 抗性≤0)"
+    elif not rep_detail:
+        rep_detail = f"按伤害构成加权: +{weighted_gain_pct:.1f}%"
 
     formula_items.append({
         "key": "EffMult_weighted",
@@ -2591,10 +2836,10 @@ def _compute_weighted_eff_mult(formula_items: list, damage_composition: list):
         "total_value": weighted_gain_pct,
         "display_value": f"+{weighted_gain_pct:.1f}%",
         "_eff_mult_abs": weighted_abs,
-        "category_summary": {"Penetration": round(weighted_gain_pct, 1)},
+        "category_summary": {s.get("category", "Other"): s.get("value", 0) for s in mod_sources},
         "sources": per_element_sources,
         "mod_sources": mod_sources,
-        "formula_detail": rep_detail or f"按伤害构成加权: +{weighted_gain_pct:.1f}%",
+        "formula_detail": rep_detail,
     })
 
     return weighted_gain_pct
@@ -2882,6 +3127,202 @@ def _parse_dot_breakdown(parts: list, formula_items: list,
         "_no_sources_ok": True,
         "formula_detail": formula_detail,
     })
+
+
+def _parse_statset_effect(parts: list, formula_items: list):
+    """解析 STATSET_EFFECT 行（多 statSet 技能的非活跃 statSet 效果）。
+
+    格式: STATSET_EFFECT|statSetLabel|modType|modName|effectiveValue|rawStatValue|modFlags|source|multInfo
+    例如: STATSET_EFFECT|Projectile|MORE|Damage|400.00|50.00|0x400|Skill:FallingThunderPlayer|per:RemovablePowerCharge+base=0
+    例如: STATSET_EFFECT|Projectile|MORE|Damage|100.00|100.00|0x400|Skill:FallingThunderPlayer|threshold:RemovablePowerCharge>=1
+    """
+    if len(parts) < 9:
+        return
+    try:
+        ss_label = parts[1]           # "Projectile"
+        mod_type = parts[2]           # "MORE" or "INC"
+        mod_name = parts[3]           # "Damage" or "ProjectileCount"
+        effective_value = float(parts[4])  # e.g. 400.0 (含 multiplier 后的值)
+        raw_stat_value = float(parts[5])   # e.g. 50.0 (原始 constantStat 值)
+        mod_flags = parts[6]          # e.g. "0x400"
+        source = parts[7]             # e.g. "Skill:FallingThunderPlayer"
+        mult_info = parts[8]          # e.g. "per:RemovablePowerCharge+base=0" or "threshold:RemovablePowerCharge>=1"
+
+        # 构建 multiplier 描述
+        mult_desc = ""
+        if mult_info:
+            if mult_info.startswith("per:"):
+                # per:RemovablePowerCharge+base=0 → "×8暴击球"
+                m = re.match(r'per:(\w+)\+base=(-?\d+)', mult_info)
+                if m:
+                    var_name = m.group(1)
+                    # 友好化变量名
+                    var_friendly = {
+                        "RemovablePowerCharge": "暴击球",
+                        "RemovableFrenzyCharge": "狂怒球",
+                        "RemovableEnduranceCharge": "耐力球",
+                    }.get(var_name, var_name)
+                    mult_desc = f"×{var_friendly}"
+            elif mult_info.startswith("threshold:"):
+                # threshold:RemovablePowerCharge>=1 → "有暴击球时"
+                m = re.match(r'threshold:(\w+)>=(\d+)', mult_info)
+                if m:
+                    var_name = m.group(1)
+                    var_friendly = {
+                        "RemovablePowerCharge": "暴击球",
+                        "RemovableFrenzyCharge": "狂怒球",
+                        "RemovableEnduranceCharge": "耐力球",
+                    }.get(var_name, var_name)
+                    threshold = int(m.group(2))
+                    if threshold == 1:
+                        mult_desc = f"有{var_friendly}时"
+                    else:
+                        mult_desc = f"{var_friendly}≥{threshold}时"
+
+        # 通用 mod 处理：支持所有数值型 mod（Damage MORE/INC, ProjectileCount BASE,
+        # AreaOfEffect MORE, EnemyShockChance MORE, SplitCount BASE 等）
+        # 构建可读的 formula_name
+        flag_desc = ""
+        try:
+            flags_int = int(mod_flags, 16)
+            flag_parts = []
+            if flags_int & 0x400:
+                flag_parts.append("Projectile")
+            if flags_int & 0x01:
+                flag_parts.append("Attack")
+            if flags_int & 0x02:
+                flag_parts.append("Melee")
+            if flags_int & 0x04:
+                flag_parts.append("Area")
+            if flag_parts:
+                flag_desc = f" ({','.join(flag_parts)})"
+        except ValueError:
+            pass
+
+        # 友好化 mod 名称显示
+        mod_name_display = {
+            "Damage": "伤害",
+            "ProjectileCount": "弹体数量",
+            "AreaOfEffect": "范围效果",
+            "EnemyShockChance": "感电几率",
+            "EnemyIgniteChance": "点燃几率",
+            "SplitCount": "分裂数量",
+            "HeraldOfThunderHits": "雷霆之击命中数",
+            "HeraldOfAshBuff": "灰烬之捷增益",
+            "DamageGainAsFire": "火焰转伤",
+            "MovementSpeed": "移动速度",
+            "radiusExtra": "额外半径",
+            "EnemyHeavyStunBuildup": "重击眩晕累积",
+            "FireMin": "火焰伤害下限",
+            "FireMax": "火焰伤害上限",
+            "ColdExposure": "冰冷暴露",
+            "FireExposure": "火焰暴露",
+            "LightningExposure": "闪电暴露",
+            "ThornsDamage": "荆棘伤害",
+            "StunThreshold": "眩晕阈值",
+            "LifeRegenPercent": "生命回复",
+            "Speed": "速度",
+            "DPS": "DPS",
+            "Multiplier:DetonatingArrowMaxStages": "最大蓄力阶段",
+            "Multiplier:BonestormMaxStages": "最大骨风暴阶段",
+            "Multiplier:IncinerateMaxStages": "最大焚化阶段",
+            "Multiplier:SuperchargedSlamMaxStages": "最大蓄力猛击阶段",
+        }.get(mod_name, mod_name)
+
+        formula_name = f"{ss_label}{flag_desc} {mod_name_display} {mod_type}"
+        key = f"{ss_label}_{mod_name}_{mod_type}"
+
+        # 构建来源描述
+        label = f"{ss_label}效果"
+        if mult_desc:
+            label = f"{ss_label}效果({mult_desc})"
+
+        source_entry = {
+            "source": source,
+            "label": label,
+            "category": "SkillEffect",
+            "value": effective_value,
+            "mod_name": mod_name,
+        }
+
+        # 根据 mod_type 决定 total_value 格式
+        if mod_type == "MORE":
+            more_mult = 1 + effective_value / 100
+            # 查找是否已有同 key 的项（合并同类型 MORE）
+            existing = None
+            for fi in formula_items:
+                if fi.get("key") == key:
+                    existing = fi
+                    break
+            if existing:
+                existing["sources"].append(source_entry)
+                existing["total_value"] *= more_mult
+                pct_total = (existing["total_value"] - 1) * 100
+                existing["display_value"] = f"+{pct_total:.1f}%"
+                existing["category_summary"]["SkillEffect"] *= more_mult
+            else:
+                formula_items.append({
+                    "key": key,
+                    "formula_name": formula_name,
+                    "total_value": more_mult,
+                    "display_value": f"+{effective_value:.1f}%",
+                    "category_summary": {"SkillEffect": more_mult},
+                    "sources": [source_entry],
+                })
+        elif mod_type == "INC":
+            existing = None
+            for fi in formula_items:
+                if fi.get("key") == key:
+                    existing = fi
+                    break
+            if existing:
+                existing["sources"].append(source_entry)
+                existing["total_value"] += effective_value
+                existing["display_value"] = f"+{existing['total_value']:.1f}%"
+                existing["category_summary"]["SkillEffect"] = existing["total_value"]
+            else:
+                formula_items.append({
+                    "key": key,
+                    "formula_name": formula_name,
+                    "total_value": effective_value,
+                    "display_value": f"+{effective_value:.1f}%",
+                    "category_summary": {"SkillEffect": effective_value},
+                    "sources": [source_entry],
+                })
+        elif mod_type == "BASE":
+            # BASE 类型：绝对值（弹体数量、分裂数量等）
+            existing = None
+            for fi in formula_items:
+                if fi.get("key") == key:
+                    existing = fi
+                    break
+            if existing:
+                existing["sources"].append(source_entry)
+                existing["total_value"] += effective_value
+                existing["display_value"] = f"{existing['total_value']:.0f}"
+                existing["category_summary"]["SkillEffect"] = existing["total_value"]
+            else:
+                formula_items.append({
+                    "key": key,
+                    "formula_name": formula_name,
+                    "total_value": effective_value,
+                    "display_value": f"{effective_value:.0f}",
+                    "category_summary": {"SkillEffect": effective_value},
+                    "sources": [source_entry],
+                })
+        else:
+            # 其他类型（如 OVERRIDE）
+            formula_items.append({
+                "key": key,
+                "formula_name": formula_name,
+                "total_value": effective_value,
+                "display_value": f"{effective_value:.2f}",
+                "category_summary": {"SkillEffect": effective_value},
+                "sources": [source_entry],
+            })
+
+    except (ValueError, IndexError) as e:
+        logger.debug("Failed to parse STATSET_EFFECT: %s", e)
 
 
 def _parse_combined_dps(parts: list, formula_items: list):

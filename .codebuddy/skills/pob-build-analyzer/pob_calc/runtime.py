@@ -243,6 +243,19 @@ def create_runtime(pob_path: Path = None) -> tuple:
 
     # Data → ModTools → ItemTools → CalcTools → Calcs
     lua.globals().LoadModule("Modules/Data")
+
+    # POE2/POB bug 修复：Data.lua line 611 的
+    #   data.jewelRadius = data.setJewelRadiiGlobally(latestTreeVersion)
+    # setJewelRadiiGlobally 在内部已设置 data.jewelRadius，但没有 return 值，
+    # 导致 nil 被赋值覆盖了正确结果。重新调用（不赋值）恢复正确值。
+    lua.execute('''
+        if data and data.setJewelRadiiGlobally and latestTreeVersion then
+            data.setJewelRadiiGlobally(latestTreeVersion)
+        end
+        if data and data.jewelRadius == nil then
+            data.jewelRadius = {}
+        end
+    ''')
     lua.globals().LoadModule("Modules/ModTools")
     lua.globals().LoadModule("Modules/ItemTools")
     lua.globals().LoadModule("Modules/CalcTools")

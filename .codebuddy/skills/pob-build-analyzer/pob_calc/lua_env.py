@@ -249,6 +249,13 @@ class LuaEnvManager:
 
         首次调用时从当前 modList 中提取 sim mods（source 含 "sim"）。
         之后每次调用：遍历 ConfigOptions 重建 + 追加 sim mods。
+
+        ⚠️ 必须与 POB 原版 ConfigTabClass:BuildModList() 保持一致：
+        - count/integer/float 类型：先查 input，再回退到 placeholder
+        - check 类型：先查 input，再回退到 defaultState
+        - list 类型：先查 input，再回退到 defaultIndex
+        如果遗漏 placeholder 回退，auto_configure 设置的 count 配置项
+        （如 WitheredStack、DemonFlameStacks 等）在重建时会丢失。
         """
         self._lua.execute('''
             local build = _spike_build
@@ -280,9 +287,11 @@ class LuaEnvManager:
             end
 
             -- 遍历 ConfigOptions 重建 modList
+            -- 与 POB ConfigTabClass:BuildModList() 保持一致：包含 placeholder 回退
             local modList = new("ModList")
             local enemyModList = new("ModList")
             local input = build.configTab.input
+            local placeholder = build.configTab.placeholder or {}
             for _, varData in ipairs(configSettings) do
                 if varData.apply then
                     local varName = varData.var
@@ -303,6 +312,9 @@ class LuaEnvManager:
                         if val and (val ~= 0
                                     or varData.type ~= "count") then
                             pcall(varData.apply, val,
+                                  modList, enemyModList, build)
+                        elseif placeholder[varName] and (placeholder[varName] ~= 0 or varData.type ~= "count") then
+                            pcall(varData.apply, placeholder[varName],
                                   modList, enemyModList, build)
                         end
                     elseif varData.type == "list" then

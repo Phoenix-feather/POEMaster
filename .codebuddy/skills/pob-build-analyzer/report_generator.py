@@ -168,30 +168,52 @@ def _merge_enemy_zone(skill_data: dict) -> bool:
                 to_remove = {fi["key"] for fi in eff_entries.values()}
                 db["formula_items"] = [fi for fi in items if fi["key"] not in to_remove]
                 # 旧格式 total_value 是绝对 effMult，需转换为增益百分比
-                # 加权基础乘区 = 各元素 (1 - resist/100) 的加权平均
+                # 加权基础乘区 = 各元素 (1 - originalResist/100) 的加权平均
+                # originalResist = 反转前的抗性值
                 weighted_base = 0.0
                 for dt_val, weight in sorted(weight_map.items(), key=lambda x: -x[1]):
-                    # 从 per-element source 的 formula_detail 提取 resist
+                    # 从 per-element source 的 formula_detail 提取 original resist
                     eff_fi = eff_entries[dt_val]
                     resist_val = 0
+                    invert_chance = eff_fi.get("_invert_chance", 0)
                     for s in eff_fi.get("sources", []):
                         if s.get("mod_name", "").endswith("Resist"):
                             resist_val = s.get("value", 0)
                             break
-                    weighted_base += (1 - resist_val / 100) * weight
+                    # resist_val 已是反转后的值，需要恢复原始值用于 base 计算
+                    # 原始抗性: original_resist = resist / (1 - 2*invertChance)
+                    original_resist = resist_val
+                    if invert_chance > 0 and abs(1 - 2 * invert_chance) > 0.001:
+                        original_resist = resist_val / (1 - 2 * invert_chance)
+                    weighted_base += (1 - original_resist / 100) * weight
                 if abs(weighted_base) > 0.001:
                     weighted_gain_pct = (weighted / weighted_base - 1) * 100
                 else:
                     weighted_gain_pct = 0.0
 
                 rep_detail = sources[0].get("formula_detail", "") if sources else ""
+                # 检查是否有抗性反转
+                has_invert = any(s.get("category") == "ResistInvert" for s in mod_sources)
+                if has_invert:
+                    invert_info_parts = []
+                    pen_info_parts = []
+                    for ms in mod_sources:
+                        if ms.get("category") == "ResistInvert":
+                            invert_info_parts.append(f"{ms.get('element', '')} {ms.get('value', 0):.0f}%")
+                        elif ms.get("category") == "Penetration":
+                            pen_info_parts.append(f"{ms.get('element', '')} +{ms.get('value', 0):.0f}%")
+                    rep_detail = "抗性反转: " + ", ".join(invert_info_parts)
+                    if pen_info_parts:
+                        rep_detail += "  |  穿透: " + ", ".join(pen_info_parts) + " (无效: 抗性≤0)"
+                elif not rep_detail:
+                    rep_detail = f"按伤害构成加权: +{weighted_gain_pct:.1f}%"
                 db["formula_items"].append({
                     "key": "EffMult_weighted",
                     "formula_name": "敌人抗性乘区 (加权)",
                     "total_value": weighted_gain_pct,
                     "display_value": f"+{weighted_gain_pct:.1f}%",
                     "_eff_mult_abs": weighted,
-                    "category_summary": {"Penetration": round(weighted_gain_pct, 1)},
+                    "category_summary": {s.get("category", "Other"): s.get("value", 0) for s in mod_sources},
                     "sources": sources,
                     "mod_sources": mod_sources,
                     "formula_detail": rep_detail or f"按伤害构成加权: +{weighted_gain_pct:.1f}%",
@@ -862,7 +884,7 @@ function fmtComma(n) {
 const CAT_COLORS = {
   Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d',
   Base: '#a8abb5', Jewel: '#b197fc', Other: '#6c6f7e',
-  Sim: '#ff6b6b'
+  Sim: '#ff6b6b', SkillEffect: '#fbbf24'
 };
 const CATEGORY_COLORS = {
   '进攻': '#ff6b6b', '防御': '#5b9aff', '混合': '#b197fc', '无效': '#6c6f7e'
@@ -879,7 +901,7 @@ function GlobalBaselineSection({ activeWS }) {
   var ba = g.build_attributes || {};
 
   // Category color map
-  var catClr = { Tree: '#5bda6e', Item: '#ffa94d', Jewel: '#b197fc', Skill: '#5b9aff', Sim: '#ff6b6b', Base: '#a8abb5', Gem: '#66d9e8' };
+  var catClr = { Tree: '#5bda6e', Item: '#ffa94d', Jewel: '#b197fc', Skill: '#5b9aff', Sim: '#ff6b6b', Base: '#a8abb5', Gem: '#66d9e8', SkillEffect: '#fbbf24' };
 
   // Element emoji/icon map for affects display
   var elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
@@ -1144,7 +1166,7 @@ function SourceList({ sources }) {
 function FormulaBreakdown({ data }) {
   if (!data || !data.formula_items) return null;
 
-  var catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ff6b6b' };
+  var catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ffaa44', Ailment: '#cc66aa', Config: '#88aacc', ResistInvert: '#e879f9', Penetration: '#60a5fa', SkillEffect: '#fbbf24', Other: '#888899' };
 
   // 不再合并 Lucky，保持独立分组
   // 过滤旧格式按元素展开的敌人乘区条目（旧缓存兼容），
@@ -1154,6 +1176,10 @@ function FormulaBreakdown({ data }) {
     // 过滤旧格式: Enemy_Lightning_DamageTaken_mult, Lightning_EffMult 等
     if (/^Enemy_(Lightning|Cold|Fire|Physical|Chaos)_DamageTaken_mult$/.test(it.key)) return false;
     if (/^(Lightning|Cold|Fire|Physical|Chaos)_EffMult$/.test(it.key)) return false;
+    // 过滤 Base_Damage：基础伤害的绝对值（如 Physical_Base_Damage=2555.92），
+    // 不是乘区修正，展示为百分比会极其误导（显示为 +2556%）
+    // 基础伤害构成已在 DamagePieChart 中展示
+    if (/_Base_Damage$/.test(it.key)) return false;
     return true;
   });
 
@@ -1162,10 +1188,12 @@ function FormulaBreakdown({ data }) {
   var groups = [
     { id: 'dmg_inc', label: '\u4f24\u5bb3 INC', icon: '\ud83d\udcc8', color: '#55c078', group_type: 'additive',
       test: function(it) { return it.key.endsWith('_INC') && !it.key.startsWith('Crit') && !it.key.startsWith('Speed'); } },
+    { id: 'skill_effect', label: '\u6280\u80fd\u6548\u679c', icon: '\u2728', color: '#fbbf24', group_type: 'info',
+      test: function(it) { return (it.sources || []).some(function(s) { return s.category === 'SkillEffect'; }); } },
     { id: 'dmg_more', label: '\u4f24\u5bb3 MORE', icon: '\u26a1', color: '#5588dd', group_type: 'multiplicative',
       test: function(it) { return it.key.endsWith('_MORE') && !it.key.startsWith('Crit') && !it.key.startsWith('Speed'); } },
     { id: 'lucky', label: '\u5e78\u8fd0\u51fb\u4e2d', icon: '\ud83c\udfb2', color: '#cc5599', group_type: 'info',
-      test: function(it) { return it.key.endsWith('_Lucky'); } },
+      test: function(it) { return it.key.endsWith('_Lucky') || it.key === 'LuckyHits'; } },
     { id: 'crit', label: '\u66b4\u51fb', icon: '\ud83c\udfaf', color: '#e05555', group_type: 'mixed',
       test: function(it) { return it.key.startsWith('Crit'); } },
     { id: 'speed', label: '\u901f\u5ea6', icon: '\u23f1', color: '#44bbcc', group_type: 'mixed',
@@ -1206,8 +1234,8 @@ function FormulaBreakdown({ data }) {
     catEntries.sort(function(a, b) { return b.value - a.value; });
 
     var catSum, catPcts;
-    if (isEffWeighted || isEnemyDT) {
-      // 敌人乘区条目：不展示分类条形图，用来源列表代替
+    if (isEffWeighted || isEnemyDT || isDotDPS) {
+      // 敌人乘区/DoT DPS：不展示分类条形图（category_summary 语义不匹配）
       catPcts = [];
     } else if (isMore) {
       catSum = total - 1 || 1;
@@ -1224,6 +1252,15 @@ function FormulaBreakdown({ data }) {
     } else if (isMore) {
       // MORE 乘法项：显示乘数
       displayStr = '\u00d7' + fmt(it.total_value, 2);
+    } else if (it.key.endsWith('_ProjectileCount') || it.key.endsWith('_SplitCount')) {
+      // 弹体/分裂数量：绝对值
+      displayStr = it.total_value + '\u4e2a';
+    } else if (it.key.endsWith('_BASE') && (it.key.includes('Count') || it.key.includes('Multiplier'))) {
+      // 计数型 BASE：绝对值
+      displayStr = fmt(it.total_value, 0);
+    } else if (it.key.includes('Multiplier:') && it.key.endsWith('MaxStages')) {
+      // 最大阶段数
+      displayStr = it.total_value + '\u9636\u6bb5';
     } else if (it.key === 'Enemy_DamageTaken_mult') {
       // 敌人受伤增加：显示乘数
       displayStr = '\u00d7' + fmt(it.total_value, 2);
@@ -1231,8 +1268,8 @@ function FormulaBreakdown({ data }) {
       // EffMult_weighted total_value 已是增益百分比（如 16.0 表示 +16%）
       displayStr = '+' + fmt(it.total_value, 1) + '%';
     } else if (it.key === 'CritMultiplier_BASE') {
-      // CritMultiplier_BASE=100 表示基础额外暴击伤害100%，即暴击×2
-      displayStr = fmt(it.total_value, 0) + '% (base extra)';
+      // CritMultiplier_BASE=100 表示基础额外暴击伤害100%，即暴击×2.00
+      displayStr = '\u00d7' + fmt(1 + it.total_value / 100, 2) + ' (\u57fa\u7840\u66b4\u51fb\u500d\u7387)';
     } else if (it.key === 'CritChance_BASE') {
       displayStr = fmt(it.total_value, 1) + '%';
     } else if (it.key.endsWith('_BASE')) {
@@ -1271,11 +1308,15 @@ function FormulaBreakdown({ data }) {
         if (modSrcs.length === 0 && plainSrcs.length === 0) return null;
         var useMod = modSrcs.length > 0;
         var srcs = useMod ? modSrcs : plainSrcs;
+        // 来源数量较多时，只默认展示 Top 5，其余折叠
+        var TOP_N = 5;
+        var topSrcs = srcs.slice(0, TOP_N);
+        var restSrcs = srcs.slice(TOP_N);
         var label = useMod ? '\u25bc \u6297\u6027/\u7a7f\u900f\u6765\u6e90 (' + srcs.length + ')' : '\u25bc ' + srcs.length + ' \u4e2a\u6765\u6e90';
         return h('details', { style: { paddingLeft: 12, paddingBottom: 2 } },
           h('summary', { style: { fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' } }, label),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 } },
-            srcs.map(function(s, si) {
+            topSrcs.map(function(s, si) {
               var cat = s.category || (useMod ? 'Config' : 'Other');
               var val = s.value;
               var name = useMod ? (s.mod_name || s.source) : (s.label || s.source);
@@ -1285,7 +1326,21 @@ function FormulaBreakdown({ data }) {
                 h('span', { style: { width: 50, textAlign: 'right', color: (val || 0) >= 0 ? 'var(--text-primary)' : 'var(--red)', fontFamily: 'monospace' } }, (val >= 0 ? '+' : '') + val),
                 h('span', { style: { flex: 1 } }, name + elem)
               );
-            })
+            }),
+            restSrcs.length > 0 ? h('details', { style: { paddingLeft: 8 } },
+              h('summary', { style: { fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' } }, '\u5269\u4f59 ' + restSrcs.length + ' \u4e2a\u6765\u6e90'),
+              restSrcs.map(function(s, si) {
+                var cat = s.category || (useMod ? 'Config' : 'Other');
+                var val = s.value;
+                var name = useMod ? (s.mod_name || s.source) : (s.label || s.source);
+                var elem = s.element ? ' [' + s.element + ']' : '';
+                return h('div', { key: si + TOP_N, style: { fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 8, paddingLeft: 8 } },
+                  h('span', { style: { width: 50, color: catColors[cat] || 'var(--text-muted)', fontSize: 11 } }, cat),
+                  h('span', { style: { width: 50, textAlign: 'right', color: (val || 0) >= 0 ? 'var(--text-primary)' : 'var(--red)', fontFamily: 'monospace' } }, (val >= 0 ? '+' : '') + val),
+                  h('span', { style: { flex: 1 } }, name + elem)
+                );
+              })
+            ) : null
           )
         );
       })()
@@ -1335,13 +1390,34 @@ function FormulaBreakdown({ data }) {
       }
       summary = parts.join(' | ') || gItems.length + '\u9879';
     } else if (g.id === 'lucky') {
-      // Lucky 不是乘法叠加——20% 是"投两次取高"概率，提升该元素伤害期望
-      // 只展示信息，不计算乘数（Lucky 效应已内含在 POB 的 MORE 计算结果中）
-      summary = gItems.length + '\u79cd\u5143\u7d20 \u5404' + fmt(gItems[0].total_value, 0) + '%\u6982\u7387';
+      // Lucky: 每个 item 是一种元素的 Lucky 概率（法术构筑: Lightning_Lucky 等3个 items）
+      // 或合并的 LuckyHits（攻击构筑: 1个 item，3个 sources 代表3种元素）
+      // Lucky 效应已内含在 POB 的 AvgHit 计算中，这里仅展示信息
+      var elemCount = gItems.reduce(function(s, it) {
+        // 每个 item 的 source 可能代表多个元素
+        return s + Math.max((it.sources || []).length, 1);
+      }, 0);
+      var luckyPct = gItems[0].total_value || 0;
+      summary = elemCount + '\u79cd\u5143\u7d20 \u5404' + fmt(luckyPct, 0) + '%\u6982\u7387';
     } else if (g.id === 'dot') {
       // DoT DPS: 绝对值求和
       var total = gItems.reduce(function(s, it) { return s + it.total_value; }, 0);
       summary = fmt(total, 0) + ' DPS';
+    } else if (g.id === 'skill_effect') {
+      // 技能效果：展示各子效果
+      var parts = [];
+      gItems.forEach(function(it) {
+        if (it.key.endsWith('_MORE')) {
+          parts.push('\u00d7' + fmt(it.total_value, 1));
+        } else if (it.key.endsWith('_ProjectileCount') || it.key.endsWith('_SplitCount')) {
+          parts.push(it.total_value + '\u4e2a');
+        } else if (it.key.endsWith('_BASE')) {
+          parts.push(it.display_value || it.total_value);
+        } else {
+          parts.push(it.display_value || it.total_value);
+        }
+      });
+      summary = parts.join(' | ') || gItems.length + '\u9879';
     } else {
       // mixed (Crit/Speed): 直接读 POB 实际输出值
       if (g.id === 'crit') {
@@ -1395,11 +1471,36 @@ function FormulaBreakdown({ data }) {
       }
       if (effItem) {
         var effSrcs = (effItem.sources || []).slice();
-        var effParts = effSrcs.map(function(s) {
-          var elem = s.element || '?';
-          return elem + '(+' + fmt(s.value || 0, 1) + '%)';
-        });
-        if (effParts.length > 0) parts.push('\u7a7f\u900f ' + effParts.join('  ') + ' \u2192 \u00d7' + fmt(1 + effItem.total_value / 100, 2));
+        var invertSrcs = effSrcs.filter(function(s) { return s.category === 'ResistInvert'; });
+        var penSrcs = effSrcs.filter(function(s) { return s.category === 'Penetration'; });
+        var enemySrcs = effSrcs.filter(function(s) { return s.category === 'Enemy'; });
+        var effParts = [];
+        // 抗性反转
+        if (invertSrcs.length > 0) {
+          var invInfo = invertSrcs.map(function(s) {
+            return s.label + ' ' + fmt(s.value, 0) + '%';
+          }).join(', ');
+          effParts.push('\u53cd\u8f6c: ' + invInfo);
+        }
+        // 敌人抗性
+        if (enemySrcs.length > 0) {
+          var enemyInfo = enemySrcs.map(function(s) {
+            return s.label + ' ' + fmt(s.value, 0) + '%';
+          }).join(', ');
+          effParts.push(enemyInfo);
+        }
+        // 穿透（当抗性≤0时标注无效）
+        if (penSrcs.length > 0) {
+          var penInfo = penSrcs.map(function(s) {
+            return s.label + ' +' + fmt(s.value, 0) + '%';
+          }).join(', ');
+          var detail = effItem.formula_detail || '';
+          if (detail.indexOf('\u7a7f\u900f\u65e0\u6548') >= 0) {
+            penInfo += ' (\u65e0\u6548: \u6297\u6027\u22640)';
+          }
+          effParts.push(penInfo);
+        }
+        if (effParts.length > 0) parts.push(effParts.join('  |  ') + ' \u2192 \u00d7' + fmt(1 + effItem.total_value / 100, 2));
       }
       if (dtItem && effItem) {
         var totalEff = dtItem.total_value * (1 + effItem.total_value / 100);
@@ -1426,12 +1527,17 @@ function FormulaBreakdown({ data }) {
     } else if (g.id === 'speed') {
       // 速度乘区：speed = BASE × (1+INC/100)
       var spdBase = 0, spdInc = 0;
+      var speedLabel = '\u65bd\u6cd5\u901f\u5ea6'; // 默认施法速度
       gItems.forEach(function(it) {
-        if (it.key === 'Speed_BASE') spdBase = it.total_value;
+        if (it.key === 'Speed_BASE') {
+          spdBase = it.total_value;
+          // 从 formula_name 判断攻击/施法速度
+          if (it.formula_name && it.formula_name.includes('\u653b\u51fb')) speedLabel = '\u653b\u51fb\u901f\u5ea6';
+        }
         else if (it.key === 'Speed_INC') spdInc = it.total_value;
       });
       var spd = data.speed || 0;
-      calcProcess = '\u65bd\u6cd5\u901f\u5ea6 = ' + fmt(spdBase, 2) + ' \u00d7 (1+' + fmt(spdInc, 0) + '%/100) = ' + fmt(spd, 2) + '/s';
+      calcProcess = speedLabel + ' = ' + fmt(spdBase, 2) + ' \u00d7 (1+' + fmt(spdInc, 0) + '%/100) = ' + fmt(spd, 2) + '/s';
     }
 
     return h('details', { key: g.id, style: { marginBottom: 2 } },
@@ -1713,6 +1819,8 @@ function CandidateAurasTable({ aura_spirit, baseline }) {
     }
   });
 
+  var effectiveCandidates = candidates.filter(function(c) { return (c.dps_pct || 0) > 0.1; });
+  var zeroCandidates = candidates.filter(function(c) { return (c.dps_pct || 0) <= 0.1; });
   var hasCandidates = candidates.length > 0;
   var hasSpirit = spiritSupports.length > 0;
   var hasBudget = budget.total > 0;
@@ -1761,23 +1869,38 @@ function CandidateAurasTable({ aura_spirit, baseline }) {
         )
       )
     ),
-    // 候选光环推荐
-    hasCandidates && h('div', { style: { marginBottom: 12 } },
+    // 候选光环推荐（过滤 0% DPS，分组显示）
+    (effectiveCandidates.length > 0 || zeroCandidates.length > 0) && h('div', { style: { marginBottom: 12 } },
       h('div', { className: 'chart-title' }, '\ud83d\udca1 \u6F5C\u5728\u5149\u73AF\u63A8\u8350'),
-      h('table', null,
+      effectiveCandidates.length > 0 && h('table', null,
         h('thead', null, h('tr', null,
-          h('th', null, '\u5149\u73AF'), h('th', null, 'DPS'), h('th', null, '\u7CBE\u9B42'), h('th', null, '\u5907\u6CE8')
+          h('th', null, '\u5149\u73AF'), h('th', null, 'DPS'), h('th', null, '\u7CBE\u9B42'), h('th', null, '\u6761\u4EF6/\u5907\u6CE8')
         )),
         h('tbody', null,
-          candidates.map(function(c, i) {
+          effectiveCandidates.map(function(c, i) {
+            var cond = c.sim_condition || '';
+            var spiritNote = c.spirit_note ? '; ' + c.spirit_note : '';
+            // 条件模拟范围
+            var ranges = c.config_ranges || [];
+            var rangeStr = ranges.map(function(r) {
+              return r.condition_label + ': +' + (r.dps_pct_min || 0).toFixed(1) + '% ~ +' + (r.dps_pct_max || 0).toFixed(1) + '%';
+            }).join('; ');
+            var condDisplay = [cond, rangeStr, spiritNote ? spiritNote.slice(2) : ''].filter(function(s) { return s; }).join(' | ');
             return h('tr', { key: i },
               h('td', null, c.name),
-              h('td', { style: { color: (c.dps_pct || 0) > 0 ? 'var(--green)' : 'var(--red)' } }, fmtSign(c.dps_pct || 0)),
+              h('td', { style: { color: 'var(--green)' } },
+                fmtSign(c.dps_pct || 0),
+                ranges.length > 0 && h('span', { style: { fontSize: 10, color: 'var(--text-muted)', display: 'block' } },
+                  '\u8303\u56F4: +' + fmt(ranges[0].dps_pct_min || 0, 1) + '% ~ +' + fmt(ranges[0].dps_pct_max || 0, 1) + '%')
+              ),
               h('td', null, Math.round(c.spirit || 0)),
-              h('td', { style: { color: 'var(--text-secondary)', fontSize: 11 } }, c.spirit_note || '')
+              h('td', { style: { color: 'var(--text-secondary)', fontSize: 11 } }, condDisplay)
             );
           })
         )
+      ),
+      zeroCandidates.length > 0 && h('div', { style: { marginTop: 6, fontSize: 12, color: 'var(--text-muted)' } },
+        '\u65E0DPS\u5F71\u54CD: ' + zeroCandidates.map(function(c) { return c.name; }).join(', ')
       )
     ),
     // 精魄辅助推荐 Top 5

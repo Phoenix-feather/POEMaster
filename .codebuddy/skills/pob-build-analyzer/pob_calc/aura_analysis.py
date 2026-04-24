@@ -572,6 +572,14 @@ def _rebuild_config_tab_modlist(lua):
 
     首次调用时从当前 modList 提取 sim mods（source 含 "sim"），
     之后每次：遍历 ConfigOptions 重建 + 追加 sim mods。
+
+    ⚠️ 必须与 POB 原版 ConfigTabClass:BuildModList() 保持一致：
+    - count/integer/float 类型：先查 input，再回退到 placeholder
+    - check 类型：先查 input，再回退到 defaultState
+    - list 类型：先查 input，再回退到 defaultIndex
+    如果遗漏 placeholder 回退，auto_configure 设置的 count 配置项
+    （如 WitheredStack、DemonFlameStacks 等）在重建时会丢失，
+    导致基线偏低约 10.9%。
     """
     lua.execute('''
         local build = _spike_build
@@ -603,9 +611,11 @@ def _rebuild_config_tab_modlist(lua):
         end
 
         -- 遍历 ConfigOptions 重建 modList
+        -- 与 POB ConfigTabClass:BuildModList() 保持一致：包含 placeholder 回退
         local modList = new("ModList")
         local enemyModList = new("ModList")
         local input = build.configTab.input
+        local placeholder = build.configTab.placeholder or {}
         for _, varData in ipairs(configSettings) do
             if varData.apply then
                 local varName = varData.var
@@ -618,6 +628,8 @@ def _rebuild_config_tab_modlist(lua):
                     local val = input[varName]
                     if val and (val ~= 0 or varData.type ~= "count") then
                         pcall(varData.apply, val, modList, enemyModList, build)
+                    elseif placeholder[varName] and (placeholder[varName] ~= 0 or varData.type ~= "count") then
+                        pcall(varData.apply, placeholder[varName], modList, enemyModList, build)
                     end
                 elseif varData.type == "list" then
                     local val = input[varName]
@@ -1079,6 +1091,8 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
             local mainSkillName = ""
             local totalSpirit = 0
             local isAuraOrSpiritReserved = false
+            local hasTriggeredDPS = false
+            local triggeredSkillName = ""
 
             -- 收集所有宝石信息
             local gemInfos = {}
@@ -1128,16 +1142,25 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                     if j == (group.mainActiveSkill or 1) then
                         mainSkillName = gName
 
-                        -- 判断主技能是否为光环或精魄预留技能
-                        -- 光环定义：
-                        --   1. SkillType.Aura = 传统光环 (如 Purity of Fire)
-                        --   2. Persistent+Buff+HasReservation 但排除：
-                        --      - GeneratesRemnants(183): Life Remnants, Siphon Elements 等残骸技能
-                        --      - DodgeReplacement(229): Blink 等位移替换技能
-                        --      - CreatesMinion: 召唤技能
-                        --      - AppliesCurse(69): 诅咒
-                        --      - Triggered(37): 触发技能
-                        --      - Movement(34): 移动技能
+                        -- ═══════════════════════════════════════════════════════
+                        -- 技能分类标准：基于 DPS 输出能力（非硬编码标签）
+                        -- ═══════════════════════════════════════════════════════
+                        --
+                        -- 核心判据：技能是否有 DPS 输出
+                        --   有 DPS → 按技能分析（isAuraOrSpiritReserved = false）
+                        --   无 DPS → 按增益光环分析（isAuraOrSpiritReserved = true）
+                        --
+                        -- 三层判定：
+                        --   1. SkillType 快速路径：Attack/DoT/Herald → 有 DPS
+                        --   2. statSets 触发检测：statSets 中含 triggerable_in_any_set
+                        --      或 chance_to_trigger_* 的子技能 → 游戏中有 DPS 但 POB 未实现
+                        --   3. 标签匹配：Aura / Per+Buf+Res → 无 DPS 的纯增益
+                        --
+                        -- 触发子技能标注（hasTriggeredDPS / triggeredSkillName）：
+                        --   即使分类为光环，也标注其触发攻击子技能信息，
+                        --   报告中显示"此技能有触发攻击但 POB 未实现 DPS 计算"
+                        --
+                        -- ═══════════════════════════════════════════════════════
                         local st = grantedEffect.skillTypes
                         if st then
                             local isAuraSkill = (st[SkillType.Aura] ~= nil)
@@ -1146,20 +1169,80 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                             local isRes = (st[SkillType.HasReservation] ~= nil)
                             local isMovement = (st[SkillType.Movement] ~= nil)
                             local isMinion = (st[SkillType.CreatesMinion] ~= nil)
-                            local isCurse = (st[69] ~= nil)          -- AppliesCurse
-                            local isTriggered = (st[37] ~= nil)      -- Triggered
-                            local isRemnant = (st[183] ~= nil)       -- GeneratesRemnants
-                            local isDodge = (st[229] ~= nil)         -- DodgeReplacement
+                            local isCurse = (st[SkillType.AppliesCurse] ~= nil)
+                            local isTriggered = (st[SkillType.Triggered] ~= nil)
+                            local isRemnant = (st[SkillType.GeneratesRemnants] ~= nil)
+                            local isDodge = (st[SkillType.DodgeReplacement] ~= nil)
+                            local isHerald = (st[SkillType.Herald] ~= nil)
+                            local isAttack = (st[SkillType.Attack] ~= nil)
+                            local isDoT = (st[SkillType.DamageOverTime] ~= nil)
+                            local hasDPSType = isAttack or isDoT or isHerald
 
-                            -- 排除项
+
+
+                            -- 触发子技能检测已移到分类判定之后（见下方）
+
+                            -- 决策逻辑：有 DPS 输出 → 按技能分析；无 → 按光环分析
+                            -- 非攻击型特殊技能（诅咒/触发/移动/闪避）→ 不属于光环
                             if isCurse or isTriggered or isMovement or isDodge then
                                 isAuraOrSpiritReserved = false
-                            -- Aura 类型 → 光环
+                            -- 有 DPS 输出 → 按技能分析
+                            elseif hasDPSType then
+                                isAuraOrSpiritReserved = false
+                            -- 有触发攻击但 POB 未实现 → 仍按光环分析，但标注
+                            --   （hasTriggeredDPS 会在输出中标记）
+                            -- 无 DPS 的 Aura → 纯增益光环
                             elseif isAuraSkill then
                                 isAuraOrSpiritReserved = true
-                            -- Persistent+Buff+HasReservation（排除残骸/召唤）→ 精魄预留光环
+                            -- 无 DPS 的 Per+Buf+Res → 精魄预留增益
                             elseif isPer and isBuff and isRes and not isMinion and not isRemnant then
                                 isAuraOrSpiritReserved = true
+                            end
+
+                            -- 检测触发攻击子技能
+                            -- 对于 Per+Buf+Res 且无 Atk/DoT/Herald 的技能，
+                            -- 查找 POB 中的 Triggered{SkillId} 子技能
+                            -- 如 WindDancerPlayer → TriggeredWindDancerPlayer (Gale Force)
+                            if not hasDPSType and isAuraOrSpiritReserved and gem.skillId then
+                                local trigId = "Triggered" .. gem.skillId
+                                local trigSkill = data.skills[trigId]
+                                if trigSkill then
+                                    local tst = trigSkill.skillTypes or {}
+                                    local tAtk = tst[SkillType.Attack] or tst[SkillType.DamageOverTime]
+                                    if tAtk then
+                                        hasTriggeredDPS = true
+                                        triggeredSkillName = trigSkill.name or trigId
+                                    end
+                                end
+                                -- 也检查 statSets 内的触发子技能
+                                -- (部分技能的触发效果在同一 skillId 的后续 statSets 中)
+                                if not hasTriggeredDPS and grantedEffect.statSets then
+                                    for si = 2, #grantedEffect.statSets do
+                                        local ss = grantedEffect.statSets[si]
+                                        local hasTrigger = false
+                                        if ss.stats then
+                                            for _, stat in ipairs(ss.stats) do
+                                                if stat == "triggerable_in_any_set" then
+                                                    hasTrigger = true
+                                                end
+                                            end
+                                        end
+                                        if ss.constantStats then
+                                            for _, cs in ipairs(ss.constantStats) do
+                                                if type(cs[1]) == "string" and string.find(cs[1], "chance_to_trigger") then
+                                                    hasTrigger = true
+                                                end
+                                            end
+                                        end
+                                        if hasTrigger and ss.baseFlags then
+                                            local subAtk = ss.baseFlags.attack or ss.baseFlags.nonWeaponAttack
+                                            if subAtk then
+                                                hasTriggeredDPS = true
+                                                triggeredSkillName = ss.label or ("statSet" .. tostring(si))
+                                            end
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
@@ -1174,6 +1257,8 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                 .. mainSkillName .. "||"
                 .. tostring(isAuraOrSpiritReserved) .. "||"
                 .. tostring(totalSpirit) .. "||"
+                .. tostring(hasTriggeredDPS) .. "||"
+                .. triggeredSkillName .. "||"
                 .. table.concat(gemInfos, ";;") .. "||"
                 .. table.concat(spiritSupports, ";;")
 
@@ -1202,10 +1287,14 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
         main_name = parts[2]
         is_aura = parts[3] == "true"
         spirit_cost = float(parts[4])
+        # 新字段：触发攻击标注
+        has_triggered_dps = parts[5] == "true" if len(parts) > 5 else False
+        triggered_skill_name = parts[6] if len(parts) > 6 else ""
 
         gems = []
-        if parts[5]:
-            for gem_str in parts[5].split(';;'):
+        gem_parts_idx = 7
+        if len(parts) > gem_parts_idx and parts[gem_parts_idx]:
+            for gem_str in parts[gem_parts_idx].split(';;'):
                 gp = gem_str.split('|')
                 if len(gp) >= 4:
                     gems.append({
@@ -1219,8 +1308,9 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
                     })
 
         spirit_supports = []
-        if parts[6]:
-            for ss_str in parts[6].split(';;'):
+        ss_parts_idx = 8
+        if len(parts) > ss_parts_idx and parts[ss_parts_idx]:
+            for ss_str in parts[ss_parts_idx].split(';;'):
                 sp = ss_str.split('|')
                 if len(sp) >= 3:
                     spirit_supports.append({
@@ -1235,6 +1325,8 @@ def _query_active_skills_info(lua, calcs) -> list[dict]:
             "main_skill_name": main_name,
             "is_aura": is_aura,
             "spirit_cost": spirit_cost,
+            "has_triggered_dps": has_triggered_dps,
+            "triggered_skill_name": triggered_skill_name,
             "gems": gems,
             "spirit_supports": spirit_supports,
         })
@@ -2084,18 +2176,44 @@ def _get_candidate_sim_effects(aura_name: str, skill_id: str) -> list[dict]:
         if not skill_cfg:
             return []
 
-        # 仅对 skill_type=active 的技能注入 Sim（spirit_support 由
-        # _test_add_spirit_support 处理，aura 类由 _merge_unimplemented_effects 处理）
-        if skill_cfg.get("skill_type") != "active":
+        # 对 skill_type=active 或 skill_type=aura 的技能注入 Sim
+        # spirit_support 由 _test_add_spirit_support 处理
+        # active_native 表示 POB 原生计算（如已装备的 Berserk），候选测试时仍需 Sim
+        skill_type = skill_cfg.get("skill_type", "")
+        if skill_type == "spirit_support":
             return []
 
         effects = skill_cfg.get("effects", [])
-        sim_effects = [e for e in effects if e.get("type") == "mod" and e.get("value") is not None]
+        # 接受 mod 类型（有非空 value）和 config 类型的效果
+        sim_effects = [e for e in effects if (
+            (e.get("type") == "mod" and e.get("value") is not None) or
+            e.get("type") == "config"
+        )]
         if sim_effects:
             logger.info("候选光环 %s: 从 YAML 加载 %d 个 Sim 效果", aura_name, len(sim_effects))
         return sim_effects
     except Exception as e:
         logger.debug("获取候选光环 Sim 效果失败: %s", e)
+        return []
+
+
+def _get_yaml_config_ranges(aura_name: str, skill_id: str) -> list[dict]:
+    """从 YAML 配置中获取候选光环的 config_ranges 定义。"""
+    try:
+        from .pob_unimplemented import load_config
+        config = load_config()
+        skills_config = config.get("skills", {})
+        skill_cfg = skills_config.get(aura_name)
+        if not skill_cfg:
+            for name, cfg in skills_config.items():
+                detect = cfg.get("detect", {})
+                if detect.get("skill_id") == skill_id:
+                    skill_cfg = cfg
+                    break
+        if skill_cfg:
+            return skill_cfg.get("config_ranges", [])
+        return []
+    except Exception:
         return []
 
 
@@ -2134,37 +2252,88 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
     base_ehp = baseline.get("TotalEHP", 0)
     skill_id = aura["skill_id"]
 
-    # 预设 Charge/条件配置（如有）
+    # 查找 YAML Sim 注入效果（POB 原生不计算的动态/条件性效果）
+    sim_effects = _get_candidate_sim_effects(aura["name"], skill_id)
+
+    # 分离 config 类型效果（需要在 initEnv 前设置）和 mod 类型效果（在 initEnv 后注入）
+    config_effects = [e for e in sim_effects if e.get("type") == "config"]
+    mod_effects = [e for e in sim_effects if e.get("type") == "mod"]
+
+    # 生成 Sim mod 注入的 Lua 代码
+    sim_inject_code = ""
+    if mod_effects:
+        from .pob_unimplemented import inject_effects_to_lua
+        sim_inject_code = inject_effects_to_lua(lua, mod_effects, env_var="env")
+
+    # 获取条件配置模板
     charge_configs = aura.get("charge_configs", [])
-    # 动态解析 Charge 数量（None → 从构筑 output 读取）
     if charge_configs and any(c.get("value") is None for c in charge_configs):
         charge_map = _resolve_charge_map(lua, calcs)
         resolved_configs = _fill_charge_configs(charge_configs, charge_map, context=aura["name"])
     else:
-        resolved_configs = charge_configs
+        resolved_configs = list(charge_configs)  # 复制，避免修改原始数据
+
+    # 将 config 类型的 Sim 效果追加到 resolved_configs
+    # 这些配置（如 multiplierRage）需要在 initEnv 之前设置到 configTab.input
+    for ce in config_effects:
+        resolved_configs.append({
+            "var": ce.get("var", ""),
+            "value": ce.get("value", 0),
+        })
+
+    # ⚠️ 关键顺序：ifSkill 配置的设置时机
+    # POB ConfigOptions 使用 ifSkill 过滤：只有当构筑中存在对应技能时才应用配置。
+    # 例如 configResonanceCount 有 ifSkill="Trinity"，
+    # 如果在添加 Trinity 技能组之前设置，ifSkill 检查会失败，配置不会生效。
+    #
+    # 正确流程：
+    #   1. 在 Lua 中添加技能组（让 ifSkill 检查能找到技能）
+    #   2. 设置 configTab.input（Python 端）
+    #   3. 在 Lua 中 rebuild configTab.modList + initEnv
+    #
+    # 但由于 Lua execute 是原子的，我们无法在 Lua 执行中间插入 Python 代码。
+    # 解决方案：将配置设置逻辑嵌入 Lua 代码中。
+
+    # 生成 Lua 配置注入代码（直接追加 mod 到现有 modList，不重建）
+    # ⚠️ 不重建 configTab.modList！重建会丢失 auto_configure 的条件配置，
+    # 导致基线偏低（实测 -10.9%），使候选光环 DPS 增幅虚高。
+    config_inject_code = ""
+    config_cleanup_inject_code = ""
+
     for cfg in resolved_configs:
         var, val = cfg["var"], cfg["value"]
         if isinstance(val, bool):
             lua_val = "true" if val else "false"
-            lua.execute(f'_spike_build.configTab.input["{var}"] = {lua_val}')
         else:
-            lua.execute(f'_spike_build.configTab.input["{var}"] = {val}')
+            lua_val = str(val)
+        config_inject_code += f'build.configTab.input["{var}"] = {lua_val}\n'
+        config_inject_code += f'for _, vd in ipairs(LoadModule("Modules/ConfigOptions")) do if vd.var == "{var}" and vd.apply then pcall(vd.apply, {lua_val}, build.configTab.modList, build.configTab.enemyModList, build) break end end\n'
 
-    # 重建 configTab modList（使预设生效）
-    if resolved_configs:
-        _rebuild_config_tab_modlist(lua)
-
-    # 查找 YAML Sim 注入效果（POB 原生不计算的动态/条件性效果）
-    sim_effects = _get_candidate_sim_effects(aura["name"], skill_id)
-
-    # 生成 Sim mod 注入的 Lua 代码
-    sim_inject_code = ""
-    if sim_effects:
-        from .pob_unimplemented import inject_effects_to_lua
-        sim_inject_code = inject_effects_to_lua(lua, sim_effects, env_var="env")
+    # 检查是否需要 Trinity 的 ResonanceCount（自动检测并注入默认值）
+    needs_resonance = skill_id == "TrinityPlayer" and not any(
+        c.get("var") == "configResonanceCount" for c in resolved_configs
+    )
+    if needs_resonance:
+        config_inject_code += 'build.configTab.input["configResonanceCount"] = 300\n'
+        config_inject_code += 'for _, vd in ipairs(LoadModule("Modules/ConfigOptions")) do if vd.var == "configResonanceCount" and vd.apply then pcall(vd.apply, 300, build.configTab.modList, build.configTab.enemyModList, build) break end end\n'
+        config_cleanup_inject_code += 'build.configTab.input["configResonanceCount"] = nil\n'
 
     result = lua.execute(f'''
         local build = _spike_build
+
+        -- ⚠️ 保存原始 modList/enemyModList 的深拷贝，测试后恢复。
+        -- 不能只保存引用！ConfigOptions.apply 会直接往 modList 追加 mod，
+        -- 如果只保存引用，追加的 mod 也会出现在"原始" modList 中，
+        -- 导致 mod 在候选测试之间累积。
+        local savedModList = build.configTab.modList
+        local savedEnemyModList = build.configTab.enemyModList
+        local clonedModList = new("ModList")
+        local clonedEnemyModList = new("ModList")
+        for _, m in ipairs(savedModList) do clonedModList:AddMod(m) end
+        for _, m in ipairs(savedEnemyModList) do clonedEnemyModList:AddMod(m) end
+        -- 切换到克隆的 modList，这样原始的不会被修改
+        build.configTab.modList = clonedModList
+        build.configTab.enemyModList = clonedEnemyModList
 
         -- 查找候选光环的 skillId 对应的 grantedEffect
         local ge = nil
@@ -2232,12 +2401,24 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         local origCount = #build.skillsTab.socketGroupList
         table.insert(build.skillsTab.socketGroupList, newGroup)
 
+        -- 设置条件配置（必须在技能组添加后，因为 ifSkill 检查需要技能在构筑中）
+        -- 例如 Trinity 的 configResonanceCount 有 ifSkill="Trinity"，
+        -- 只有当 Trinity 已在 socketGroupList 中时，ConfigOptions 才会应用该配置
+        --
+        -- ⚠️ 关键：不重建 configTab.modList！
+        -- 重建会丢失 auto_configure 设置的条件（如 CritRecently、FrenzyCharges 等），
+        -- 导致基线偏低（实测 -10.9%），使候选光环 DPS 增幅虚高。
+        -- 改为直接往现有 modList 追加条件 mod。
+        {config_inject_code}
+
         -- 重新计算
         local ok, env = pcall(function()
             return calcs.initEnv(build, "MAIN")
         end)
         if not ok then
             build.skillsTab.socketGroupList[origCount + 1] = nil
+            build.configTab.modList = savedModList
+            build.configTab.enemyModList = savedEnemyModList
             return "ERROR|" .. tostring(env)
         end
 
@@ -2248,18 +2429,27 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         local newDps = env.player.output.TotalDPS or 0
         local newEhp = env.player.output.TotalEHP or 0
 
-        -- 清理
+        -- 清理：恢复原始状态
         build.skillsTab.socketGroupList[origCount + 1] = nil
+        build.configTab.modList = savedModList
+        build.configTab.enemyModList = savedEnemyModList
+        -- 清理 input（仅清理本次测试新增的配置）
+        {config_cleanup_inject_code}
 
         return "OK|" .. tostring(newDps) .. "|" .. tostring(newEhp) .. "|" .. tostring(spiritCost)
     ''')
 
     def _restore_charge_configs():
-        """恢复 charge 配置并重建 configTab modList。"""
-        if resolved_configs:
+        """恢复 charge 配置。
+
+        正常情况下 Lua 代码内已恢复 modList，这里只清理 input。
+        仅在 Lua 执行失败时需要手动清理。
+        """
+        if resolved_configs or needs_resonance:
             for cfg in resolved_configs:
                 lua.execute(f'_spike_build.configTab.input["{cfg["var"]}"] = nil')
-            _rebuild_config_tab_modlist(lua)
+            if needs_resonance:
+                lua.execute('_spike_build.configTab.input["configResonanceCount"] = nil')
 
     if not result:
         _restore_charge_configs()
@@ -2304,6 +2494,218 @@ def _test_add_candidate_aura(lua, calcs, aura: dict,
         "sim_condition": _get_sim_condition(aura["name"], skill_id),
         "error": None,
     }
+
+
+def _test_candidate_config_range(lua, calcs, aura: dict,
+                                   baseline: dict,
+                                   base_dps: float) -> list[dict]:
+    """测试候选光环的条件参数在 min/max 时的 DPS 范围。
+
+    仅对有 ifSkill 条件配置的候选光环执行（如 Trinity 的 ResonanceCount）。
+    简化实现：在 _test_add_candidate_aura 的基础上，仅改变条件配置值重新计算。
+
+    Returns:
+        [{"config_var", "label", "dps_min", "dps_max", "dps_pct_min", "dps_pct_max",
+          "condition_label"}, ...]
+    """
+    skill_id = aura.get("skill_id", "")
+    aura_name = aura.get("name", "")
+
+    # 确定需要测试的配置变量
+    config_specs = []
+
+    if skill_id == "TrinityPlayer":
+        config_specs.append({
+            "var": "configResonanceCount",
+            "label": "Resonance Count",
+            "min": 0,
+            "mid": 300,
+            "max": 750,
+            "condition_label": "共鸣值 0~750"
+        })
+
+    # 从 YAML 配置中读取 config_ranges 定义
+    yaml_ranges = _get_yaml_config_ranges(aura_name, skill_id)
+    for yr in yaml_ranges:
+        # 如果 max 为 null，运行时从 baseline MaximumRage 读取
+        max_val = yr.get("max")
+        if max_val is None and yr.get("var") == "multiplierRage":
+            max_val = int(baseline.get("MaximumRage", 0))
+            if max_val <= 0:
+                max_val = 30  # 默认最大 Rage
+        if max_val is not None and max_val > 0:
+            config_specs.append({
+                "var": yr["var"],
+                "label": yr.get("label", yr["var"]),
+                "min": yr.get("min", 0),
+                "mid": yr.get("mid", max_val // 2),
+                "max": max_val,
+                "condition_label": yr.get("condition_label", f'{yr.get("label", yr["var"])} {yr.get("min", 0)}~{max_val}'),
+            })
+
+    if not config_specs:
+        # 对其他候选光环，尝试发现 ifSkill 配置
+        try:
+            configs = _discover_ifskill_configs(lua, {aura_name})
+            for cfg in configs:
+                if cfg.get("aura_name") == aura_name:
+                    amax = int(cfg.get("actual_max", 0))
+                    if amax > 0:
+                        config_specs.append({
+                            "var": cfg["config_var"],
+                            "label": cfg.get("label", cfg["config_var"]),
+                            "min": 0,
+                            "mid": amax // 2,
+                            "max": amax,
+                            "condition_label": f'{cfg.get("label", cfg["config_var"])} 0~{amax}'
+                        })
+        except Exception as e:
+            logger.debug("候选光环 %s 发现配置失败: %s", aura_name, e)
+
+    if not config_specs:
+        return []
+
+    results = []
+
+    for spec in config_specs:
+        var = spec["var"]
+        min_val, max_val = spec["min"], spec["max"]
+
+        dps_at_min = None
+        dps_at_max = None
+
+        # 在 Lua 中执行：添加光环 → 设置配置 min → 计算 → 设置配置 max → 计算 → 恢复
+        # 复用 _test_add_candidate_aura 的完整 socket group 结构
+        result_str = lua.execute(f'''
+            local build = _spike_build
+            local savedModList = build.configTab.modList
+            local savedEnemyModList = build.configTab.enemyModList
+            local clonedModList = new("ModList")
+            local clonedEnemyModList = new("ModList")
+            for _, m in ipairs(savedModList) do clonedModList:AddMod(m) end
+            for _, m in ipairs(savedEnemyModList) do clonedEnemyModList:AddMod(m) end
+            build.configTab.modList = clonedModList
+            build.configTab.enemyModList = clonedEnemyModList
+
+            -- 查找 grantedEffect
+            local ge = nil
+            for gid, gem in pairs(data.gems) do
+                if gem.grantedEffectId == "{skill_id}" then
+                    ge = gem.grantedEffect
+                    break
+                end
+            end
+            if not ge and data.skills["{skill_id}"] then
+                ge = data.skills["{skill_id}"]
+            end
+            if not ge then
+                build.configTab.modList = savedModList
+                build.configTab.enemyModList = savedEnemyModList
+                return "NO_GE"
+            end
+
+            -- 创建技能组（完整结构）
+            local maxLevel = 0
+            for lvl, _ in pairs(ge.levels or {{}}) do
+                if lvl > maxLevel then maxLevel = lvl end
+            end
+            if maxLevel == 0 then maxLevel = 1 end
+
+            local newGroup = {{
+                enabled = true,
+                includeInFullDPS = true,
+                label = "_range_test",
+                slot = nil,
+                source = nil,
+                mainActiveSkill = 1,
+                mainActiveSkillCalcs = 1,
+                displaySkillList = {{}},
+                displaySkillListCalcs = {{}},
+                displayGemList = {{}},
+                gemList = {{
+                    {{
+                        skillId = "{skill_id}",
+                        nameSpec = ge.name or "{aura_name}",
+                        level = maxLevel,
+                        quality = 0,
+                        enabled = true,
+                        enableGlobal1 = true,
+                        enableGlobal2 = true,
+                        count = 1,
+                        statSet = {{}},
+                        statSetCalcs = {{}},
+                        skillMinionSkillStatSetIndexLookup = {{}},
+                        skillMinionSkillStatSetIndexLookupCalcs = {{}},
+                        grantedEffect = ge,
+                    }}
+                }}
+            }}
+
+            local origCount = #build.skillsTab.socketGroupList
+
+            -- === 测试 MIN 值 ===
+            table.insert(build.skillsTab.socketGroupList, newGroup)
+            build.configTab.input["{var}"] = {min_val}
+            for _, vd in ipairs(LoadModule("Modules/ConfigOptions")) do
+                if vd.var == "{var}" and vd.apply then
+                    pcall(vd.apply, {min_val}, build.configTab.modList, build.configTab.enemyModList, build)
+                    break
+                end
+            end
+            local env1 = calcs.initEnv(build, "MAIN")
+            calcs.perform(env1)
+            local dpsMin = env1.player.output.TotalDPS or 0
+
+            -- === 测试 MAX 值 ===
+            -- 重建 modList（去除 min 值注入的 mod）
+            local clonedModList2 = new("ModList")
+            local clonedEnemyModList2 = new("ModList")
+            for _, m in ipairs(savedModList) do clonedModList2:AddMod(m) end
+            for _, m in ipairs(savedEnemyModList) do clonedEnemyModList2:AddMod(m) end
+            build.configTab.modList = clonedModList2
+            build.configTab.enemyModList = clonedEnemyModList2
+            build.configTab.input["{var}"] = {max_val}
+            for _, vd in ipairs(LoadModule("Modules/ConfigOptions")) do
+                if vd.var == "{var}" and vd.apply then
+                    pcall(vd.apply, {max_val}, build.configTab.modList, build.configTab.enemyModList, build)
+                    break
+                end
+            end
+            local env2 = calcs.initEnv(build, "MAIN")
+            calcs.perform(env2)
+            local dpsMax = env2.player.output.TotalDPS or 0
+
+            -- === 清理 ===
+            build.skillsTab.socketGroupList[origCount + 1] = nil
+            build.configTab.modList = savedModList
+            build.configTab.enemyModList = savedEnemyModList
+            build.configTab.input["{var}"] = nil
+
+            return tostring(dpsMin) .. "|" .. tostring(dpsMax)
+        ''')
+
+        if result_str and "|" in str(result_str):
+            parts = str(result_str).split("|")
+            try:
+                dps_at_min = float(parts[0])
+                dps_at_max = float(parts[1])
+            except (ValueError, IndexError):
+                pass
+
+        if dps_at_min is not None and dps_at_max is not None:
+            pct_min = ((dps_at_min - base_dps) / base_dps * 100) if base_dps > 0 else 0
+            pct_max = ((dps_at_max - base_dps) / base_dps * 100) if base_dps > 0 else 0
+            results.append({
+                "config_var": var,
+                "label": spec["label"],
+                "dps_min": dps_at_min,
+                "dps_max": dps_at_max,
+                "dps_pct_min": pct_min,
+                "dps_pct_max": pct_max,
+                "condition_label": spec["condition_label"],
+            })
+
+    return results
 
 
 def _check_build_has_skill_type(lua, skill_id: str) -> bool:
@@ -2879,6 +3281,8 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
             "effective_level": 0,
             "more_per_30": 0,
             "quality_speed_inc": 0,
+            "has_triggered_dps": si.get("has_triggered_dps", False),
+            "triggered_skill_name": si.get("triggered_skill_name", ""),
             **result,
         }
 
@@ -2941,6 +3345,15 @@ def aura_spirit_analysis(lua, calcs, baseline: dict = None,
                 shortfall = actual_spirit - available_spirit
                 result["spirit_shortfall"] = shortfall
                 result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
+            # 对有条件配置的候选光环，测试条件参数范围
+            if result.get("dps_pct", 0) > 0.1 and result.get("error") is None:
+                try:
+                    config_range = _test_candidate_config_range(
+                        lua, calcs, aura, baseline, base_dps)
+                    if config_range:
+                        result["config_ranges"] = config_range
+                except Exception as e:
+                    logger.debug("候选光环 %s 范围测试失败: %s", aura["name"], e)
             candidate_auras.append(result)
         candidate_auras.sort(key=lambda x: x.get("dps_pct", 0), reverse=True)
 

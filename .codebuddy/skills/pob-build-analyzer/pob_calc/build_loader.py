@@ -360,6 +360,10 @@ def load_items(lua, build_info: dict) -> int:
         slot_num = 1
         if '2' in slot_name and slot_name.startswith('Weapon'):
             slot_num = 2
+        elif '3' in slot_name and slot_name.startswith('Ring'):
+            slot_num = 3
+        elif '2' in slot_name and slot_name.startswith('Ring'):
+            slot_num = 2
 
         slot_name_escaped = slot_name.replace("'", "\\'")
         lua.execute(f'''
@@ -654,6 +658,31 @@ def load_tree(lua, build_info: dict) -> int:
         end
 
         _spike_build.spec.nodes = nodeMap
+
+        -- 预初始化 Socket 节点的 nodesInRadius / attributesInRadius
+        -- POB PassiveTree.lua 的构造函数会根据 data.jewelRadius 预计算这些表，
+        -- 但 build_loader 不使用 PassiveTree 构造函数，所以需要手动初始化。
+        -- CalcSetup.lua 892 行会访问 node.nodesInRadius[item.jewelRadiusIndex]，
+        -- 如果该子表不存在则 pairs() 崩溃。
+        for _, node in pairs(nodeMap) do
+            if node.type == "Socket" then
+                node.nodesInRadius = node.nodesInRadius or {{}}
+                node.attributesInRadius = node.attributesInRadius or {{}}
+                if data and data.jewelRadius then
+                    for radiusIndex, _ in ipairs(data.jewelRadius) do
+                        if not node.nodesInRadius[radiusIndex] then
+                            node.nodesInRadius[radiusIndex] = {{}}
+                        end
+                        if not node.attributesInRadius then
+                            node.attributesInRadius = {{}}
+                        end
+                        if not node.attributesInRadius[radiusIndex] then
+                            node.attributesInRadius[radiusIndex] = {{}}
+                        end
+                    end
+                end
+            end
+        end
 
         local classInternalId = "''' + str(build_info.get('classInternalId', '') or '') + '''"
         if classInternalId ~= "" then
@@ -1344,8 +1373,14 @@ def auto_configure_combat(lua) -> int:
             if input["cometStage"] == nil then input["cometStage"] = 1; count = count + 1 end
         end
 
-        -- Charge Infusion / Charge Regulation: 需要充能球才能触发 MORE 效果
-        if hasSkillIdFragment("ChargeRegulation") or skillNames["Charge Infusion"] or skillNames["Charge Regulation"] then
+        -- Charge Infusion / Charge Regulation / Charged Staff: 需要充能球才能触发增益
+        -- POE2 没有基础 per-charge 增益，所有充能球效果都来自技能/天赋的特定效果
+        -- 但这些效果的共同前提是 output.PowerCharges > 0，
+        -- 而 PowerCharges 只有在 usePowerCharges=true 时才从 0 变成 PowerChargesMax
+        local hasChargeInfusion = hasSkillIdFragment("ChargeRegulation") or skillNames["Charge Infusion"] or skillNames["Charge Regulation"]
+        local hasChargedStaff = hasSkillIdFragment("ChargedStaff") or skillNames["Charged Staff"]
+
+        if hasChargeInfusion or hasChargedStaff then
             -- 读取构筑的充能球上限，默认设为最大值
             local env = calcs.initEnv(build, "MAIN")
             calcs.perform(env)
@@ -1353,12 +1388,37 @@ def auto_configure_combat(lua) -> int:
             if input["powerCharges"] == nil then
                 input["powerCharges"] = o.PowerChargesMax or 8; count = count + 1
             end
-            if input["frenzyCharges"] == nil then
-                input["frenzyCharges"] = o.FrenzyChargesMax or 3; count = count + 1
+            -- Charge Infusion 使用全部三种球，Charged Staff 只用暴击球
+            if hasChargeInfusion then
+                if input["frenzyCharges"] == nil then
+                    input["frenzyCharges"] = o.FrenzyChargesMax or 3; count = count + 1
+                end
+                if input["enduranceCharges"] == nil then
+                    input["enduranceCharges"] = o.EnduranceChargesMax or 3; count = count + 1
+                end
             end
-            if input["enduranceCharges"] == nil then
-                input["enduranceCharges"] = o.EnduranceChargesMax or 3; count = count + 1
-            end
+        end
+
+        -- 启用充能球 Flag（让 output.PowerCharges/FrenzyCharges > 0）
+        -- 这是所有充能球效果生效的前提：
+        --   A类（consumed PC Recently）: 通过 RemovablePowerCharge Multiplier，需 PowerCharges > 0
+        --   B类（Charge Infusion）: 通过 StatThreshold stat=PowerCharges threshold=1
+        --   C类（Charged Staff）: 通过 effectCond="UsePowerCharges" + RemovablePowerCharge Multiplier
+        -- 检测条件：有充能球相关技能，或 PowerChargesMax > 0 且有天赋试用充能球
+        local env2 = calcs.initEnv(build, "MAIN")
+        calcs.perform(env2)
+        local o2 = env2.player.output
+        local pcMax = o2.PowerChargesMax or 0
+        local fcMax = o2.FrenzyChargesMax or 0
+        local ecMax = o2.EnduranceChargesMax or 0
+        if (hasChargeInfusion or hasChargedStaff or pcMax > 0) and input["usePowerCharges"] == nil then
+            input["usePowerCharges"] = true; count = count + 1
+        end
+        if (hasChargeInfusion or fcMax > 0) and input["useFrenzyCharges"] == nil then
+            input["useFrenzyCharges"] = true; count = count + 1
+        end
+        if (hasChargeInfusion or ecMax > 0) and input["useEnduranceCharges"] == nil then
+            input["useEnduranceCharges"] = true; count = count + 1
         end
 
         -- === 2.5. 敌人状态自动推断 ===
@@ -1550,12 +1610,10 @@ def auto_configure_combat(lua) -> int:
             end
         end
 
-        -- Consumed a Power Charge Recently: 如果构筑有 Pinnacle of Power 或消耗充能技能
-        if hasSkillIdFragment("Pinnacle") or hasSkillIdFragment("ChargeRegulation") then
-            if input["conditionConsumedPowerChargeRecently"] == nil then
-                input["conditionConsumedPowerChargeRecently"] = true; count = count + 1
-            end
-        end
+        -- Consumed a Power Charge Recently: POB 不通过 Condition Flag 实现，
+        -- 而是通过 ModStore 的 Multiplier var="RemovablePowerCharge" limit=1 自动处理。
+        -- 当 output.PowerCharges > 0 时，RemovablePowerCharge > 0，天赋自然生效。
+        -- 不需要设置无效的 conditionConsumedPowerChargeRecently input。
 
         -- Champion Intimidate: 默认启用
         if input["conditionChampionIntimidate"] == nil then

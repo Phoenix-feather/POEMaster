@@ -285,13 +285,19 @@ def get_effects_for_skill(skill_name: str) -> list[dict]:
     return skill_config.get("effects", [])
 
 
-def inject_effects_to_lua(lua, effects: list[dict], env_var: str = "env") -> str:
-    """生成注入效果到 Lua modDB 的代码。
+def inject_effects_to_lua(lua, effects: list[dict], env_var: str = "env",
+                          build_var: str = "_spike_build") -> str:
+    """生成注入效果到 Lua modDB/configTab 的代码。
+    
+    支持两种效果类型：
+    - type: "mod" — 注入 modifier 到 env.player.modDB
+    - type: "config" — 设置 configTab.input 并调用 ConfigOptions.apply
     
     Args:
         lua: LuaRuntime（用于转义）
         effects: 效果列表
         env_var: Lua 环境变量名（默认 'env'）
+        build_var: Lua build 变量名（默认 '_spike_build'）
     
     Returns:
         Lua 代码片段
@@ -301,13 +307,29 @@ def inject_effects_to_lua(lua, effects: list[dict], env_var: str = "env") -> str
     
     lines = []
     for eff in effects:
-        if eff.get("type") != "mod":
+        eff_type = eff.get("type", "mod")
+        
+        if eff_type == "config":
+            # 配置注入：设置 configTab.input 并调用 ConfigOptions.apply
+            var = eff.get("var", "")
+            value = eff.get("value", 0)
+            if isinstance(value, bool):
+                lua_val = "true" if value else "false"
+            else:
+                lua_val = str(value)
+            lines.append(f'{build_var}.configTab.input["{var}"] = {lua_val}')
+            lines.append(f'for _, vd in ipairs(LoadModule("Modules/ConfigOptions")) do if vd.var == "{var}" and vd.apply then pcall(vd.apply, {lua_val}, {build_var}.configTab.modList, {build_var}.configTab.enemyModList, {build_var}) break end end')
+            continue
+        
+        if eff_type != "mod":
             continue
         
         mod_name = eff.get("mod_name", "")
         mod_type = eff.get("mod_type", "BASE")
         value = eff.get("value", 0)
         source = eff.get("source", "unimpl_config")
+        mod_flag = eff.get("mod_flag", "")
+        mod_tags = eff.get("mod_tags", [])
         
         # 数值类型处理
         if isinstance(value, float):
@@ -317,7 +339,26 @@ def inject_effects_to_lua(lua, effects: list[dict], env_var: str = "env") -> str
         else:
             value_str = f'"{value}"'
         
-        lines.append(f'{env_var}.player.modDB:NewMod("{mod_name}", "{mod_type}", {value_str}, "{source}")')
+        # 统一注入到 env.player.modDB
+        # 原因：Sim 注入在 calcs.initEnv 之后执行（initEnv 已合并 configTab.modList 到 modDB），
+        # 此时注入 configTab.modList 不会生效，必须直接注入到 env.player.modDB。
+        # CalcPerform 从 modDB 读取所有值（MaximumRage, Multiplier:RageStack 等）。
+        tag_str = ""
+        if mod_tags:
+            tag_parts = []
+            for tag in mod_tags:
+                if ":" in tag:
+                    k, v = tag.split(":", 1)
+                    tag_parts.append(f'{{ type = "{k}", var = "{v}" }}')
+                else:
+                    tag_parts.append(f'{{ type = "{tag}" }}')
+            tag_str = ", " + ", ".join(tag_parts)
+        # mod_flag 处理：转为 ModFlag.xxx 格式（POB 全局常量）
+        if mod_flag:
+            flag_str = f', ModFlag.{mod_flag}'
+        else:
+            flag_str = ''
+        lines.append(f'{env_var}.player.modDB:NewMod("{mod_name}", "{mod_type}", {value_str}, "{source}"{flag_str}{tag_str})')
     
     return "\n".join(lines)
 

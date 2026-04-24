@@ -363,6 +363,16 @@ def _test_candidate_auras(lua, calcs, baseline: dict,
             shortfall = actual_spirit - available_spirit
             result["spirit_shortfall"] = shortfall
             result["spirit_note"] = f"需精魄 {actual_spirit:.0f}（缺 {shortfall:.0f}）"
+        # 对有条件配置的候选光环，测试条件参数范围
+        if result.get("dps_pct", 0) > 0.1 and result.get("error") is None:
+            try:
+                from .aura_analysis import _test_candidate_config_range
+                config_range = _test_candidate_config_range(
+                    lua, calcs, aura, baseline, base_dps=baseline.get("TotalDPS", 0))
+                if config_range:
+                    result["config_ranges"] = config_range
+            except Exception as e:
+                logger.debug("候选光环 %s 范围测试失败: %s", aura["name"], e)
         candidate_auras.append(result)
 
     candidate_auras.sort(key=lambda x: x.get("dps_pct", 0), reverse=True)
@@ -588,12 +598,13 @@ def _extract_jewel_overview(jewel_diagnosis: list) -> list:
 
 
 # 伤害构成元素配置（模块级常量）
+# hit_key: 法术技能用 HitAverage，攻击技能用 StoredCombinedAvg
 _ELEM_HIT_CONFIG = [
-    ("Lightning", "LightningHitAverage", "LightningCritAverage", "LightningEnemyDamage"),
-    ("Cold", "ColdHitAverage", "ColdCritAverage", "ColdEnemyDamage"),
-    ("Fire", "FireHitAverage", "FireCritAverage", "FireEnemyDamage"),
-    ("Physical", "PhysicalHitAverage", "PhysicalCritAverage", "PhysicalEnemyDamage"),
-    ("Chaos", "ChaosHitAverage", "ChaosCritAverage", "ChaosEnemyDamage"),
+    ("Lightning", "LightningHitAverage", "LightningStoredCombinedAvg", "LightningCritAverage", "LightningEnemyDamage"),
+    ("Cold", "ColdHitAverage", "ColdStoredCombinedAvg", "ColdCritAverage", "ColdEnemyDamage"),
+    ("Fire", "FireHitAverage", "FireStoredCombinedAvg", "FireCritAverage", "FireEnemyDamage"),
+    ("Physical", "PhysicalHitAverage", "PhysicalStoredCombinedAvg", "PhysicalCritAverage", "PhysicalEnemyDamage"),
+    ("Chaos", "ChaosHitAverage", "ChaosStoredCombinedAvg", "ChaosCritAverage", "ChaosEnemyDamage"),
 ]
 _ELEM_LABELS = {
     "Lightning": "\u26a1 \u95ea\u7535", "Cold": "\u2744 \u51b0\u971c",
@@ -610,7 +621,8 @@ _ELEM_COLORS = {
 def _extract_damage_composition(baseline: dict) -> list:
     """从 baseline 提取伤害构成（每个元素的非暴击/暴击命中，POB 直出）。
 
-    权重基于 HitAverage（进攻侧，已含 INC/MORE/Crit），
+    权重基于 HitAverage（法术技能）或 StoredCombinedAvg（攻击技能），
+    均为进攻侧字段，已含 INC/MORE/Crit/EffMult。
     不用 EnemyDamage（那是防御侧字段，衡量构筑承受能力上限）。
 
     Returns:
@@ -619,8 +631,9 @@ def _extract_damage_composition(baseline: dict) -> list:
         按 hit_avg 降序排列。
     """
     elems = []
-    for elem, hit_key, crit_key, _enemy_key in _ELEM_HIT_CONFIG:
-        hit_avg = baseline.get(hit_key, 0)
+    for elem, hit_key, stored_key, crit_key, _enemy_key in _ELEM_HIT_CONFIG:
+        # 法术技能用 HitAverage，攻击技能用 StoredCombinedAvg
+        hit_avg = baseline.get(hit_key, 0) or baseline.get(stored_key, 0)
         if hit_avg <= 0:
             continue
         crit_avg = baseline.get(crit_key, 0)

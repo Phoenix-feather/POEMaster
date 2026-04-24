@@ -49,6 +49,13 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             ep = a.get("ehp_pct", 0)
             sp = a.get("spirit_cost", 0)
 
+            # 触发攻击标注
+            triggered_note = ""
+            if a.get("has_triggered_dps"):
+                trig_name = a.get("triggered_skill_name", "")
+                if trig_name:
+                    triggered_note = f" ⚔️{trig_name}(POB未算)"
+
             # 裸光环 DPS（无辅助，用于和推荐光环对比）
             bare_str = f"{bare_dp:+.1f}%"
             # 真实 DPS（含辅助）
@@ -74,7 +81,7 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                     mid = cr.get("mid", 0)
                     real_str += f" (条件: {label}={mid})"
 
-            lines.append(f"| {i} | {name} | {bare_str} | {real_str} | {ep:+.1f}% | {sp:.0f} |")
+            lines.append(f"| {i} | {name}{triggered_note} | {bare_str} | {real_str} | {ep:+.1f}% | {sp:.0f} |")
             
             # 可折叠详情区块
             has_details = (
@@ -239,7 +246,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("- **等级前提**：光环模拟基于构筑实际宝石等级数据（非固定 Level 20）")
             lines.append("- **裸光环 DPS**：仅光环宝石效果（禁用所有辅助宝石），用于和「潜在光环推荐」对比。真实 DPS 含辅助宝石额外增益，标注在括号中")
             lines.append("- **DPS 贡献计算**：移除光环后 DPS 下降百分比（正值=正向贡献）。条件光环需注入参数才能生效，默认注入参数最大值的 50%，标注在真实 DPS 括号中")
-            lines.append(f"- **构筑已有 modifier**：施法速度 INC {speed_inc:.0f}%（来自 POB skillModList），总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
+            speed_label = "攻击速度" if skill_flags.get("is_attack", False) else "施法速度"
+            lines.append(f"- **构筑已有 modifier**：{speed_label} INC {speed_inc:.0f}%（来自 POB skillModList），总 MORE ×{total_more:.2f}。INC 叠加为加法（新增边际递减），MORE 叠加为乘法")
             lines.append(f"- **品质上限**：所有宝石品质按 {GEM_QUALITY_CAP}% 上限计算（游戏实际上限）。构筑中超品质宝石已自动降级")
             lines.append("- **条件范围计算**：设置参数绝对值（0 和 max），对比「无光环」DPS。Speed 门槛效果从 POB skillModList 读取端点 INC 差值，边际 = 新增INC / (1+已有INC)")
             lines.append("- **期望收益计算**：对于 EC 等随机效果光环，期望 = 效果值 × 受影响技能元素占比之和 ÷ 3（因为随机选择火/冰/电之一）")
@@ -267,7 +275,11 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("这些光环可能提供非DPS收益（如生存/功能性），或其效果依赖动态条件（如Frenzy Charge）而POB未完全计算。")
             lines.append("")
             for a in zero_auras:
-                lines.append(f"- **{a['name']}**: 精魄 {a['spirit_cost']:.0f}")
+                trig_note = ""
+                if a.get("has_triggered_dps"):
+                    trig_name = a.get("triggered_skill_name", "")
+                    trig_note = f" — ⚔️有触发攻击「{trig_name}」但POB未实现DPS计算" if trig_name else " — ⚔️有触发攻击但POB未实现DPS计算"
+                lines.append(f"- **{a['name']}**: 精魄 {a['spirit_cost']:.0f}{trig_note}")
             lines.append("")
     else:
         lines.append("构筑中无活跃光环。")
@@ -713,8 +725,10 @@ def format_report(data: dict, global_data: dict = None) -> str:
         lines.append("")
         lines.append("| 修饰符 | 总量 | 天赋 | 装备 | 珠宝 |")
         lines.append("|--------|------|------|------|------|")
+        is_attack = skill_flags.get("is_attack", False)
+        speed_label = "攻击速度 INC" if is_attack else "施法速度 INC"
         bm_order = [
-            ("Speed_INC", "施法速度 INC"),
+            ("Speed_INC", speed_label),
             ("Damage_INC", "伤害 INC"),
             ("ElementalDamage_INC", "元素伤害 INC"),
             ("CritChance_INC", "暴击率 INC"),
