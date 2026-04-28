@@ -972,6 +972,8 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
             value = eff.get("value")
             source = eff.get("source", "unimpl_config")
             mod_flag = eff.get("mod_flag", "")
+            # skill_name 条件：注入时附加 { type = "SkillName", skillName = "..." } tag
+            skill_name_condition = eff.get("skill_name", "")
             if mod_name is None:
                 continue
 
@@ -985,6 +987,7 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
                     "value": int(value) if isinstance(value, (int, float)) else value,
                     "source": source,
                     "mod_flag": mod_flag,
+                    "skill_name_condition": skill_name_condition,
                 })
             else:
                 # value=null: 检查 dynamic_value 配置
@@ -993,9 +996,10 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
 
                 if dyn_type == "charge_based":
                     # 电荷型动态值：PowerChargesMax × (per_charge + quality × quality_per_charge)
-                    charge_stat = dynamic_cfg.get("charge_stat", "PowerChargesMax")
-                    per_charge = dynamic_cfg.get("per_charge_value", 0)
-                    quality_per = dynamic_cfg.get("quality_per_charge", 0)
+                    # 优先使用 effect 级别的 per_charge_value / quality_per_charge 覆盖
+                    charge_stat = eff.get("charge_stat") or dynamic_cfg.get("charge_stat", "PowerChargesMax")
+                    per_charge = eff.get("per_charge_value") if eff.get("per_charge_value") is not None else dynamic_cfg.get("per_charge_value", 0)
+                    quality_per = eff.get("quality_per_charge") if eff.get("quality_per_charge") is not None else dynamic_cfg.get("quality_per_charge", 0)
                     inject_list.append({
                         "skill_name": skill_name,
                         "detect_lua": check_lua,
@@ -1004,6 +1008,7 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
                         "value": None,
                         "source": source,
                         "mod_flag": mod_flag,
+                        "skill_name_condition": skill_name_condition,
                         "dynamic_type": "charge_based",
                         "charge_stat": charge_stat,
                         "per_charge_value": per_charge,
@@ -1026,6 +1031,7 @@ def _inject_unimplemented_mods(lua, input_json: str) -> int:
                         "value": None,  # 动态值标记
                         "source": source,
                         "mod_flag": mod_flag,
+                        "skill_name_condition": skill_name_condition,
                         "stat_skill_id": stat_skill_id,
                         "expect_factor": skill_config.get("expect_factor", 1.0),
                         "level_index": eff.get("level_index", 1),
@@ -1096,12 +1102,23 @@ local function getGemQuality(skillId)
     return gemQuality
 end
 
-local injected = 0
+    local injected = 0
+
+    -- 辅助函数：执行带 skill_name 条件的 NewMod 注入
+    local function buildNewMod(name, modType, value, source, skillName)
+        if skillName and skillName ~= "" then
+            modList:NewMod(name, modType, value, source, 0, 0, { type = "SkillName", skillName = skillName })
+        else
+            modList:NewMod(name, modType, value, source)
+        end
+    end
 """]
 
     for item in fixed_items:
+        sn_cond = item.get("skill_name_condition", "")
+        newmod_lua = f'    buildNewMod("{item["mod_name"]}", "{item["mod_type"]}", {item["value"]}, "{item["source"]}", "{sn_cond}")'
         inject_lua_lines.append(f"""if {item['detect_lua']} then
-    modList:NewMod("{item['mod_name']}", "{item['mod_type']}", {item['value']}, "{item['source']}")
+{newmod_lua}
     injected = injected + 1
 end
 """)
@@ -1113,13 +1130,14 @@ end
             per_charge = item.get("per_charge_value", 0)
             quality_per = item.get("quality_per_charge", 0)
             sid = item.get("stat_skill_id", "")
+            sn_cond = item.get("skill_name_condition", "")
             # 使用 format 避免复杂的 f-string 转义
+            # 使用 Lua 模板，直接调用 buildNewMod 函数
             lua_template = """
 -- charge_based 动态值: {skill_name} ({sid})
 do
     local gemQuality = getGemQuality("{sid}")
     if {detect_lua} then
-        -- 先计算一次获取 output 中的 charge 数量
         local env = calcs.initEnv(build, "MAIN")
         calcs.perform(env)
         local chargeCount = env.player.output.{charge_stat} or 0
@@ -1127,14 +1145,14 @@ do
             local perVal = {per_charge} + gemQuality * {quality_per}
             local totalVal = math.floor(chargeCount * perVal)
             if totalVal > 0 then
-                modList:NewMod("{mod_name}", "{mod_type}", totalVal, "{source}")
+                buildNewMod("{mod_name}", "{mod_type}", totalVal, "{source}", "{skill_name_cond}")
                 injected = injected + 1
             end
         end
     end
 end
 """
-            inject_lua_lines.append(lua_template.format(
+            lua_code = lua_template.format(
                 skill_name=item['skill_name'],
                 sid=sid,
                 detect_lua=item['detect_lua'],
@@ -1144,7 +1162,9 @@ end
                 mod_name=item['mod_name'],
                 mod_type=item['mod_type'],
                 source=item['source'],
-            ))
+                skill_name_cond=sn_cond,
+            )
+            inject_lua_lines.append(lua_code)
 
     # 动态值（statSet based）：从 Lua 读取宝石等级和对应的 stat 值
     if statset_items:
@@ -1153,6 +1173,9 @@ end
             sid = item["stat_skill_id"]
             factor = item.get("expect_factor", 1.0)
             lv_idx = item.get("level_index", 1)
+            sn_cond = item.get("skill_name_condition", "")
+            # 手动构建 lua 代码，避免 f-string 中 buildNewMod 的引号问题
+            newmod_call = f'buildNewMod("{item["mod_name"]}", "{item["mod_type"]}", finalVal, "{item["source"]}", "{sn_cond}")'
             inject_lua_lines.append(f"""
 -- 动态值: {item['skill_name']} ({sid})
 do
@@ -1179,12 +1202,10 @@ do
             end
         end
         -- 品质增量（从 qualityStats 读取每品质点增量）
-        -- 仅当 qualityStats 的 stat 名称与 mod_name 匹配时才添加
         local qualityBonus = 0
         if sk and sk.qualityStats then
             for _, qs in ipairs(sk.qualityStats) do
                 local statName = qs[1] or ""
-                -- 简单启发：如果 stat 名称包含 mod_name 关键词或 "damage"/"more"/"inc"，才计入品质
                 local snl = statName:lower()
                 if snl:find("damage") or snl:find("more") or snl:find("inc") or snl:find("crit") or snl:find("speed") or snl:find("defence") then
                     qualityBonus = qualityBonus + gemQuality * (qs[2] or 0)
@@ -1194,7 +1215,7 @@ do
         local totalVal = baseVal + qualityBonus
         local finalVal = math.max(0, math.floor(totalVal * {factor}))
         if finalVal > 0 then
-            modList:NewMod("{item['mod_name']}", "{item['mod_type']}", finalVal, "{item['source']}")
+            {newmod_call}
             injected = injected + 1
         end
     end
@@ -1278,6 +1299,8 @@ def auto_configure_combat(lua) -> int:
                         end
                         -- CausesBurning: 能造成燃烧（点燃）
                         if ge.skillTypes[SkillType.CausesBurning] then hasIgnite = true end
+                        -- AppliesCurse: 诅咒类技能
+                        if ge.skillTypes[SkillType.AppliesCurse] then hasCurse = true end
                     end
                     -- 额外从 skillId 推断（某些 fromItem 技能可能没有 grantedEffect.skillTypes）
                     local sid = gem.skillId or ""
@@ -1301,18 +1324,8 @@ def auto_configure_combat(lua) -> int:
             end
         end
 
-        -- 从 skillNames 进一步推断（辅助宝石和光环）
-        -- 冰霜光环 -> Cold
-        if skillNames["Hatred"] or skillNames["Wrath"] or skillNames["Anger"] then
-            -- Hatred=Cold, Wrath=Lightning, Anger=Fire — 已由 skillTypes 覆盖
-        end
-        -- 诅咒类技能
-        for sn, _ in pairs(skillNames) do
-            if sn:find("Curse") or sn:find("Vulnerability") or sn:find("Enfeeble") or sn:find("Temporal Chains") or sn:find("Despair") or sn:find("Elemental Weakness") or sn:find("Flammability") or sn:find("Frostbite") or sn:find("Conductivity") or sn:find("Punishment") then
-                hasCurse = true
-                break
-            end
-        end
+        -- 诅咒类技能：已由 skillTypes[SkillType.AppliesCurse] 和 skillId 模糊匹配覆盖
+        -- （原 skillNames 硬编码检测已移除，改用 SkillType.AppliesCurse）
 
         -- 辅助：通过 skillId 模糊匹配检查
         local function hasSkillIdFragment(frag)
@@ -1323,6 +1336,10 @@ def auto_configure_combat(lua) -> int:
         end
 
         -- === 2. 技能专属自动配置 ===
+        -- TODO: 将这些技能特定配置外部化到 YAML（auto_config_skills 节）
+        -- 当前硬编码列表：Rising Tempest, Trinity, Twister, Sigil of Power,
+        --   Thirst for Blood, Corrupting Cry, Zenith, Frost Bomb, Comet,
+        --   Charge Infusion/Regulation, Charged Staff
 
         -- Rising Tempest: 如果有此辅助，默认所有元素类型都触发
         if skillNames["Rising Tempest"] or hasSkillIdFragment("RisingTempest") or hasSkillIdFragment("TempestuousTempo") then

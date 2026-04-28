@@ -1288,10 +1288,17 @@ function FormulaBreakdown({ data }) {
       return h('span', { key: c.key, style: { fontSize: 11, color: c.color, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: label }, label);
     });
 
+    // 技能效果条目添加未计入 DPS 提示
+    var isSkillEffect = (it.sources || []).some(function(s) { return s.category === 'SkillEffect'; });
+    var formulaName = it.formula_name;
+    if (isSkillEffect) {
+      formulaName = it.formula_name + ' (\u672a\u8ba1\u5165)';
+    }
+
     return h('div', { key: it.key, style: { borderBottom: '1px solid rgba(46,46,74,0.25)' } },
       h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' } },
         h('div', { style: { minWidth: 220, fontSize: 13, color: 'var(--text-primary)' } },
-          h('span', { style: { fontWeight: 500 } }, it.formula_name),
+          h('span', { style: { fontWeight: 500 } }, formulaName),
           h('span', { style: { color: 'var(--accent)', fontWeight: 700, marginLeft: 8 } }, displayStr)
         ),
         h('div', { style: { flex: 1, height: 14, display: 'flex', borderRadius: 3, overflow: 'hidden' } },
@@ -1404,7 +1411,7 @@ function FormulaBreakdown({ data }) {
       var total = gItems.reduce(function(s, it) { return s + it.total_value; }, 0);
       summary = fmt(total, 0) + ' DPS';
     } else if (g.id === 'skill_effect') {
-      // 技能效果：展示各子效果
+      // 技能效果：展示各子效果（理论值，未计入 POB TotalDPS）
       var parts = [];
       gItems.forEach(function(it) {
         if (it.key.endsWith('_MORE')) {
@@ -1417,7 +1424,7 @@ function FormulaBreakdown({ data }) {
           parts.push(it.display_value || it.total_value);
         }
       });
-      summary = parts.join(' | ') || gItems.length + '\u9879';
+      summary = parts.join(' | ') + ' (\u672a\u8ba1\u5165DPS)';
     } else {
       // mixed (Crit/Speed): 直接读 POB 实际输出值
       if (g.id === 'crit') {
@@ -1547,6 +1554,30 @@ function FormulaBreakdown({ data }) {
         h('span', { style: { fontSize: 13, color: 'var(--accent)', fontFamily: 'monospace', fontWeight: 600 } }, summary),
         h('span', { style: { fontSize: 11, color: 'var(--text-muted)' } }, gItems.length + ' \u4e2a\u5b50\u9879')
       ),
+      // 技能效果分组：显示醒目提示（动态生成）
+      g.id === 'skill_effect' ? h('div', { style: { margin: '4px 10px 4px 10px', padding: '8px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: 6, fontSize: 12, lineHeight: 1.5, color: '#fbbf24' } },
+        h('span', { style: { fontWeight: 700 } }, '\u26a0\ufe0f POB \u672a\u8ba1\u7b97\u6b64\u90e8\u5206\u4f24\u5bb3: '),
+        gItems.length > 0 ? (function() {
+          // 收集所有 STATSET_EFFECT 来源的技能名和 statSet
+          var skillNames = {};
+          gItems.forEach(function(it) {
+            if (it.sources) {
+              it.sources.forEach(function(s) {
+                if (s.source && s.source.startsWith('unmapped:')) {
+                  // unmapped stat — 来自活跃 statSet 但 SkillStatMap 未映射
+                  var statName = s.source.replace('unmapped:', '');
+                  skillNames[statName] = true;
+                }
+              });
+            }
+          });
+          var hasUnmapped = Object.keys(skillNames).length > 0;
+          if (hasUnmapped) {
+            return '\u4ee5\u4e0b\u6548\u679c\u7684 stat \u672a\u88ab SkillStatMap \u6620\u5c04\uff0c\u5df2\u901a\u8fc7 Sim \u6ce8\u5165\u4fee\u590d\u3002';
+          }
+          return '\u4ee5\u4e0b\u6570\u636e\u4e3a\u6839\u636e\u6280\u80fd\u63cf\u8ff0\u63a8\u7b97\u7684\u7406\u8bba\u503c\uff0c\u5b9e\u9645\u6e38\u620f\u4e2d\u8fd9\u4e9b\u6548\u679c\u5f88\u5f3a\u3002';
+        })() : '\u4ee5\u4e0b\u6570\u636e\u4e3a\u6839\u636e\u6280\u80fd\u63cf\u8ff0\u63a8\u7b97\u7684\u7406\u8bba\u503c\u3002'
+      ) : null,
       // 展开后：计算过程说明（仅乘法/敌人乘区）
       calcProcess ? h('div', { style: { padding: '6px 10px 6px 38px', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', lineHeight: 1.6, background: 'rgba(255,255,255,0.02)', borderRadius: 4, marginBottom: 4, borderLeft: '3px solid var(--border)' } },
         h('span', { style: { fontWeight: 600, color: 'var(--text-secondary)' } }, '\u8ba1\u7b97\u8fc7\u7a0b: '),
@@ -2250,10 +2281,19 @@ function App() {
         },
           skillNames.map(function(name) {
             var icon = '\ud83d\udcdd'; // default scroll
-            if (name.includes('spark')) icon = '\u26a1';
-            else if (name.includes('comet')) icon = '\ud83c\udf20';
-            else if (name.includes('frost')) icon = '\u2744\ufe0f';
-            else if (name.includes('power_siphon')) icon = '\ud83e\ude84';
+            // 从 damage_composition 推断主元素图标
+            var skillData = currentSkillsData[name] || {};
+            var dc = skillData.damage_composition || [];
+            if (dc.length > 0) {
+              var _elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
+              var totalHit = dc.reduce(function(s, e) { return s + e.hit_avg; }, 0) || 1;
+              var bestPct = 0, bestElem = '';
+              for (var i = 0; i < dc.length; i++) {
+                var pct = dc[i].hit_avg / totalHit;
+                if (pct > bestPct) { bestPct = pct; bestElem = dc[i].element || ''; }
+              }
+              if (bestPct >= 0.4 && _elemIcons[bestElem]) icon = _elemIcons[bestElem];
+            }
             var displayName = name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
             displayName = displayName.replace(/\s*\((.+?)\)\s*/, ' \u2014 $1');
             return h('option', { key: name, value: name }, icon + ' ' + displayName);

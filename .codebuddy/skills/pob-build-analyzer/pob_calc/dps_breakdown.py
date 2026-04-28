@@ -8,6 +8,9 @@
 import logging
 import re
 from pathlib import Path
+
+import yaml
+
 from .calculator import calculate
 
 logger = logging.getLogger(__name__)
@@ -150,6 +153,22 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
     # 一次 Lua 调用完成全部查询
     # 输出格式：每行 SECTION|... 用 \n 分隔
     # Tabulate entries: modName\1source\1value\1label 用 \2 分隔
+    # 从 YAML 配置读取未映射 stat 检测规则（而非硬编码）
+    _yaml_path = Path(__file__).parent.parent / "config" / "pob_unimplemented_effects.yaml"
+    _unmapped_patterns_lua = '{}'
+    try:
+        with open(_yaml_path, 'r', encoding='utf-8') as f:
+            _yaml_data = yaml.safe_load(f)
+        _patterns = _yaml_data.get('unmapped_stat_patterns', {})
+        if _patterns:
+            _parts = []
+            for _stat_name, _info in _patterns.items():
+                _mod_type, _mod_name, _desc = _info[0], _info[1], _info[2]
+                _parts.append(f'["{_stat_name}"] = {{ "{_mod_type}", "{_mod_name}", "{_desc}" }}')
+            _unmapped_patterns_lua = '{' + ','.join(_parts) + '}'
+    except Exception as e:
+        logger.warning("dps_breakdown: 读取 unmapped_stat_patterns 失败: %s, 使用空表", e)
+
     lua_script = r'''
         local build = _spike_build
         local env = calcs.initEnv(build, "MAIN")
@@ -247,16 +266,23 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         end
         -- 通过 orderedSlots 建立 物品名 → slotName 映射
         -- 因为 mod source 中 itemId 始终是 -1 (Item.lua:1760)，只能用名称匹配
+        -- 武器槽位不标注部位标签（Weapon 1 / Weapon 1 Swap 在套装上下文中无意义）
         if build.itemsTab and build.itemsTab.orderedSlots then
             for _, slot in ipairs(build.itemsTab.orderedSlots) do
                 if slot.selItemId and slot.selItemId ~= 0 and slot.slotName then
                     local sItem = build.itemsTab.items[slot.selItemId]
                     if sItem and sItem.name then
+                        -- 武器槽位不标注部位（ws1/ws2 中 Weapon 1 含义不同，容易混淆）
+                        local displaySlot = nil
+                        if not slot.slotName:find("^Weapon") then
+                            displaySlot = slot.slotName
+                        end
                         -- key = "物品名" (不含基底)
-                        itemNameToSlot[sItem.name] = slot.slotName
-                        -- 也存 "物品名, 基底" 格式（mod source 中的 name 含基底）
-                        if sItem.baseName then
-                            itemNameToSlot[sItem.name .. ", " .. sItem.baseName] = slot.slotName
+                        if displaySlot then
+                            itemNameToSlot[sItem.name] = displaySlot
+                            if sItem.baseName then
+                                itemNameToSlot[sItem.name .. ", " .. sItem.baseName] = displaySlot
+                            end
                         end
                     end
                 end
@@ -1104,9 +1130,14 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
         -- 检测技能是否有多个 statSets（如 Falling Thunder 的 Melee+Projectile）
         -- 对于非活跃 statSet，提取其 statMap 中的 Damage MORE/INC 效果
         -- 这些效果不在 mainSkill 的 skillModList 中，但属于技能本身的伤害缩放
+        --
+        -- 额外：检测活跃 statSet 中未被 POB SkillStatMap 映射的 stat
+        --（如 Flicker Strike 的 flicker_strike_additional_flickers_from_power_charges）
         do
             local ge = ms.activeEffect.grantedEffect
             local activeStatSetIdx = ms.activeEffect.statSet.index
+
+            -- 11a. 非活跃 statSet 提取（原逻辑）
             if ge.statSets and #ge.statSets > 1 then
                 for ssIdx = 1, #ge.statSets do
                     if ssIdx ~= activeStatSetIdx then
@@ -1212,6 +1243,53 @@ def dps_breakdown(lua, calcs, baseline: dict = None) -> dict:
                                                 processMod(mod)
                                             end
                                         end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- 11b. 活跃 statSet 中未被 POB 映射的 stat 检测（通用）
+            -- 遍历所有 statSet 的 constantStats，检查 SkillStatMap 是否有映射。
+            -- 如果某个 stat 未被映射，且名称暗示影响 DPS，输出 STATSET_EFFECT 提示。
+            -- 此检测器用于发现 YAML 规则尚未覆盖的未映射 stat。
+            do
+                local unmappedStatPatterns = ''' + _unmapped_patterns_lua + r'''
+
+                for ssIdx = 1, #(ge.statSets or {}) do
+                    local ss = ge.statSets[ssIdx]
+                    if ss and ss.constantStats then
+                        local stats = calcLib.buildSkillInstanceStats(ms.activeEffect, ge, ss)
+                        local ssLabel = ss.label or ("StatSet"..tostring(ssIdx))
+
+                        for statName, statValue in pairs(stats) do
+                            -- 检查 SkillStatMap 是否已映射此 stat
+                            local hasMapping = build.data.skillStatMap and build.data.skillStatMap[statName] ~= nil
+                            if not hasMapping and statValue and statValue ~= 0 then
+                                -- 检查是否匹配已知未映射模式
+                                local patternInfo = unmappedStatPatterns[statName]
+                                if patternInfo then
+                                    local modType = patternInfo[1]
+                                    local modName = patternInfo[2]
+                                    local desc = patternInfo[3]
+                                    -- 检查 skillModList 中是否已有此 mod（YAML 可能已注入）
+                                    local alreadyPresent = false
+                                    if modName == "RepeatCount" then
+                                        alreadyPresent = ms.skillModList:Sum("BASE", ms.skillCfg, "RepeatCount") > 0
+                                    elseif modName == "ProjectileCount" then
+                                        alreadyPresent = ms.skillModList:Sum("BASE", ms.skillCfg, "ProjectileCount") > 0
+                                    end
+                                    if not alreadyPresent then
+                                        lines[#lines+1] = "STATSET_EFFECT|"
+                                            .. ssLabel .. "|"
+                                            .. modType .. "|" .. modName .. "|"
+                                            .. string.format("%.2f", statValue) .. "|"
+                                            .. string.format("%.2f", statValue) .. "|"
+                                            .. "0|"
+                                            .. ge.modSource .. "|"
+                                            .. "unmapped:" .. statName
                                     end
                                 end
                             end

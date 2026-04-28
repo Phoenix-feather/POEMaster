@@ -123,7 +123,7 @@
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Dread Gnarl, Bolting Quarterstaff (Weapon 1 Swap) | Item | +117.0 |
+| Dread Gnarl, Bolting Quarterstaff | Item | +117.0 |
 | Stormcharged | Tree | +40.0 |
 | All Natural | Tree | +30.0 |
 | Elemental Damage | Tree | +10.0 |
@@ -207,7 +207,7 @@
 | 来源 | 类别 | 值 |
 |------|------|-----|
 | Base | Base | +100.0 |
-| Dread Gnarl, Bolting Quarterstaff (Weapon 1 Swap) | Item | +15.0 |
+| Dread Gnarl, Bolting Quarterstaff | Item | +15.0 |
 
 ### CritMultiplier INC = 351%
 
@@ -290,15 +290,6 @@
 | 流血 DPS | DOT | +52,006 |
 | 点燃 DPS | DOT | +5,548 |
 
-### Projectile (Projectile) 伤害 MORE = +1220.0%
-
-**类别汇总**: SkillEffect: +1220%
-
-| 来源 | 类别 | 值 |
-|------|------|-----|
-| Projectile效果(有暴击球时) | SkillEffect | +100.0% MORE |
-| Projectile效果(×暴击球) | SkillEffect | +560.0% MORE |
-
 ### Projectile 弹体数量 BASE = 21
 
 **类别汇总**: SkillEffect: +21.0
@@ -306,6 +297,15 @@
 | 来源 | 类别 | 值 |
 |------|------|-----|
 | Projectile效果(×暴击球) | SkillEffect | +21.0 |
+
+### Projectile (Projectile) 伤害 MORE = +1220.0%
+
+**类别汇总**: SkillEffect: +1220%
+
+| 来源 | 类别 | 值 |
+|------|------|-----|
+| Projectile效果(×暴击球) | SkillEffect | +560.0% MORE |
+| Projectile效果(有暴击球时) | SkillEffect | +100.0% MORE |
 
 ### 敌人受伤增加 = x1.2000
 
@@ -366,7 +366,7 @@
 | 闪避值 | BASE | 1598.5 | +0.01%/单位 | BASE 7→1606, 需要 +1598 → EHP +18.6% |
 | 护甲固定值 | BASE | 4506.5 | +0.00%/单位 | BASE 0→4506, 需要 +4506 → EHP +19.7% |
 
-**无法达到目标**: 生命固定值, 全元素抗性, 混沌抗性, 物理减伤, 冰霜抗性, 火焰抗性, 闪电抗性, 护甲增加, 闪避增加
+**无法达到目标**: 全元素抗性, 混沌抗性, 护甲增加, 闪避增加, 生命固定值, 冰霜抗性, 物理减伤, 闪电抗性, 火焰抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -666,6 +666,17 @@ Sanguimancy, One with the Storm, Blood Barbs, Flow State, Stupefy, Blackflame Co
 
 - Charge Infusion 使用非默认 Charge 数量: PowerCharges=8
 - Archmage 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
+
+### 9F. POB 未实现效果预估
+
+**⚠️ 以下技能效果在 POB 中未实现，已通过配置模拟：**
+
+| 技能 | 效果描述 | DPS 预估 |
+|------|----------|----------|
+| **Flicker Strike** | 8 × (2%) = 16% MORE 元素伤害（PowerCharges） | **+16.0%** |
+
+**注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，
+实际游戏效果可能因条件触发方式不同而有差异。
 
 ## 10. 总结与建议
 

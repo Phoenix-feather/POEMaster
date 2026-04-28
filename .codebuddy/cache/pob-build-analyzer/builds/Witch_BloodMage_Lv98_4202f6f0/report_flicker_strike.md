@@ -6,7 +6,7 @@
 
 | 维度 | 关键指标 |
 |------|---------|
-| 进攻 | TotalDPS **163,671** |
+| 进攻 | TotalDPS **2,782,415** |
 | 防御 | TotalEHP **18,180**（最短板: Physical） |
 | 资源 | Spirit 占用 **75%** |
 
@@ -52,7 +52,7 @@
 |------|------|
 | 主技能 | Flicker Strike |
 | 技能类型 | 攻击 |
-| TotalDPS | **163,671** |
+| TotalDPS | **2,782,415** |
 | AverageHit | 0 |
 | Speed | 2.91/s |
 | CritChance | 4.2% |
@@ -109,7 +109,7 @@
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Bramble Goad, Dreaming Quarterstaff (Weapon 1) | Item | +133.0 |
+| Bramble Goad, Dreaming Quarterstaff | Item | +133.0 |
 | All Natural | Tree | +30.0 |
 | Elemental Damage | Tree | +10.0 |
 | Elemental Damage | Tree | +10.0 |
@@ -227,9 +227,24 @@
 | The Spring Hare | Jewel | +20.0 |
 | The Spring Hare | Jewel | +20.0 |
 
-### 点燃 DPS = 132
+### 点燃 DPS = 1,218
 
-**公式**: `× 0.2层 × effMult 0.6000  (持续 4.00s, 几率 2.0%)`
+**公式**: `× effMult 0.6000  (持续 4.00s, 几率 2.0%)`
+
+**类别汇总**: Tree: +72.0
+
+| 来源 | 类别 | 值 |
+|------|------|-----|
+| Damage and Companion Damage | Tree | +12.0 |
+| Damage and Companion Damage | Tree | +12.0 |
+| Damage and Companion Damage | Tree | +12.0 |
+| Damage and Companion Damage | Tree | +12.0 |
+| Herald Damage | Tree | +12.0 |
+| Herald Damage | Tree | +12.0 |
+
+### 流血 DPS = 25,199
+
+**公式**: `× effMult 1.2000  (持续 5.00s, 几率 0.6%)`
 
 **类别汇总**: Tree: +72.0
 
@@ -242,30 +257,23 @@
 | Herald Damage | Tree | +12.0 |
 | Herald Damage | Tree | +12.0 |
 
-### 流血 DPS = 2,040
+### DPS Multiplier = x17.00
 
-**公式**: `× 0.1层 × effMult 1.2000  (持续 5.00s, 几率 0.6%)`
-
-**类别汇总**: Tree: +72.0
+**类别汇总**: Skill: +17.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Damage and Companion Damage | Tree | +12.0 |
-| Damage and Companion Damage | Tree | +12.0 |
-| Damage and Companion Damage | Tree | +12.0 |
-| Damage and Companion Damage | Tree | +12.0 |
-| Herald Damage | Tree | +12.0 |
-| Herald Damage | Tree | +12.0 |
+| 技能 DPS 乘数 | Skill | +17.0 |
 
 ### Combined DPS = 56,182
 
-**类别汇总**: Hit: +163671.5 | DOT: +2172.5
+**类别汇总**: Hit: +2782415.3 | DOT: +26417.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Hit DPS | Hit | +163,672 |
-| 流血 DPS | DOT | +2,040 |
-| 点燃 DPS | DOT | +132.5 |
+| Hit DPS | Hit | +2,782,415 |
+| 流血 DPS | DOT | +25,199 |
+| 点燃 DPS | DOT | +1,218 |
 
 ### 敌人受伤增加 = x1.2000
 
@@ -322,7 +330,7 @@
 | 闪避值 | BASE | 1598.5 | +0.01%/单位 | BASE 7→1606, 需要 +1598 → EHP +18.6% |
 | 护甲固定值 | BASE | 4506.5 | +0.00%/单位 | BASE 0→4506, 需要 +4506 → EHP +19.7% |
 
-**无法达到目标**: 生命固定值, 全元素抗性, 混沌抗性, 物理减伤, 冰霜抗性, 火焰抗性, 闪电抗性, 护甲增加, 闪避增加
+**无法达到目标**: 全元素抗性, 混沌抗性, 护甲增加, 闪避增加, 生命固定值, 冰霜抗性, 物理减伤, 闪电抗性, 火焰抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -625,9 +633,20 @@ Sanguimancy, One with the Storm, Blood Barbs, Stormcharged, Critical Exploit, St
 - Charge Infusion 使用非默认 Charge 数量: PowerCharges=8
 - Archmage 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
 
+### 9F. POB 未实现效果预估
+
+**⚠️ 以下技能效果在 POB 中未实现，已通过配置模拟：**
+
+| 技能 | 效果描述 | DPS 预估 |
+|------|----------|----------|
+| **Flicker Strike** | 8 × (2%) = 16% MORE 元素伤害（PowerCharges） | **+16.0%** |
+
+**注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，
+实际游戏效果可能因条件触发方式不同而有差异。
+
 ## 10. 总结与建议
 
-当前 **Flicker Strike** TotalDPS = **163,671**，AverageHit = 0，Speed = 2.91/s，CritChance = 4.2%，CritMultiplier = 4.32x。
+当前 **Flicker Strike** TotalDPS = **2,782,415**，AverageHit = 0，Speed = 2.91/s，CritChance = 4.2%，CritMultiplier = 4.32x。
 
 ### ⚔️ 进攻面
 

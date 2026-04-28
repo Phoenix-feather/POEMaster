@@ -21,6 +21,26 @@
 # 2. 从输出中筛选影响玩家数值的 stats
 # 3. 按下面的格式添加到 skills 部分
 
+# =====================================================================
+# 活跃 statSet 未映射 stat 检测规则
+# =====================================================================
+# 这些 stat 在技能的活跃 statSet 中存在，但 SkillStatMap.lua 没有映射，
+# 导致 POB 完全忽略其效果。此规则用于 dps_breakdown.py Section 11b 自动检测。
+# 格式: stat_name → { mod_type, mod_name, 中文描述 }
+unmapped_stat_patterns:
+  "flicker_strike_additional_flickers_from_power_charges":
+    - "BASE"
+    - "RepeatCount"
+    - "额外闪烁次数"
+  "base_melee_attack_repeat_count":
+    - "BASE"
+    - "RepeatCount"
+    - "额外近战攻击次数"
+  "additional_projectiles_from_power_charges":
+    - "BASE"
+    - "ProjectileCount"
+    - "额外投射物数量"
+
 skills:
   # ===================================================================
   # 主动技能（skill_type: active）
@@ -101,6 +121,50 @@ skills:
     dynamic_value:
       type: "stack_based"
       stat_pattern: "charged_blast_spell_damage_+%_final_per_stack"
+
+  # ===================================================================
+  # 活跃 statSet 未映射 stat 修复（通用机制）
+  # ===================================================================
+  # 某些技能的 stat 虽然在活跃 statSet 中，但 SkillStatMap.lua 没有映射规则，
+  # 导致 POB 完全忽略这些效果。此处通过 Sim 注入补全。
+  #
+  # 规则：注入的 mod 必须带 SkillName 条件，避免影响其他技能。
+
+  "Flicker Strike":
+    detect:
+      type: "skill_id"
+      skill_id: "FlickerStrikePlayer"
+    skill_type: "active"
+    # POB 未映射 stat: flicker_strike_additional_flickers_from_power_charges
+    # 效果: 每个 Power Charge 额外闪烁 2 次
+    # 来源: act_int.lua:8427 constantStats = { "flicker_strike_additional_flickers_from_power_charges", 2 }
+    #
+    # 修复原理:
+    # 1. RepeatCount BASE → 让 POB 的 output.Repeats 正确显示
+    # 2. DPS MORE → 让 POB 的 dpsMultiplier 乘以 Repeats，从而正确计算 TotalDPS
+    #    DPS MORE = PowerCharges × 200%  (每个 charge = +200% MORE = ×3, 8 charge = +1600% MORE = ×17)
+    effects:
+      - type: "mod"
+        mod_name: "RepeatCount"
+        mod_type: "BASE"
+        value: null  # 动态计算 = PowerCharges × 2
+        source: "FlickerStrike_sim"
+        skill_name: "Flicker Strike"
+        description: "每个 Power Charge 额外闪烁 2 次（RepeatCount）"
+      - type: "mod"
+        mod_name: "DPS"
+        mod_type: "MORE"
+        value: null  # 动态计算 = PowerCharges × 200
+        source: "FlickerStrike_sim"
+        skill_name: "Flicker Strike"
+        description: "每个 Power Charge +200% MORE DPS（修正 dpsMultiplier）"
+        per_charge_value: 200  # effect 级别覆盖 skill 级别的 per_charge_value
+        quality_per_charge: 0
+    dynamic_value:
+      type: "charge_based"
+      charge_stat: "PowerCharges"
+      per_charge_value: 2
+      quality_per_charge: 0
 
   # ===================================================================
   # 元技能/触发类（skill_type: trigger）

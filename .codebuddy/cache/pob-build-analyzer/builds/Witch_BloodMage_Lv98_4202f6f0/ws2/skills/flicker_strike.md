@@ -6,7 +6,7 @@
 
 | 维度 | 关键指标 |
 |------|---------|
-| 进攻 | TotalDPS **764,079** |
+| 进攻 | TotalDPS **12,989,347** |
 | 防御 | TotalEHP **18,082**（最短板: Physical） |
 | 资源 | Spirit 占用 **75%** |
 
@@ -52,7 +52,7 @@
 |------|------|
 | 主技能 | Flicker Strike |
 | 技能类型 | 攻击 |
-| TotalDPS | **764,079** |
+| TotalDPS | **12,989,347** |
 | AverageHit | 0 |
 | Speed | 1.30/s |
 | CritChance | 75.0% |
@@ -123,7 +123,7 @@
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Dread Gnarl, Bolting Quarterstaff (Weapon 1 Swap) | Item | +117.0 |
+| Dread Gnarl, Bolting Quarterstaff | Item | +117.0 |
 | Stormcharged | Tree | +40.0 |
 | All Natural | Tree | +30.0 |
 | Elemental Damage | Tree | +10.0 |
@@ -204,7 +204,7 @@
 | 来源 | 类别 | 值 |
 |------|------|-----|
 | Base | Base | +100.0 |
-| Dread Gnarl, Bolting Quarterstaff (Weapon 1 Swap) | Item | +15.0 |
+| Dread Gnarl, Bolting Quarterstaff | Item | +15.0 |
 
 ### CritMultiplier INC = 351%
 
@@ -248,7 +248,7 @@
 | The Spring Hare | Jewel | +20.0 |
 | The Spring Hare | Jewel | +20.0 |
 
-### 点燃 DPS = 16,183
+### 点燃 DPS = 18,897
 
 **公式**: `× effMult 0.6000  (持续 4.00s, 几率 49.8%)`
 
@@ -267,9 +267,9 @@
 | Herald Damage | Tree | +12.0 |
 | Herald Damage | Tree | +12.0 |
 
-### 流血 DPS = 54,498
+### 流血 DPS = 113,980
 
-**公式**: `× 0.7层 × effMult 1.2000  (持续 5.00s, 几率 11.2%)`
+**公式**: `× effMult 1.2000  (持续 5.00s, 几率 11.2%)`
 
 **类别汇总**: Tree: +178.0
 
@@ -286,15 +286,23 @@
 | Herald Damage | Tree | +12.0 |
 | Herald Damage | Tree | +12.0 |
 
-### Combined DPS = 586,850
+### DPS Multiplier = x17.00
 
-**类别汇总**: Hit: +764079.2 | DOT: +70681.5
+**类别汇总**: Skill: +17.0
 
 | 来源 | 类别 | 值 |
 |------|------|-----|
-| Hit DPS | Hit | +764,079 |
-| 流血 DPS | DOT | +54,498 |
-| 点燃 DPS | DOT | +16,183 |
+| 技能 DPS 乘数 | Skill | +17.0 |
+
+### Combined DPS = 586,850
+
+**类别汇总**: Hit: +12989347.0 | DOT: +132876.9
+
+| 来源 | 类别 | 值 |
+|------|------|-----|
+| Hit DPS | Hit | +12,989,347 |
+| 流血 DPS | DOT | +113,980 |
+| 点燃 DPS | DOT | +18,897 |
 
 ### 敌人受伤增加 = x1.2000
 
@@ -350,7 +358,7 @@
 | 闪避值 | BASE | 1598.5 | +0.01%/单位 | BASE 7→1606, 需要 +1598 → EHP +18.6% |
 | 护甲固定值 | BASE | 4506.5 | +0.00%/单位 | BASE 0→4506, 需要 +4506 → EHP +19.7% |
 
-**无法达到目标**: 生命固定值, 全元素抗性, 混沌抗性, 物理减伤, 冰霜抗性, 火焰抗性, 闪电抗性, 护甲增加, 闪避增加
+**无法达到目标**: 全元素抗性, 混沌抗性, 护甲增加, 闪避增加, 生命固定值, 冰霜抗性, 物理减伤, 闪电抗性, 火焰抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -648,9 +656,20 @@ Sanguimancy, One with the Storm, Blood Barbs, Flow State, Critical Exploit, Stup
 - Charge Infusion 使用非默认 Charge 数量: PowerCharges=8
 - Archmage 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
 
+### 9F. POB 未实现效果预估
+
+**⚠️ 以下技能效果在 POB 中未实现，已通过配置模拟：**
+
+| 技能 | 效果描述 | DPS 预估 |
+|------|----------|----------|
+| **Flicker Strike** | 8 × (2%) = 16% MORE 元素伤害（PowerCharges） | **+16.0%** |
+
+**注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，
+实际游戏效果可能因条件触发方式不同而有差异。
+
 ## 10. 总结与建议
 
-当前 **Flicker Strike** TotalDPS = **764,079**，AverageHit = 0，Speed = 1.30/s，CritChance = 75.0%，CritMultiplier = 9.43x。
+当前 **Flicker Strike** TotalDPS = **12,989,347**，AverageHit = 0，Speed = 1.30/s，CritChance = 75.0%，CritMultiplier = 9.43x。
 
 ### ⚔️ 进攻面
 
