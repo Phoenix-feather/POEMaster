@@ -74,6 +74,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
 
             # 条件标注（仅用于主表显示）
             ranges = a.get("config_ranges", [])
+            label = ""
+            mid = 0
             if ranges:
                 for cr in ranges:
                     label = cr.get("label", cr["config_var"])
@@ -166,7 +168,8 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
                         for sup_name in sup_names:
                             lines.append(f"- **{sup_name}**")
                     
-                    lines.append(f"- 总辅助贡献: **+{supports_extra:.1f}%** DPS（{label}={mid}时）")
+                    cond_str = f"（{label}={mid}时）" if label else ""
+                    lines.append(f"- 总辅助贡献: **+{supports_extra:.1f}%** DPS{cond_str}")
                     # 显示各端点的辅助贡献
                     if ranges:
                         endpoint_parts = []
@@ -217,27 +220,32 @@ def _format_section7(lines: list, aura_data: dict, skill_flags: dict,
             lines.append("")
             for a in simulated_auras:
                 name = a.get("name", "?")
-                gem_level = a.get("gem_level", "20")  # 构筑实际宝石等级
-                if name == "Elemental Conflux":
-                    raw_val = a.get("raw_value", 59)
-                    breakdown = a.get("damage_breakdown", {})
-                    fire_pct = breakdown.get("fire", 0)
-                    cold_pct = breakdown.get("cold", 0)
-                    lightning_pct = breakdown.get("lightning", 0)
-                    ec_detail = a.get("ec_detail", {})
-                    dps_f = ec_detail.get("fire_more_dps", 0)
-                    dps_c = ec_detail.get("cold_more_dps", 0)
-                    dps_l = ec_detail.get("lightning_more_dps", 0)
-                    lines.append(f"- **{name}** (Lv{gem_level}): 分别注入 {raw_val:.0f}% MORE 到火/冰/电取平均。伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%")
+                gem_level = a.get("gem_level", "?")
+                # 数据驱动：根据 aura 数据中的字段动态生成说明
+                desc_parts = [f"- **{name}** (Lv{gem_level}):"]
+                # EC: 三元素分别注入
+                if a.get("damage_breakdown") and a.get("ec_detail"):
+                    raw_val = a.get("raw_value", 0)
+                    bd = a["damage_breakdown"]
+                    ec = a["ec_detail"]
+                    fire_pct = bd.get("fire", 0)
+                    cold_pct = bd.get("cold", 0)
+                    lightning_pct = bd.get("lightning", 0)
+                    dps_f = ec.get("fire_more_dps", 0)
+                    dps_c = ec.get("cold_more_dps", 0)
+                    dps_l = ec.get("lightning_more_dps", 0)
+                    desc_parts[0] += f" 分别注入 {raw_val:.0f}% MORE 到火/冰/电取平均。伤害构成：火 {fire_pct:.1f}% / 冰 {cold_pct:.1f}% / 电 {lightning_pct:.1f}%"
+                    lines.append(desc_parts[0])
                     lines.append(f"  三次模拟 DPS：火 {dps_f:.0f} / 冰 {dps_c:.0f} / 电 {dps_l:.0f}")
-                elif name == "Charge Infusion":
-                    charges = a.get("charge_counts", {})
-                    f_str = f"F={charges.get('FrenzyCharges', '?')}"
-                    p_str = f"P={charges.get('PowerCharges', '?')}"
-                    e_str = f"E={charges.get('EnduranceCharges', '?')}"
-                    lines.append(f"- **{name}** (Lv{gem_level}): 需启用 Charge 配置才能生效，已模拟 {f_str}/{p_str}/{e_str}")
+                # Charge Infusion 或其他有 charge_counts 的光环
+                elif a.get("charge_counts"):
+                    charges = a["charge_counts"]
+                    charge_strs = [f"{k[:1].upper()}={v}" for k, v in charges.items()]
+                    desc_parts[0] += f" 需启用 Charge 配置才能生效，已模拟 {'/'.join(charge_strs)}"
+                    lines.append(desc_parts[0])
                 else:
-                    lines.append(f"- **{name}** (Lv{gem_level}): 已模拟条件配置")
+                    desc_parts[0] += " 已模拟条件配置"
+                    lines.append(desc_parts[0])
             lines.append("")
 
             # 通用说明

@@ -671,20 +671,22 @@ def _extract_build_modifiers(dps_bd: dict,
                         "affects": str, "formula_name": str}}
     """
     _BASE_CATEGORIES = {"Tree", "Item", "Jewel", "Ailment"}
-    _EXCLUDED_CATEGORIES = {"Triggered"}  # 仅对触发技能生效的 mod，不算构筑通用修饰符
+    _EXCLUDED_CATEGORIES = {"Triggered", "Aura"}  # Aura 是光环效果，非构筑通用修饰符
     _spirit_ids = spirit_support_ids or set()
 
     def _is_included(source: dict) -> bool:
         cat = source.get("category", "")
-        # 排除仅对触发技能生效的 mod
+        # 排除仅对触发技能生效的 mod / 光环效果
         if cat in _EXCLUDED_CATEGORIES:
             return False
         if cat in _BASE_CATEGORIES:
             return True
-        # 精魄辅助：category=Skill, source="Skill:{skill_id}"
+        # 精魄辅助（新分类 Support）：开启即生效，属于构筑常驻修饰符
+        if cat == "Support":
+            return True
+        # 精魄辅助（旧格式兼容：category=Skill, source="Skill:Support*")
         if cat == "Skill" and _spirit_ids:
             src = source.get("source", "")
-            # source 格式: "Skill:SupportMysticismPlayerTwo"
             for sid in _spirit_ids:
                 if sid in src:
                     return True
@@ -979,8 +981,17 @@ def full_build_analysis(lua, calcs, skills: list[str] = None,
 def _auto_discover_skills(lua, calcs) -> list[str]:
     """自动发现构筑中所有 DPS>0 的技能名称。
 
-    不仅发现每个组的 mainSkill，还发现组内所有非辅助的主动技能，
-    并记录每个技能的 mainActiveSkill 索引。
+    策略：不再从 gemList 推断技能名再逐个匹配，而是直接遍历每个组的
+    mainActiveSkill 索引，让 POB 告诉我们实际激活的技能名。
+    这样可以发现 gemList 中没有的子技能（如 Herald 的 Armour Explosion、
+    Charged Staff 的 Charged Shockwave、召唤物的 Punch 等）。
+
+    过滤规则：
+    - 排除辅助宝石（support=true）
+    - 排除元触发技能（Triggers/Meta 标签）
+    - 排除光环/精魄预留技能
+    - 跳过 DPS=0 的技能
+
     同名技能出现在不同组时，用触发器宝石名做后缀区分，
     例如 "Comet (Cast on Critical)" 和 "Comet (Elemental Invocation)"。
     """
@@ -993,34 +1004,32 @@ def _auto_discover_skills(lua, calcs) -> list[str]:
             origActives[i] = build.skillsTab.socketGroupList[i].mainActiveSkill
         end
 
+        -- 辅助函数：判断技能是否应被排除（辅助宝石/光环/精魄预留）
+        local function isExcludedSkill(st, ge)
+            if not st then return false end
+            -- 排除辅助宝石（support=true 的是辅助宝石，不作为独立 DPS 技能）
+            if ge and ge.support then return true end
+            -- 排除元触发技能
+            if st[SkillType.Triggers] or st[SkillType.Meta] then return true end
+            -- 排除光环: Aura 标签（无 Attack/DoT/Herald）
+            local hasDPSType = st[SkillType.Attack] or st[SkillType.DamageOverTime] or st[SkillType.Herald]
+            if not hasDPSType then
+                local isAura = st[SkillType.Aura]
+                local isPerBufRes = st[SkillType.Persistent] and st[SkillType.Buff] and st[SkillType.HasReservation]
+                local isMinionOrRemnant = st[SkillType.CreatesMinion] or st[SkillType.GeneratesRemnants]
+                if isAura or (isPerBufRes and not isMinionOrRemnant) then
+                    return true
+                end
+            end
+            return false
+        end
+
         for i = 1, #build.skillsTab.socketGroupList do
             local g = build.skillsTab.socketGroupList[i]
             if not g.enabled then goto next end
 
-            -- 从 gemList 收集非辅助、非元触发的主动技能名
-            local gl = g.gemList or g.gems or {}
-            local activeNames = {}
-            local seenN = {}
-            for _, gem in ipairs(gl) do
-                local ge = gem.grantedEffect
-                    or (gem.gemData and gem.gemData.grantedEffect)
-                if ge and not ge.support and not ge.unsupported then
-                    -- 排除元触发技能（Cast on Critical, Elemental Invocation 等）
-                    local isMeta = ge.skillTypes
-                        and (ge.skillTypes[SkillType.Triggers] or ge.skillTypes[SkillType.Meta])
-                    if not isMeta then
-                        local gn = ge.name
-                        if gn and not seenN[gn] then
-                            seenN[gn] = true
-                            activeNames[#activeNames+1] = gn
-                        end
-                    end
-                end
-            end
-
-            if #activeNames == 0 then goto next end
-
             -- 检测元触发器宝石（有 SkillType.Triggers 或 SkillType.Meta 的非辅助技能）
+            local gl = g.gemList or g.gems or {}
             local triggerName = ""
             for _, gem in ipairs(gl) do
                 local ge = gem.grantedEffect
@@ -1033,34 +1042,42 @@ def _auto_discover_skills(lua, calcs) -> list[str]:
                 end
             end
 
-            -- 逐个设 mainActiveSkill 来测试每个技能
+            -- 直接遍历 mainActiveSkill 索引来发现所有子技能
+            -- 最大索引 = gemList 中主动技能数 * 2（考虑子技能）+ 5 安全余量
+            local maxIdx = #gl * 2 + 5
             build.mainSocketGroup = i
-            for _, sname in ipairs(activeNames) do
-                -- 逐步尝试 mainActiveSkill 1..N 找到匹配的
-                local foundIdx = 0
-                for tryIdx = 1, #activeNames + 1 do
-                    g.mainActiveSkill = tryIdx
-                    local ok, env = pcall(calcs.initEnv, build, "MAIN")
-                    if ok then
-                        pcall(calcs.perform, env)
-                        local ms = env.player.mainSkill
-                        local msName = ms and ms.activeEffect
-                            and ms.activeEffect.grantedEffect
-                            and ms.activeEffect.grantedEffect.name
-                        if msName == sname then
-                            local dps = env.player.output.TotalDPS or 0
-                            foundIdx = tryIdx
-                            entries[#entries+1] = {
-                                name = sname,
-                                group = i,
-                                activeIdx = tryIdx,
-                                trigger = triggerName,
-                                dps = dps
-                            }
-                            break
-                        end
-                    end
+
+            local seenSkillInGroup = {}  -- 避免同组内重复
+            for tryIdx = 1, maxIdx do
+                g.mainActiveSkill = tryIdx
+                local ok, env = pcall(calcs.initEnv, build, "MAIN")
+                if not ok then break end  -- 索引超出范围，停止
+                pcall(calcs.perform, env)
+                local ms = env.player.mainSkill
+                if not ms or not ms.activeEffect or not ms.activeEffect.grantedEffect then
+                    break  -- 无有效技能，停止
                 end
+                local ge = ms.activeEffect.grantedEffect
+                local msName = ge.name
+                if not msName or msName == "" or seenSkillInGroup[msName] then
+                    goto continue  -- 跳过空名或已见技能
+                end
+
+                -- 检查技能标签是否应排除（含辅助宝石检查）
+                if isExcludedSkill(ge.skillTypes, ge) then
+                    goto continue
+                end
+
+                local dps = env.player.output.TotalDPS or 0
+                seenSkillInGroup[msName] = true
+                entries[#entries+1] = {
+                    name = msName,
+                    group = i,
+                    activeIdx = tryIdx,
+                    trigger = triggerName,
+                    dps = dps
+                }
+                ::continue::
             end
             ::next::
         end
@@ -1073,7 +1090,7 @@ def _auto_discover_skills(lua, calcs) -> list[str]:
             end
         end
 
-        -- 去重逻辑：同名技能按触发器分组
+        -- 去重逻辑：同名技能按触发器或组号区分
         local nameCount = {}
         for _, e in ipairs(entries) do
             nameCount[e.name] = (nameCount[e.name] or 0) + 1
@@ -1084,8 +1101,13 @@ def _auto_discover_skills(lua, calcs) -> list[str]:
         for _, e in ipairs(entries) do
             if e.dps == 0 then goto skip end  -- 跳过 DPS=0 的技能
             local display
-            if nameCount[e.name] > 1 and e.trigger ~= "" then
-                display = e.name .. " (" .. e.trigger .. ")"
+            if nameCount[e.name] > 1 then
+                if e.trigger ~= "" then
+                    display = e.name .. " (" .. e.trigger .. ")"
+                else
+                    -- 同名技能无触发器区分时，用组号做后缀
+                    display = e.name .. " (Group " .. tostring(e.group) .. ")"
+                end
             else
                 display = e.name
             end

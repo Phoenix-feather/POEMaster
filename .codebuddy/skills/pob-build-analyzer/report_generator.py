@@ -55,6 +55,47 @@ def _strip_sample_diff(data: dict) -> dict:
     return data
 
 
+def _reclassify_source_categories(skill_data: dict) -> bool:
+    """将旧格式 category='Skill' 的来源重新分类为 Support/Aura。
+
+    旧版 _classify_source 将所有 Skill: 前缀来源统一标为 'Skill'。
+    新版区分：
+    - Skill:Support* → 'Support'（辅助宝石效果）
+    - Skill:*Player → 'Aura'（光环/捷效果）
+    - gem → 'Skill'（宝石基础值）
+
+    同时更新 category_summary 以匹配新分类。
+    返回是否修改了数据。
+    """
+    db = skill_data.get("dps_breakdown", {})
+    if not db:
+        return False
+    changed = False
+    for item in db.get("formula_items", []):
+        sources = item.get("sources", [])
+        for s in sources:
+            if s.get("category") != "Skill":
+                continue
+            src = s.get("source", "")
+            if src.startswith("Skill:Support"):
+                s["category"] = "Support"
+                changed = True
+            elif src.startswith("Skill:") and src != "gem":
+                skill_id = src.split(":", 1)[1]
+                if skill_id.endswith("Player") or skill_id.endswith("PlayerTwo"):
+                    s["category"] = "Aura"
+                    changed = True
+        # 重建 category_summary
+        if changed:
+            cat_sum = {}
+            for s in sources:
+                cat = s.get("category", "Other")
+                val = s.get("value", 0)
+                cat_sum[cat] = cat_sum.get(cat, 0) + val
+            item["category_summary"] = cat_sum
+    return changed
+
+
 def _merge_enemy_zone(skill_data: dict) -> bool:
     """对旧格式缓存做敌人乘区后处理合并。
 
@@ -284,6 +325,21 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
         except (json.JSONDecodeError, OSError):
             pass
 
+    # 重新分类 build_modifiers 中旧格式 Skill 来源
+    if global_data:
+        bm = global_data.get("build_modifiers", {})
+        for key, mod in bm.items():
+            for s in mod.get("sources", []):
+                if s.get("category") != "Skill":
+                    continue
+                src = s.get("source", "")
+                if src.startswith("Skill:Support"):
+                    s["category"] = "Support"
+                elif src.startswith("Skill:") and src != "gem":
+                    skill_id = src.split(":", 1)[1]
+                    if skill_id.endswith("Player") or skill_id.endswith("PlayerTwo"):
+                        s["category"] = "Aura"
+
     # 自动发现已分析的技能（优先 ws1/skills/，回退到扁平格式）
     # 关键：如果 ws1/skills/ 数据缺少 dps_breakdown 新字段（如 crit_chance），
     # 从扁平 analysis_*.json 回退补全 dps_breakdown，最终从 baseline 提取
@@ -345,19 +401,38 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                 changed = True
         return changed
 
+    # 加载 ws2 全局数据（ws2 回退）
+    ws2_global = None
+    ws2_global_path = build_dir / "ws2" / "global.json"
+    if ws2_global_path.exists():
+        try:
+            ws2_global = json.loads(ws2_global_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+
     skills_data = {}
     if skills is None:
-        # 自动发现：ws1/skills/ 优先，扁平路径回退
+        # 自动发现：ws1/skills/ 优先，ws2/skills/ 回退，扁平路径兜底
         ws1_skills_dir = build_dir / "ws1" / "skills"
-        if ws1_skills_dir.exists():
-            for f in ws1_skills_dir.glob("*.json"):
+        ws2_skills_dir = build_dir / "ws2" / "skills"
+        # 选择有数据的 skills 目录和对应全局数据
+        skills_dir = None
+        ws_global = None
+        if ws1_skills_dir.exists() and any(ws1_skills_dir.glob("*.json")):
+            skills_dir = ws1_skills_dir
+            ws_global = ws1_global
+        elif ws2_skills_dir.exists() and any(ws2_skills_dir.glob("*.json")):
+            skills_dir = ws2_skills_dir
+            ws_global = ws2_global
+        if skills_dir:
+            for f in skills_dir.glob("*.json"):
                 try:
                     d = json.loads(f.read_text(encoding="utf-8"))
                     display = d.get("display_name") or f.stem
-                    if d and ws1_global:
+                    if d and ws_global:
                         for gk in ("aura_spirit", "jewel_diagnosis"):
-                            if gk not in d and gk in ws1_global:
-                                d[gk] = ws1_global[gk]
+                            if gk not in d and gk in ws_global:
+                                d[gk] = ws_global[gk]
                     # 补全 dps_breakdown 新字段
                     flat_path = build_dir / f"analysis_{f.stem}.json"
                     flat_d = None
@@ -368,6 +443,7 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                             pass
                     # 先清理旧格式敌人乘区，再从 flat_data 补全正确数据
                     _merge_enemy_zone(d)
+                    _reclassify_source_categories(d)
                     if _backfill_dps_breakdown(d, flat_d):
                         # 写回磁盘，避免每次都需要修补
                         try:
@@ -391,6 +467,7 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                 data = _load_analysis(build_dir, skill_slug)
                 if data is not None:
                     _merge_enemy_zone(data)
+                    _reclassify_source_categories(data)
                     _backfill_dps_breakdown(data)
                     display = data.get("display_name") or skill_slug
                     skills_data[display] = data
@@ -399,41 +476,46 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
         for skill in skills:
             data = _load_analysis(build_dir, skill)
             if data is None:
-                ws1_path = build_dir / "ws1" / "skills" / f"{skill}.json"
-                if ws1_path.exists():
-                    try:
-                        data = json.loads(ws1_path.read_text(encoding="utf-8"))
-                        if data and ws1_global:
-                            for gk in ("aura_spirit", "jewel_diagnosis"):
-                                if gk not in data and gk in ws1_global:
-                                    data[gk] = ws1_global[gk]
-                        # 补全 dps_breakdown 新字段
-                        flat_path = build_dir / f"analysis_{skill}.json"
-                        flat_d = None
-                        if flat_path.exists():
-                            try:
-                                flat_d = json.loads(flat_path.read_text(encoding="utf-8"))
-                            except (json.JSONDecodeError, OSError):
-                                pass
-                        _merge_enemy_zone(data)
-                        if _backfill_dps_breakdown(data, flat_d):
-                            try:
-                                ws1_path.write_text(
-                                    json.dumps(data, ensure_ascii=False, default=str),
-                                    encoding="utf-8")
-                            except OSError:
-                                pass
-                        elif _backfill_dps_breakdown(data):
-                            try:
-                                ws1_path.write_text(
-                                    json.dumps(data, ensure_ascii=False, default=str),
-                                    encoding="utf-8")
-                            except OSError:
-                                pass
-                    except (json.JSONDecodeError, OSError):
-                        pass
+                # 依次尝试 ws1/skills/ 和 ws2/skills/
+                for ws_dir, ws_g in [("ws1", ws1_global), ("ws2", ws2_global)]:
+                    ws_path = build_dir / ws_dir / "skills" / f"{skill}.json"
+                    if ws_path.exists():
+                        try:
+                            data = json.loads(ws_path.read_text(encoding="utf-8"))
+                            if data and ws_g:
+                                for gk in ("aura_spirit", "jewel_diagnosis"):
+                                    if gk not in data and gk in ws_g:
+                                        data[gk] = ws_g[gk]
+                            # 补全 dps_breakdown 新字段
+                            flat_path = build_dir / f"analysis_{skill}.json"
+                            flat_d = None
+                            if flat_path.exists():
+                                try:
+                                    flat_d = json.loads(flat_path.read_text(encoding="utf-8"))
+                                except (json.JSONDecodeError, OSError):
+                                    pass
+                            _merge_enemy_zone(data)
+                            _reclassify_source_categories(data)
+                            if _backfill_dps_breakdown(data, flat_d):
+                                try:
+                                    ws_path.write_text(
+                                        json.dumps(data, ensure_ascii=False, default=str),
+                                        encoding="utf-8")
+                                except OSError:
+                                    pass
+                            elif _backfill_dps_breakdown(data):
+                                try:
+                                    ws_path.write_text(
+                                        json.dumps(data, ensure_ascii=False, default=str),
+                                        encoding="utf-8")
+                                except OSError:
+                                    pass
+                        except (json.JSONDecodeError, OSError):
+                            pass
+                        break  # 找到就不再尝试其他 ws_dir
             if data is not None:
                 _merge_enemy_zone(data)
+                _reclassify_source_categories(data)
                 _backfill_dps_breakdown(data)
                 display = data.get("display_name") or skill
                 skills_data[display] = data
@@ -469,6 +551,7 @@ def generate_html_report(build_id: str, skills: list[str] | None = None) -> str 
                     except (json.JSONDecodeError, OSError):
                         pass
                 _merge_enemy_zone(ws2_skill)
+                _reclassify_source_categories(ws2_skill)
                 if _backfill_dps_breakdown(ws2_skill, flat_d):
                     try:
                         f.write_text(json.dumps(ws2_skill, ensure_ascii=False, default=str),
@@ -884,7 +967,8 @@ function fmtComma(n) {
 const CAT_COLORS = {
   Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d',
   Base: '#a8abb5', Jewel: '#b197fc', Other: '#6c6f7e',
-  Sim: '#ff6b6b', SkillEffect: '#fbbf24'
+  Sim: '#ff6b6b', SkillEffect: '#fbbf24',
+  Support: '#e08855', Aura: '#c084fc'
 };
 const CATEGORY_COLORS = {
   '进攻': '#ff6b6b', '防御': '#5b9aff', '混合': '#b197fc', '无效': '#6c6f7e'
@@ -901,7 +985,7 @@ function GlobalBaselineSection({ activeWS }) {
   var ba = g.build_attributes || {};
 
   // Category color map
-  var catClr = { Tree: '#5bda6e', Item: '#ffa94d', Jewel: '#b197fc', Skill: '#5b9aff', Sim: '#ff6b6b', Base: '#a8abb5', Gem: '#66d9e8', SkillEffect: '#fbbf24' };
+  var catClr = { Tree: '#5bda6e', Item: '#ffa94d', Jewel: '#b197fc', Skill: '#5b9aff', Sim: '#ff6b6b', Base: '#a8abb5', Gem: '#66d9e8', SkillEffect: '#fbbf24', Support: '#e08855', Aura: '#c084fc' };
 
   // Element emoji/icon map for affects display
   var elemIcons = { Lightning: '\u26a1', Cold: '\u2744', Fire: '\ud83d\udd25', Physical: '\u2694', Chaos: '\ud83d\udd2e' };
@@ -920,14 +1004,16 @@ function GlobalBaselineSection({ activeWS }) {
     var isMore = key.indexOf('MORE') >= 0;
     var suffix = key.indexOf('INC') >= 0 ? '%' : '';
     var srcs = m.sources || [];
-    var tree = 0, item = 0, jewel = 0, support = 0;
+    var tree = 0, item = 0, jewel = 0, support = 0, aura = 0;
     if (isMore) {
-      tree = 1; item = 1; jewel = 1; support = 1;
+      tree = 1; item = 1; jewel = 1; support = 1; aura = 1;
       srcs.forEach(function(s) {
         var v = s.value || 0;
         if (s.category === 'Tree') tree *= (1 + v / 100);
         else if (s.category === 'Item') item *= (1 + v / 100);
         else if (s.category === 'Jewel') jewel *= (1 + v / 100);
+        else if (s.category === 'Support') support *= (1 + v / 100);
+        else if (s.category === 'Aura') aura *= (1 + v / 100);
         else if (s.category === 'Skill') support *= (1 + v / 100);
       });
     } else {
@@ -935,6 +1021,8 @@ function GlobalBaselineSection({ activeWS }) {
         if (s.category === 'Tree') tree += s.value || 0;
         else if (s.category === 'Item') item += s.value || 0;
         else if (s.category === 'Jewel') jewel += s.value || 0;
+        else if (s.category === 'Support') support += s.value || 0;
+        else if (s.category === 'Aura') aura += s.value || 0;
         else if (s.category === 'Skill') support += s.value || 0;
       });
     }
@@ -965,11 +1053,12 @@ function GlobalBaselineSection({ activeWS }) {
           h('span', null, label),
           affectsTag
         ),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--green)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 55px' } }, isMore ? ((m.total >= 1 ? '+' : '') + Math.round((m.total - 1) * 100) + '%') : ('+' + Math.round(m.total) + suffix)),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: (isMore ? tree !== 1 : tree) ? 'var(--cyan)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 55px' } }, isMore ? (tree !== 1 ? (tree >= 1 ? '+' : '') + Math.round((tree - 1) * 100) + '%' : '\u2014') : (tree ? '+' + Math.round(tree) + suffix : '\u2014')),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: (isMore ? item !== 1 : item) ? 'var(--orange)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 55px' } }, isMore ? (item !== 1 ? (item >= 1 ? '+' : '') + Math.round((item - 1) * 100) + '%' : '\u2014') : (item ? '+' + Math.round(item) + suffix : '\u2014')),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: (isMore ? jewel !== 1 : jewel) ? 'var(--purple)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 55px' } }, isMore ? (jewel !== 1 ? (jewel >= 1 ? '+' : '') + Math.round((jewel - 1) * 100) + '%' : '\u2014') : (jewel ? '+' + Math.round(jewel) + suffix : '\u2014')),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: (isMore ? support !== 1 : support) ? 'var(--accent)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 55px' } }, isMore ? (support !== 1 ? (support >= 1 ? '+' : '') + Math.round((support - 1) * 100) + '%' : '\u2014') : (support ? '+' + Math.round(support) + suffix : '\u2014')),
+        h('span', { style: { minWidth: 50, textAlign: 'right', color: 'var(--green)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 50px' } }, isMore ? ((m.total >= 1 ? '+' : '') + Math.round((m.total - 1) * 100) + '%') : ('+' + Math.round(m.total) + suffix)),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: (isMore ? tree !== 1 : tree) ? 'var(--cyan)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 45px' } }, isMore ? (tree !== 1 ? (tree >= 1 ? '+' : '') + Math.round((tree - 1) * 100) + '%' : '\u2014') : (tree ? '+' + Math.round(tree) + suffix : '\u2014')),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: (isMore ? item !== 1 : item) ? 'var(--orange)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 45px' } }, isMore ? (item !== 1 ? (item >= 1 ? '+' : '') + Math.round((item - 1) * 100) + '%' : '\u2014') : (item ? '+' + Math.round(item) + suffix : '\u2014')),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: (isMore ? jewel !== 1 : jewel) ? 'var(--purple)' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 45px' } }, isMore ? (jewel !== 1 ? (jewel >= 1 ? '+' : '') + Math.round((jewel - 1) * 100) + '%' : '\u2014') : (jewel ? '+' + Math.round(jewel) + suffix : '\u2014')),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: (isMore ? support !== 1 : support) ? '#e08855' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 45px' } }, isMore ? (support !== 1 ? (support >= 1 ? '+' : '') + Math.round((support - 1) * 100) + '%' : '\u2014') : (support ? '+' + Math.round(support) + suffix : '\u2014')),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: (isMore ? aura !== 1 : aura) ? '#c084fc' : 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, flex: '0 0 45px' } }, isMore ? (aura !== 1 ? (aura >= 1 ? '+' : '') + Math.round((aura - 1) * 100) + '%' : '\u2014') : (aura ? '+' + Math.round(aura) + suffix : '\u2014')),
         srcs.length > 0 && h('span', { style: { flex: '0 0 auto', textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 } }, srcs.length + ' \u6761')
       ),
       // Expandable source detail
@@ -1047,11 +1136,12 @@ function GlobalBaselineSection({ activeWS }) {
       // Column header
       h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2, flexWrap: 'wrap' } },
         h('span', { style: { minWidth: 120, flex: '1 1 120px', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600 } }, '\u4FEE\u9970\u7B26'),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 55px' } }, '\u603B\u91CF'),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 55px' } }, '\u5929\u8D4B'),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 55px' } }, '\u88C5\u5907'),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 55px' } }, '\u73E0\u5B9D'),
-        h('span', { style: { minWidth: 55, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 55px' } }, '\u8F85\u52A9')
+        h('span', { style: { minWidth: 50, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 50px' } }, '\u603B\u91CF'),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 45px' } }, '\u5929\u8D4B'),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 45px' } }, '\u88C5\u5907'),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 45px' } }, '\u73E0\u5B9D'),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, flex: '0 0 45px' } }, '\u8F85\u52A9'),
+        h('span', { style: { minWidth: 45, textAlign: 'right', color: '#c084fc', fontSize: 11, fontWeight: 600, flex: '0 0 45px' } }, '\u6377\u5149\u73AF')
       ),
       h('div', null, bmCards)
     ),
@@ -1166,7 +1256,7 @@ function SourceList({ sources }) {
 function FormulaBreakdown({ data }) {
   if (!data || !data.formula_items) return null;
 
-  var catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ffaa44', Ailment: '#cc66aa', Config: '#88aacc', ResistInvert: '#e879f9', Penetration: '#60a5fa', SkillEffect: '#fbbf24', Other: '#888899' };
+  var catColors = { Tree: '#5bda6e', Item: '#5b9aff', Skill: '#ffa94d', Base: '#a8abb5', Jewel: '#b197fc', Enemy: '#ff6b6b', Sim: '#ffaa44', Ailment: '#cc66aa', Config: '#88aacc', ResistInvert: '#e879f9', Penetration: '#60a5fa', SkillEffect: '#fbbf24', Support: '#e08855', Aura: '#c084fc', Other: '#888899' };
 
   // 不再合并 Lucky，保持独立分组
   // 过滤旧格式按元素展开的敌人乘区条目（旧缓存兼容），

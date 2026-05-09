@@ -138,6 +138,25 @@ class BuildCache:
         content = self._share_code_file.read_text(encoding="utf-8").strip()
         return content if content else None
 
+    def peek_build_id(self, share_code: str) -> str | None:
+        """解码分享码并计算 build_id，但不写入磁盘。
+
+        用于比较分享码是否对应新构筑。
+
+        Args:
+            share_code: POB 分享码
+
+        Returns:
+            build_id 字符串，解码失败返回 None
+        """
+        try:
+            xml_text = decode_share_code(share_code)
+            build_info = parse_build_xml(xml_text)
+            return self._make_build_id(build_info, xml_text)
+        except Exception as e:
+            logger.warning("peek_build_id 解码失败: %s", e)
+            return None
+
     # -----------------------------------------------------------------
     # 加载
     # -----------------------------------------------------------------
@@ -202,6 +221,9 @@ class BuildCache:
     def set_current(self, build_id: str):
         """切换当前活跃构筑。
 
+        同时清空 share_code_new.txt，防止 from_current() 被残留的
+        旧分享码拉回其他构筑。
+
         Args:
             build_id: 目标构筑 ID
 
@@ -211,6 +233,11 @@ class BuildCache:
         if not (self._builds_dir / build_id).exists():
             raise FileNotFoundError(f"构筑不存在: {build_id}")
         self._set_current(build_id)
+        # 清空 share_code_new.txt，防止 from_current() 的优先级逻辑
+        # 将 current 回退到旧分享码对应的构筑
+        if self._share_code_file.exists():
+            self._share_code_file.unlink()
+            logger.info("已清空 share_code_new.txt 以锁定当前构筑: %s", build_id)
 
     # -----------------------------------------------------------------
     # 列表

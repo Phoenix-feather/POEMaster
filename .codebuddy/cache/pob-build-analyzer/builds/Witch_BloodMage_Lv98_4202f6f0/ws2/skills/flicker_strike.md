@@ -358,7 +358,7 @@
 | 闪避值 | BASE | 1598.5 | +0.01%/单位 | BASE 7→1606, 需要 +1598 → EHP +18.6% |
 | 护甲固定值 | BASE | 4506.5 | +0.00%/单位 | BASE 0→4506, 需要 +4506 → EHP +19.7% |
 
-**无法达到目标**: 全元素抗性, 混沌抗性, 护甲增加, 闪避增加, 生命固定值, 冰霜抗性, 物理减伤, 闪电抗性, 火焰抗性
+**无法达到目标**: 生命固定值, 全元素抗性, 闪电抗性, 护甲增加, 闪避增加, 物理减伤, 冰霜抗性, 火焰抗性, 混沌抗性
 
 ### 3C. 恢复增强灵敏度
 
@@ -567,10 +567,15 @@ Sanguimancy, One with the Storm, Blood Barbs, Flow State, Critical Exploit, Stup
 
 | # | 光环 | 裸光环 DPS | 真实 DPS | EHP | 精魄 |
 |---|------|------------|----------|-----|------|
-| 1 | Charge Infusion | +16.3% | +16.3% ⚠️模拟 | +0.0% | 30 |
+| 1 | Charge Infusion | +16.4% | +17.0% ⚠️模拟 (辅助+0.6%) | +0.5% | 30 |
 
 <details>
 <summary><b>Charge Infusion 详细数据</b></summary>
+
+### 辅助贡献
+
+- **Uhtred's Exodus**: +3 level (条件: 无其他辅助)
+- 总辅助贡献: **+0.6%** DPS
 
 ### 基础数值
 
@@ -653,19 +658,7 @@ Sanguimancy, One with the Storm, Blood Barbs, Flow State, Critical Exploit, Stup
 
 **⚠️ 以下项目需要人工确认：**
 
-- Charge Infusion 使用非默认 Charge 数量: PowerCharges=8
 - Archmage 无明显 DPS 影响：可能因为构筑条件不满足或模拟环境限制
-
-### 9F. POB 未实现效果预估
-
-**⚠️ 以下技能效果在 POB 中未实现，已通过配置模拟：**
-
-| 技能 | 效果描述 | DPS 预估 |
-|------|----------|----------|
-| **Flicker Strike** | 8 × (2%) = 16% MORE 元素伤害（PowerCharges） | **+16.0%** |
-
-**注**: 这些效果由 `config/pob_unimplemented_effects.yaml` 配置，
-实际游戏效果可能因条件触发方式不同而有差异。
 
 ## 10. 总结与建议
 

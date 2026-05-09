@@ -398,6 +398,12 @@ def load_items(lua, build_info: dict) -> int:
                 _spike_build.spec.jewels[{node_id}] = {item_id_str}
             ''')
 
+    # 设置 useSecondWeaponSet（默认 false，从 build_info 读取）
+    use_second = build_info.get('useSecondWeaponSet', False)
+    lua.execute(f'''
+        _spike_build.itemsTab.activeItemSet.useSecondWeaponSet = {str(use_second).lower()}
+    ''')
+
     return loaded
 
 

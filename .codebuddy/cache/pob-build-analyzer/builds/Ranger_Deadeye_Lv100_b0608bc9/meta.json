@@ -1,0 +1,100 @@
+{
+  "build_id": "Ranger_Deadeye_Lv100_b0608bc9",
+  "class_name": "Ranger",
+  "ascendancy": "Deadeye",
+  "level": 100,
+  "hash": "b0608bc9",
+  "created_at": "2026-05-09T04:51:15+00:00",
+  "last_used": "2026-05-09T04:55:03+00:00",
+  "main_socket_group": 8,
+  "skills": [
+    {
+      "group": 1,
+      "gems": [
+        "Bow Shot",
+        "Chain II",
+        "Deliberation",
+        "Rapid Attacks II",
+        "Lightning Exposure",
+        "Projectile Acceleration III"
+      ]
+    },
+    {
+      "group": 2,
+      "gems": [
+        "Herald of Thunder",
+        "Elemental Armament II",
+        "Elemental Focus",
+        "Longshot II",
+        "Lightning Attunement",
+        "Lightning Penetration"
+      ]
+    },
+    {
+      "group": 3,
+      "gems": [
+        "Lightning Rod",
+        "Elemental Armament II",
+        "Elemental Focus",
+        "Stoicism II",
+        "Close Combat II",
+        "Lightning Attunement"
+      ]
+    },
+    {
+      "group": 4,
+      "gems": [
+        "Rhoa Mount",
+        "Loyalty",
+        "Minion Mastery",
+        "Blind I",
+        "Brutus' Brain"
+      ]
+    },
+    {
+      "group": 5,
+      "gems": [
+        "Barrage",
+        "Cooldown Recovery II",
+        "Second Wind III",
+        "Rapid Casting II",
+        "Lifetap"
+      ]
+    },
+    {
+      "group": 6,
+      "gems": [
+        "Lightning Arrow",
+        "Innervate",
+        "Nova Projectiles I",
+        "Elemental Armament II",
+        "Lightning Attunement"
+      ]
+    },
+    {
+      "group": 7,
+      "gems": [
+        "Wind Dancer",
+        "Magnified Area II",
+        "Blind I",
+        "Rage II"
+      ]
+    },
+    {
+      "group": 8,
+      "gems": [
+        "Tornado Shot",
+        "Overabundance II",
+        "Prolonged Duration II",
+        "Concentrated Area"
+      ]
+    },
+    {
+      "group": 9,
+      "gems": [
+        "Ghost Dance",
+        "Compressed Duration II"
+      ]
+    }
+  ]
+}

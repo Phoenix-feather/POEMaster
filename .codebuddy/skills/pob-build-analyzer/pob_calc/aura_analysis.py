@@ -1910,7 +1910,7 @@ def _test_mod_effect_inner(lua, calcs, baseline: dict,
                            source_tag: str) -> dict:
     """_test_mod_effect 的实际逻辑（在移除 sim mod 后调用）。"""
 
-    # 对于 EC，分别注入每个元素 60% MORE，三次计算取平均
+    # 对于 EC，分别注入每个元素的 MORE 值，三次计算取期望平均
     if skill_name == "Elemental Conflux":
         raw_value = mod["value"]
         if raw_value is None:
@@ -2514,16 +2514,6 @@ def _test_candidate_config_range(lua, calcs, aura: dict,
     # 确定需要测试的配置变量
     config_specs = []
 
-    if skill_id == "TrinityPlayer":
-        config_specs.append({
-            "var": "configResonanceCount",
-            "label": "Resonance Count",
-            "min": 0,
-            "mid": 300,
-            "max": 750,
-            "condition_label": "共鸣值 0~750"
-        })
-
     # 从 YAML 配置中读取 config_ranges 定义
     yaml_ranges = _get_yaml_config_ranges(aura_name, skill_id)
     for yr in yaml_ranges:
@@ -3080,27 +3070,28 @@ def _validate_aura_consistency(aura_data: dict) -> list:
     existing = aura_data.get("existing_auras", [])
     candidates = aura_data.get("candidate_auras", [])
 
-    # B1. EC MORE 值检查
+    # B1. Simulated 光环 raw_value 检查
     for a in existing:
-        if a.get("name") == "Elemental Conflux" and a.get("simulated"):
+        if a.get("simulated") and a.get("raw_value") is not None:
             raw_val = a.get("raw_value", 0)
+            name = a.get("name", "?")
             gem_level = a.get("gem_level")
             if raw_val <= 0:
-                warnings.append(f"EC MORE 值为 {raw_val}（动态读取可能失败），结果不可靠")
+                warnings.append(f"{name} MORE 值为 {raw_val}（动态读取可能失败），结果不可靠")
             elif gem_level and gem_level != 20:
-                warnings.append(f"EC 使用构筑实际等级 Lv{gem_level}（MORE={raw_val:.0f}%），非满级 Lv20")
+                warnings.append(f"{name} 使用构筑实际等级 Lv{gem_level}（效果值={raw_val:.0f}），非满级 Lv20")
 
-    # B2. Charge 数量标注
+    # B2. Charge 数量标注（检测任何 Charge 为 0 的情况）
     for a in existing:
-        if a.get("name") == "Charge Infusion" and a.get("simulated"):
-            cc = a.get("charge_counts", {})
-            if cc:
-                parts = []
-                for ct, val in cc.items():
-                    if val != 3:
-                        parts.append(f"{ct}={val}")
-                if parts:
-                    warnings.append(f"Charge Infusion 使用非默认 Charge 数量: {', '.join(parts)}")
+        if a.get("charge_counts") and a.get("simulated"):
+            cc = a["charge_counts"]
+            zero_parts = []
+            for ct, val in cc.items():
+                if val == 0:
+                    zero_parts.append(f"{ct}=0")
+            if zero_parts:
+                name = a.get("name", "?")
+                warnings.append(f"{name} 有零 Charge 配置: {', '.join(zero_parts)}，模拟结果可能不准确")
 
     # B3. 空结果归因检查
     for c in candidates:

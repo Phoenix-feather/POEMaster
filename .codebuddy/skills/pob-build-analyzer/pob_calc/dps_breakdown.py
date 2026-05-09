@@ -55,6 +55,11 @@ def _extract_damage_composition(baseline: dict) -> list:
 #   "Item:{itemId}:{name}"    → 装备/珠宝
 #   "Skill:{skillId}"         → 技能宝石
 #   "Config"                  → 面板设置
+#
+# _classify_source 细分 Skill 来源：
+#   "Skill:Support*"          → "Support"（辅助宝石，如 Mysticism II、Deliberation）
+#   "Skill:*Player"          → "Aura"（光环/捷效果，如 Trinity、Charge Infusion）
+#   "gem"                     → "Skill"（宝石基础值，如基础施法频率、基础暴击率）
 
 
 def _classify_source(source: str, jewel_node_ids: set = None) -> str:
@@ -62,6 +67,11 @@ def _classify_source(source: str, jewel_node_ids: set = None) -> str:
 
     珠宝半径效果的 source 格式为 "Tree:{nodeId}"，其中 nodeId 是珠宝槽位。
     通过 jewel_node_ids 集合识别这些节点，将其分类为 "Jewel" 而非 "Tree"。
+
+    Skill 来源进一步细分：
+    - "Skill:Support*" → "Support"（辅助宝石效果，如 Mysticism II、Deliberation）
+    - "Skill:*Player" → "Aura"（光环/捷效果，如 Trinity、Charge Infusion）
+    - "gem" → "Skill"（宝石基础值，如 基础施法频率、基础暴击率）
     """
     if not source:
         return "Other"
@@ -73,7 +83,18 @@ def _classify_source(source: str, jewel_node_ids: set = None) -> str:
         node_id = source.split(":")[1] if ":" in source else ""
         if node_id in jewel_node_ids:
             return "Jewel"
-    if prefix in ("Base", "Tree", "Item", "Skill", "Config"):
+    if prefix == "Skill":
+        # 区分辅助宝石、光环/捷、和技能基础
+        skill_id = source.split(":", 1)[1] if ":" in source else ""
+        if skill_id.startswith("Support"):
+            return "Support"
+        if skill_id.endswith("Player") or skill_id.endswith("PlayerTwo"):
+            return "Aura"
+        # gem 基础值等保留 Skill
+        return "Skill"
+    if source == "gem":
+        return "Skill"
+    if prefix in ("Base", "Tree", "Item", "Config"):
         return prefix
     return "Other"
 

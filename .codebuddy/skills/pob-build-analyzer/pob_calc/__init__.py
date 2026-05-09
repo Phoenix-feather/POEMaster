@@ -104,28 +104,36 @@ class POBCalculator:
     def from_current(cls, pob_path: str = None) -> "POBCalculator":
         """从当前活跃缓存构筑创建计算器。
 
-        如果没有活跃构筑，自动尝试从 share_code_new.txt 读取分享码并缓存。
+        以 current.txt 为绝对优先：
+        1. current.txt 指向有效构筑 → 直接加载（忽略 share_code_new.txt）
+        2. current.txt 为空 → 从 share_code_new.txt 兜底加载
+
+        注意：save_build() 会同时更新 current.txt 和 share_code_new.txt，
+        因此新构筑通过 save_build() 导入时 current.txt 会被正确更新。
+        set_current_build() 切换构筑时会清空 share_code_new.txt 防止冲突。
 
         Raises:
             FileNotFoundError: 无活跃构筑且无可用分享码
         """
-        build_id = _cache.get_current_id()
-        if build_id:
-            xml_text = _cache.load(build_id)
+        current_id = _cache.get_current_id()
+
+        # current.txt 有明确指向 → 直接使用，不再被 share_code_new.txt 覆盖
+        if current_id:
+            xml_text = _cache.load(current_id)
             inst = cls(xml_text=xml_text, pob_path=pob_path)
-            inst._build_id = build_id
+            inst._build_id = current_id
             return inst
 
-        # 无活跃构筑，尝试从分享码文件加载
+        # current.txt 为空 → 从 share_code_new.txt 兜底
         share_code = _cache.load_share_code_file()
         if share_code:
             import logging as _logging
-            _logging.getLogger(__name__).info("从 %s 加载分享码", _cache._share_code_file)
+            _logging.getLogger(__name__).info(
+                "current.txt 为空，从 %s 加载分享码", _cache._share_code_file)
             build_id = _cache.save(share_code)
             xml_text = _cache.load(build_id)
             inst = cls(xml_text=xml_text, pob_path=pob_path)
             inst._build_id = build_id
-            # 自动执行全技能分析
             try:
                 inst.full_build_analysis()
             except Exception as e:

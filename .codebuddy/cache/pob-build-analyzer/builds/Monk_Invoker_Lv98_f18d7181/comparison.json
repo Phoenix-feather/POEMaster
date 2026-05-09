@@ -1,8 +1,8 @@
 {
   "defence": {
-    "ehp_ws1": 9591.2782127835,
-    "ehp_ws2": 9834.4492810162,
-    "delta_pct": 2.5
+    "ehp_ws1": 6833.6475882026,
+    "ehp_ws2": 10595.928867632,
+    "delta_pct": 55.1
   },
   "resource": {
     "spirit_ws1": -125.0,
@@ -10,50 +10,55 @@
   },
   "skills": {
     "Frost Wall": {
-      "dps_ws1": 45547.470643166,
-      "dps_ws2": 10564.802221099,
-      "delta_pct": -76.8
+      "dps_ws1": 58292.369974346,
+      "dps_ws2": 12525.621806868,
+      "delta_pct": -78.5
     },
     "Spark": {
-      "dps_ws1": 509794.47258514,
-      "dps_ws2": 113373.91390373,
-      "delta_pct": -77.8
-    },
-    "Comet (Elemental Invocation)": {
-      "dps_ws1": 655559.39645403,
-      "dps_ws2": 125729.61223725,
-      "delta_pct": -80.8
-    },
-    "Power Siphon": {
-      "dps_ws1": 213463.54404712,
-      "dps_ws2": 23710.263237915,
-      "delta_pct": -88.9
+      "dps_ws1": 711933.59298406,
+      "dps_ws2": 146358.67373431,
+      "delta_pct": -79.4
     },
     "Comet (Cast on Critical)": {
-      "dps_ws1": 655559.39645403,
-      "dps_ws2": 125729.61223725,
-      "delta_pct": -80.8
+      "dps_ws1": 879334.55939088,
+      "dps_ws2": 156390.04375652,
+      "delta_pct": -82.2
     },
     "Frost Bomb": {
-      "dps_ws1": 97235.491299116,
-      "dps_ws2": 20430.87007337,
-      "delta_pct": -79.0
+      "dps_ws1": 126414.0672442,
+      "dps_ws2": 24646.231824789,
+      "delta_pct": -80.5
+    },
+    "Comet (Elemental Invocation)": {
+      "dps_ws1": 879334.55939088,
+      "dps_ws2": 156390.04375652,
+      "delta_pct": -82.2
+    },
+    "Doedre's Dark Design": {
+      "dps_ws1": 29661.692314168,
+      "dps_ws2": 2632.6485742133,
+      "delta_pct": -91.1
     },
     "Living Bomb": {
-      "dps_ws1": 145340.41759424,
-      "dps_ws2": 24911.930717448,
-      "delta_pct": -82.9
+      "dps_ws1": 197774.88035458,
+      "dps_ws2": 31371.354851159,
+      "delta_pct": -84.1
     }
   },
-  "ws1_only_skills": [],
-  "ws2_only_skills": [],
+  "ws1_only_skills": [
+    "Power Siphon (Group 16)",
+    "Power Siphon (Group 19)"
+  ],
+  "ws2_only_skills": [
+    "Power Siphon"
+  ],
   "shared_skills": [
     "Comet (Cast on Critical)",
     "Comet (Elemental Invocation)",
+    "Doedre's Dark Design",
     "Frost Bomb",
     "Frost Wall",
     "Living Bomb",
-    "Power Siphon",
     "Spark"
   ]
 }

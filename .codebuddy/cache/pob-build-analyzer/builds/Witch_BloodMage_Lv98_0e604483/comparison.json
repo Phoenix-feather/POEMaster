@@ -1,0 +1,65 @@
+{
+  "defence": {
+    "ehp_ws1": 18065.530215178,
+    "ehp_ws2": 17967.234071579,
+    "delta_pct": -0.5
+  },
+  "resource": {
+    "spirit_ws1": 41.0,
+    "spirit_ws2": 41.0
+  },
+  "skills": {
+    "Quarterstaff Strike": {
+      "dps_ws1": 102096.04524311,
+      "dps_ws2": 273106.03761911,
+      "delta_pct": 167.5
+    },
+    "Armour Explosion": {
+      "dps_ws1": 4508.6546402005,
+      "dps_ws2": 7092.7216528916,
+      "delta_pct": 57.3
+    },
+    "Gale Force": {
+      "dps_ws1": 18063.462012717,
+      "dps_ws2": 59715.197204722,
+      "delta_pct": 230.6
+    },
+    "Charged Shockwave": {
+      "dps_ws1": 16510.573376582,
+      "dps_ws2": 41917.007699664,
+      "delta_pct": 153.9
+    },
+    "Falling Thunder": {
+      "dps_ws1": 100821.88675213,
+      "dps_ws2": 313135.39745708,
+      "delta_pct": 210.6
+    },
+    "Punch": {
+      "dps_ws1": 15992.835006911,
+      "dps_ws2": 42981.385129363,
+      "delta_pct": 168.8
+    },
+    "Flicker Strike": {
+      "dps_ws1": 3317140.4660818,
+      "dps_ws2": 12050362.578136,
+      "delta_pct": 263.3
+    },
+    "Tempest Flurry": {
+      "dps_ws1": 31450.686585161,
+      "dps_ws2": 119585.59160599,
+      "delta_pct": 280.2
+    }
+  },
+  "ws1_only_skills": [],
+  "ws2_only_skills": [],
+  "shared_skills": [
+    "Armour Explosion",
+    "Charged Shockwave",
+    "Falling Thunder",
+    "Flicker Strike",
+    "Gale Force",
+    "Punch",
+    "Quarterstaff Strike",
+    "Tempest Flurry"
+  ]
+}

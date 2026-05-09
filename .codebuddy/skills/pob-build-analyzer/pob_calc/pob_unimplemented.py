@@ -9,6 +9,7 @@
 """
 
 import logging
+import fnmatch
 from pathlib import Path
 from typing import Optional
 
@@ -55,31 +56,52 @@ def detect_unimplemented_skills(lua, build=None) -> list[dict]:
     if not config.get("skills"):
         return []
     
-    # 获取构筑中的技能列表（同时收集 gemData.name 和 skillId）
+    # 获取构筑中的技能列表（同时收集 gemData.name、skillId、活跃 statSet 的 stat 名）
     build_var = build or "_spike_build"
     result = lua.execute(f'''
         local names = {{}}
         local ids = {{}}
+        local allStats = {{}}
         local build = {build_var}
         if build.skillsTab and build.skillsTab.socketGroupList then
             for _, g in ipairs(build.skillsTab.socketGroupList) do
                 local gemList = g.gems or g.gemList or {{}}
                 for _, gem in ipairs(gemList) do
-                    -- 优先 gem.name，其次 gem.gemData.name，最后 gem.skillId
                     local n = gem.name
                         or (gem.gemData and gem.gemData.name)
                         or nil
                     if n then names[#names+1] = n end
                     if gem.skillId then ids[#ids+1] = gem.skillId end
+                    if gem.grantedEffect and gem.grantedEffect.activeStatSet then
+                        local ss = gem.grantedEffect.activeStatSet
+                        for _, pair in ipairs(ss.constantStats or ss[1] or {{}}) do
+                            if type(pair) == "table" and pair[1] then
+                                allStats[pair[1]] = true
+                            end
+                        end
+                        for _, pair in ipairs(ss.stats or ss[2] or {{}}) do
+                            if type(pair) == "table" and pair[1] then
+                                allStats[pair[1]] = true
+                            end
+                        end
+                        for _, pair in ipairs(ss.qualityStats or ss[3] or {{}}) do
+                            if type(pair) == "table" and pair[1] then
+                                allStats[pair[1]] = true
+                            end
+                        end
+                    end
                 end
             end
         end
-        return table.concat(names, "|") .. "||" .. table.concat(ids, "|")
+        local statList = {{}}
+        for s, _ in pairs(allStats) do statList[#statList+1] = s end
+        return table.concat(names, "|") .. "||" .. table.concat(ids, "|") .. "||" .. table.concat(statList, "|")
     ''')
     
-    parts = str(result).split("||", 1)
+    parts = str(result).split("||", 2)
     build_skills = set(parts[0].split("|")) if parts[0] else set()
     build_skill_ids = set(parts[1].split("|")) if len(parts) > 1 and parts[1] else set()
+    build_stats = set(parts[2].split("|")) if len(parts) > 2 and parts[2] else set()
     
     # 匹配配置中的技能
     detected = []
@@ -102,8 +124,14 @@ def detect_unimplemented_skills(lua, build=None) -> list[dict]:
         elif detect_type == "skill_id":
             matched = detect.get("skill_id", "") in build_skill_ids
         elif detect_type == "stat_pattern":
-            # TODO: 支持通过 constantStats 模式匹配
-            pass
+            # 检查构筑中是否有技能的活跃 statSet 包含匹配的 stat
+            pattern = detect.get("pattern", "")
+            if pattern:
+                # 支持通配符：pattern 中的 * 匹配任意字符
+                if "*" in pattern:
+                    matched = any(fnmatch.fnmatch(s, pattern) for s in build_stats)
+                else:
+                    matched = pattern in build_stats
         
         if matched:
             effects = skill_config.get("effects", [])

@@ -1,0 +1,21 @@
+{
+  "defence": {
+    "ehp_ws1": 24552.899393415,
+    "ehp_ws2": 24552.899393415,
+    "delta_pct": 0.0
+  },
+  "resource": {
+    "spirit_ws1": -35.0,
+    "spirit_ws2": -35.0
+  },
+  "skills": {},
+  "ws1_only_skills": [],
+  "ws2_only_skills": [
+    "Bow Shot",
+    "Gale Force",
+    "Lightning Arrow",
+    "Lightning Rod",
+    "Tornado Shot"
+  ],
+  "shared_skills": []
+}
